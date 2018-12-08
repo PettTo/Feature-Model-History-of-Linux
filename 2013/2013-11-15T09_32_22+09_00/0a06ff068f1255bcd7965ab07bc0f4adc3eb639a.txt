@@ -1,0 +1,351 @@
+commit 0a06ff068f1255bcd7965ab07bc0f4adc3eb639a
+Author: Christoph Hellwig <hch@infradead.org>
+Date:   Thu Nov 14 14:32:07 2013 -0800
+
+    kernel: remove CONFIG_USE_GENERIC_SMP_HELPERS
+    
+    We've switched over every architecture that supports SMP to it, so
+    remove the new useless config variable.
+    
+    Signed-off-by: Christoph Hellwig <hch@lst.de>
+    Cc: Jan Kara <jack@suse.cz>
+    Cc: Jens Axboe <axboe@kernel.dk>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index ded747c7b74c..f1cf895c040f 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -207,9 +207,6 @@ config HAVE_DMA_ATTRS
+ config HAVE_DMA_CONTIGUOUS
+ 	bool
+ 
+-config USE_GENERIC_SMP_HELPERS
+-	bool
+-
+ config GENERIC_SMP_IDLE_THREAD
+        bool
+ 
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 35a300d4a9fb..8d2a4833acda 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -522,7 +522,6 @@ config ARCH_MAY_HAVE_PC_FDC
+ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	depends on ALPHA_SABLE || ALPHA_LYNX || ALPHA_RAWHIDE || ALPHA_DP264 || ALPHA_WILDFIRE || ALPHA_TITAN || ALPHA_GENERIC || ALPHA_SHARK || ALPHA_MARVEL
+-	select USE_GENERIC_SMP_HELPERS
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 5ede5460c806..2ee0c9bfd032 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -125,7 +125,6 @@ config ARC_PLAT_NEEDS_CPU_TO_DMA
+ config SMP
+ 	bool "Symmetric Multi-Processing (Incomplete)"
+ 	default n
+-	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 603d661b445d..00c1ff45a158 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1432,7 +1432,6 @@ config SMP
+ 	depends on GENERIC_CLOCKEVENTS
+ 	depends on HAVE_SMP
+ 	depends on MMU || ARM_MPU
+-	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index bb0bf1bfc05d..9714fe0403b7 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -143,7 +143,6 @@ config CPU_BIG_ENDIAN
+ 
+ config SMP
+ 	bool "Symmetric Multi-Processing"
+-	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one CPU.  If
+ 	  you say N here, the kernel will run on single and
+diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+index e887b57c3176..9ceccef9c649 100644
+--- a/arch/blackfin/Kconfig
++++ b/arch/blackfin/Kconfig
+@@ -34,7 +34,6 @@ config BLACKFIN
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_IRQ_PROBE
+-	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select ARCH_USES_GETTIMEOFFSET if !GENERIC_CLOCKEVENTS
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 99041b07e610..09df2608f40a 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -4,7 +4,6 @@ comment "Linux Kernel Configuration for Hexagon"
+ config HEXAGON
+ 	def_bool y
+ 	select HAVE_OPROFILE
+-	select USE_GENERIC_SMP_HELPERS if SMP
+ 	# Other pending projects/to-do items.
+ 	# select HAVE_REGS_AND_STACK_ACCESS_API
+ 	# select HAVE_HW_BREAKPOINT if PERF_EVENTS
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 7740ab10a171..dfe85e92ca2e 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -343,7 +343,6 @@ config FORCE_MAX_ZONEORDER
+ 
+ config SMP
+ 	bool "Symmetric multi-processing support"
+-	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, say N.  If you have a system with more
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index 75661fbf4529..09ef94a8a7c3 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -275,7 +275,6 @@ source "kernel/Kconfig.preempt"
+ 
+ config SMP
+ 	bool "Symmetric multi-processing support"
+-	select USE_GENERIC_SMP_HELPERS
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index 36368eb07e13..e56abd2c1b4f 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -111,7 +111,6 @@ config METAG_META21
+ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	depends on METAG_META21 && METAG_META21_MMU
+-	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one thread running
+ 	  Linux. If you have a system with only one thread running Linux,
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 17cc7ff8458c..867d7db11581 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2125,7 +2125,6 @@ source "mm/Kconfig"
+ config SMP
+ 	bool "Multi-Processing support"
+ 	depends on SYS_SUPPORTS_SMP
+-	select USE_GENERIC_SMP_HELPERS
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
+index 6aaa1607001a..8bde9237d13b 100644
+--- a/arch/mn10300/Kconfig
++++ b/arch/mn10300/Kconfig
+@@ -181,7 +181,6 @@ endmenu
+ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	default y
+-	select USE_GENERIC_SMP_HELPERS
+ 	depends on MN10300_PROC_MN2WS0038 || MN10300_PROC_MN2WS0050
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 7dcde539d61e..c03567a9a915 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -226,7 +226,6 @@ endchoice
+ 
+ config SMP
+ 	bool "Symmetric multi-processing support"
+-	select USE_GENERIC_SMP_HELPERS
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 2f898d63eb96..4740b0a15fa8 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -106,7 +106,6 @@ config PPC
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_DMA_ATTRS
+ 	select HAVE_DMA_API_DEBUG
+-	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select HAVE_OPROFILE
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select GENERIC_ATOMIC64 if PPC32
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index f75d7e517927..314fced4fc14 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -141,7 +141,6 @@ config S390
+ 	select OLD_SIGACTION
+ 	select OLD_SIGSUSPEND3
+ 	select SYSCTL_EXCEPTION_TRACE
+-	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select VIRT_CPU_ACCOUNTING
+ 	select VIRT_TO_BUS
+ 
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 224f4bc9925e..e78561bc30ef 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -711,7 +711,6 @@ config CC_STACKPROTECTOR
+ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	depends on SYS_SUPPORTS_SMP
+-	select USE_GENERIC_SMP_HELPERS
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+ 	  a system with only one CPU, like most personal computers, say N. If
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 78c4fdb91bc5..8591b201d9cc 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -28,7 +28,6 @@ config SPARC
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select GENERIC_IRQ_SHOW
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+-	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select GENERIC_PCI_IOMAP
+ 	select HAVE_NMI_WATCHDOG if SPARC64
+ 	select HAVE_BPF_JIT
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index d45a2c48f185..b3692ce78f90 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -8,7 +8,6 @@ config TILE
+ 	select HAVE_KVM if !TILEGX
+ 	select GENERIC_FIND_FIRST_BIT
+ 	select SYSCTL_EXCEPTION_TRACE
+-	select USE_GENERIC_SMP_HELPERS
+ 	select CC_OPTIMIZE_FOR_SIZE
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select GENERIC_IRQ_PROBE
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index af5513e5798a..83f521aa103f 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -90,7 +90,6 @@ config X86
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_CLOCKEVENTS_MIN_ADJUST
+ 	select IRQ_FORCED_THREADING
+-	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select HAVE_BPF_JIT if X86_64
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ 	select CLKEVT_I8253
+diff --git a/block/blk-mq.c b/block/blk-mq.c
+index 88d4e864d4c0..c661896e2465 100644
+--- a/block/blk-mq.c
++++ b/block/blk-mq.c
+@@ -319,7 +319,7 @@ void __blk_mq_end_io(struct request *rq, int error)
+ 		blk_mq_complete_request(rq, error);
+ }
+ 
+-#if defined(CONFIG_SMP) && defined(CONFIG_USE_GENERIC_SMP_HELPERS)
++#if defined(CONFIG_SMP)
+ 
+ /*
+  * Called with interrupts disabled.
+@@ -361,7 +361,7 @@ static int ipi_remote_cpu(struct blk_mq_ctx *ctx, const int cpu,
+ 
+ 	return true;
+ }
+-#else /* CONFIG_SMP && CONFIG_USE_GENERIC_SMP_HELPERS */
++#else /* CONFIG_SMP */
+ static int ipi_remote_cpu(struct blk_mq_ctx *ctx, const int cpu,
+ 			  struct request *rq, const int error)
+ {
+diff --git a/block/blk-softirq.c b/block/blk-softirq.c
+index ce4b8bfd3d27..57790c1a97eb 100644
+--- a/block/blk-softirq.c
++++ b/block/blk-softirq.c
+@@ -36,7 +36,7 @@ static void blk_done_softirq(struct softirq_action *h)
+ 	}
+ }
+ 
+-#if defined(CONFIG_SMP) && defined(CONFIG_USE_GENERIC_SMP_HELPERS)
++#ifdef CONFIG_SMP
+ static void trigger_softirq(void *data)
+ {
+ 	struct request *rq = data;
+@@ -71,7 +71,7 @@ static int raise_blk_irq(int cpu, struct request *rq)
+ 
+ 	return 1;
+ }
+-#else /* CONFIG_SMP && CONFIG_USE_GENERIC_SMP_HELPERS */
++#else /* CONFIG_SMP */
+ static int raise_blk_irq(int cpu, struct request *rq)
+ {
+ 	return 1;
+diff --git a/block/blk-sysfs.c b/block/blk-sysfs.c
+index 4f8c4d90ec73..97779522472f 100644
+--- a/block/blk-sysfs.c
++++ b/block/blk-sysfs.c
+@@ -288,7 +288,7 @@ static ssize_t
+ queue_rq_affinity_store(struct request_queue *q, const char *page, size_t count)
+ {
+ 	ssize_t ret = -EINVAL;
+-#if defined(CONFIG_USE_GENERIC_SMP_HELPERS)
++#ifdef CONFIG_SMP
+ 	unsigned long val;
+ 
+ 	ret = queue_var_store(&val, page, count);
+diff --git a/include/linux/smp.h b/include/linux/smp.h
+index 731f5237d5f4..78851513030d 100644
+--- a/include/linux/smp.h
++++ b/include/linux/smp.h
+@@ -106,14 +106,10 @@ void kick_all_cpus_sync(void);
+ /*
+  * Generic and arch helpers
+  */
+-#ifdef CONFIG_USE_GENERIC_SMP_HELPERS
+ void __init call_function_init(void);
+ void generic_smp_call_function_single_interrupt(void);
+ #define generic_smp_call_function_interrupt \
+ 	generic_smp_call_function_single_interrupt
+-#else
+-static inline void call_function_init(void) { }
+-#endif
+ 
+ /*
+  * Mark the boot cpu "online" so that it can call console drivers in
+diff --git a/kernel/Kconfig.hz b/kernel/Kconfig.hz
+index 94fabd534b03..2a202a846757 100644
+--- a/kernel/Kconfig.hz
++++ b/kernel/Kconfig.hz
+@@ -55,4 +55,4 @@ config HZ
+ 	default 1000 if HZ_1000
+ 
+ config SCHED_HRTICK
+-	def_bool HIGH_RES_TIMERS && (!SMP || USE_GENERIC_SMP_HELPERS)
++	def_bool HIGH_RES_TIMERS
+diff --git a/kernel/smp.c b/kernel/smp.c
+index 46116100f0ee..1c194e20e943 100644
+--- a/kernel/smp.c
++++ b/kernel/smp.c
+@@ -15,7 +15,6 @@
+ 
+ #include "smpboot.h"
+ 
+-#ifdef CONFIG_USE_GENERIC_SMP_HELPERS
+ enum {
+ 	CSD_FLAG_LOCK		= 0x01,
+ 	CSD_FLAG_WAIT		= 0x02,
+@@ -464,7 +463,6 @@ int smp_call_function(smp_call_func_t func, void *info, int wait)
+ 	return 0;
+ }
+ EXPORT_SYMBOL(smp_call_function);
+-#endif /* USE_GENERIC_SMP_HELPERS */
+ 
+ /* Setup configured maximum number of CPUs to activate */
+ unsigned int setup_max_cpus = NR_CPUS;

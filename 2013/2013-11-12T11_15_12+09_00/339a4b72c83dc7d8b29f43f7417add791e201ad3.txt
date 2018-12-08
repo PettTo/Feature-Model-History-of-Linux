@@ -1,0 +1,14 @@
+commit 339a4b72c83dc7d8b29f43f7417add791e201ad3
+Merge: dba538ff5610 ced3c42c9fcb
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Nov 12 11:15:12 2013 +0900
+
+    Merge branch 'x86-iommu-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 iommu changes from Ingo Molnar:
+     "Make it easier to turn off the old AMD GART code"
+    
+    * 'x86-iommu-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/iommu: Clean up the CONFIG_GART_IOMMU config option a bit
+      x86/iommu: Don't make AMD_GART depend on EXPERT and default y
+

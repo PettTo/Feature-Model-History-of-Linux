@@ -1,0 +1,82 @@
+commit 5e30025a319910695f5010dc0fb53a23299da14d
+Merge: 7971e23a66c9 90d3839b90fe
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Nov 14 16:30:30 2013 +0900
+
+    Merge branch 'core-locking-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull core locking changes from Ingo Molnar:
+     "The biggest changes:
+    
+       - add lockdep support for seqcount/seqlocks structures, this
+         unearthed both bugs and required extra annotation.
+    
+       - move the various kernel locking primitives to the new
+         kernel/locking/ directory"
+    
+    * 'core-locking-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (21 commits)
+      block: Use u64_stats_init() to initialize seqcounts
+      locking/lockdep: Mark __lockdep_count_forward_deps() as static
+      lockdep/proc: Fix lock-time avg computation
+      locking/doc: Update references to kernel/mutex.c
+      ipv6: Fix possible ipv6 seqlock deadlock
+      cpuset: Fix potential deadlock w/ set_mems_allowed
+      seqcount: Add lockdep functionality to seqcount/seqlock structures
+      net: Explicitly initialize u64_stats_sync structures for lockdep
+      locking: Move the percpu-rwsem code to kernel/locking/
+      locking: Move the lglocks code to kernel/locking/
+      locking: Move the rwsem code to kernel/locking/
+      locking: Move the rtmutex code to kernel/locking/
+      locking: Move the semaphore core to kernel/locking/
+      locking: Move the spinlock code to kernel/locking/
+      locking: Move the lockdep code to kernel/locking/
+      locking: Move the mutex code to kernel/locking/
+      hung_task debugging: Add tracepoint to report the hang
+      x86/locking/kconfig: Update paravirt spinlock Kconfig description
+      lockstat: Report avg wait and hold times
+      lockdep, x86/alternatives: Drop ancient lockdep fixup message
+      ...
+
+diff --cc drivers/net/virtio_net.c
+index 01f4eb5c8b78,ee384f3d612b..bf7c734259ad
+--- a/drivers/net/virtio_net.c
++++ b/drivers/net/virtio_net.c
+@@@ -1576,6 -1569,18 +1576,13 @@@ static int virtnet_probe(struct virtio_
+  	if (vi->stats == NULL)
+  		goto free;
+  
++ 	for_each_possible_cpu(i) {
++ 		struct virtnet_stats *virtnet_stats;
++ 		virtnet_stats = per_cpu_ptr(vi->stats, i);
++ 		u64_stats_init(&virtnet_stats->tx_syncp);
++ 		u64_stats_init(&virtnet_stats->rx_syncp);
++ 	}
++ 
+ -
+ -	vi->vq_index = alloc_percpu(int);
+ -	if (vi->vq_index == NULL)
+ -		goto free_stats;
+ -
+  	mutex_init(&vi->config_lock);
+  	vi->config_enable = true;
+  	INIT_WORK(&vi->config_work, virtnet_config_changed_work);
+diff --cc net/openvswitch/datapath.c
+index 1408adc2a2a7,b92553c02279..449e0776a2c0
+--- a/net/openvswitch/datapath.c
++++ b/net/openvswitch/datapath.c
+@@@ -1199,8 -1698,14 +1199,14 @@@ static int ovs_dp_cmd_new(struct sk_buf
+  		goto err_destroy_table;
+  	}
+  
++ 	for_each_possible_cpu(i) {
++ 		struct dp_stats_percpu *dpath_stats;
++ 		dpath_stats = per_cpu_ptr(dp->stats_percpu, i);
++ 		u64_stats_init(&dpath_stats->sync);
++ 	}
++ 
+  	dp->ports = kmalloc(DP_VPORT_HASH_BUCKETS * sizeof(struct hlist_head),
+ -			GFP_KERNEL);
+ +			    GFP_KERNEL);
+  	if (!dp->ports) {
+  		err = -ENOMEM;
+  		goto err_destroy_percpu;

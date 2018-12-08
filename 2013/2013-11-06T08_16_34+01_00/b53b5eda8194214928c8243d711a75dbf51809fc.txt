@@ -1,0 +1,39 @@
+commit b53b5eda8194214928c8243d711a75dbf51809fc
+Author: Josh Boyer <jwboyer@redhat.com>
+Date:   Tue Nov 5 09:38:16 2013 -0500
+
+    x86/cpu: Increase max CPU count to 8192
+    
+    The MAXSMP option is intended to enable silly large numbers of
+    CPUs for testing purposes.  The current value of 4096 isn't very
+    silly any longer as there are actual SGI machines that approach
+    6096 CPUs when taking HT into account.
+    
+    Increase the value to a nice round 8192 to account for this and
+    allow for short term future increases.
+    
+    Signed-off-by: Josh Boyer <jwboyer@fedoraproject.org>
+    Cc: prarit@redhat.com
+    Cc: Russ Anderson <rja@sgi.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Link: http://lkml.kernel.org/r/20131105143816.GK9944@hansolo.jdub.homelinux.org
+    [ Tweaked it so that MAXSMP simply sets the maximum of the normal range. ]
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index f03e428112eb..805469a57d9d 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -826,9 +826,9 @@ config NR_CPUS
+ 	int "Maximum number of CPUs" if SMP && !MAXSMP
+ 	range 2 8 if SMP && X86_32 && !X86_BIGSMP
+ 	range 2 512 if SMP && !MAXSMP && !CPUMASK_OFFSTACK
+-	range 2 4096 if SMP && !MAXSMP && CPUMASK_OFFSTACK && X86_64
++	range 2 8192 if SMP && !MAXSMP && CPUMASK_OFFSTACK && X86_64
+ 	default "1" if !SMP
+-	default "4096" if MAXSMP
++	default "8192" if MAXSMP
+ 	default "32" if SMP && (X86_NUMAQ || X86_SUMMIT || X86_BIGSMP || X86_ES7000)
+ 	default "8" if SMP
+ 	---help---

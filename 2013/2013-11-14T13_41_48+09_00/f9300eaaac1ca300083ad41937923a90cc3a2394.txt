@@ -1,0 +1,231 @@
+commit f9300eaaac1ca300083ad41937923a90cc3a2394
+Merge: 7f2dc5c4bcbf faddf2f5d278
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Nov 14 13:41:48 2013 +0900
+
+    Merge tag 'pm+acpi-3.13-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm
+    
+    Pull ACPI and power management updates from Rafael J Wysocki:
+    
+     - New power capping framework and the the Intel Running Average Power
+       Limit (RAPL) driver using it from Srinivas Pandruvada and Jacob Pan.
+    
+     - Addition of the in-kernel switching feature to the arm_big_little
+       cpufreq driver from Viresh Kumar and Nicolas Pitre.
+    
+     - cpufreq support for iMac G5 from Aaro Koskinen.
+    
+     - Baytrail processors support for intel_pstate from Dirk Brandewie.
+    
+     - cpufreq support for Midway/ECX-2000 from Mark Langsdorf.
+    
+     - ARM vexpress/TC2 cpufreq support from Sudeep KarkadaNagesha.
+    
+     - ACPI power management support for the I2C and SPI bus types from Mika
+       Westerberg and Lv Zheng.
+    
+     - cpufreq core fixes and cleanups from Viresh Kumar, Srivatsa S Bhat,
+       Stratos Karafotis, Xiaoguang Chen, Lan Tianyu.
+    
+     - cpufreq drivers updates (mostly fixes and cleanups) from Viresh
+       Kumar, Aaro Koskinen, Jungseok Lee, Sudeep KarkadaNagesha, Lukasz
+       Majewski, Manish Badarkhe, Hans-Christian Egtvedt, Evgeny Kapaev.
+    
+     - intel_pstate updates from Dirk Brandewie and Adrian Huang.
+    
+     - ACPICA update to version 20130927 includig fixes and cleanups and
+       some reduction of divergences between the ACPICA code in the kernel
+       and ACPICA upstream in order to improve the automatic ACPICA patch
+       generation process.  From Bob Moore, Lv Zheng, Tomasz Nowicki, Naresh
+       Bhat, Bjorn Helgaas, David E Box.
+    
+     - ACPI IPMI driver fixes and cleanups from Lv Zheng.
+    
+     - ACPI hotplug fixes and cleanups from Bjorn Helgaas, Toshi Kani, Zhang
+       Yanfei, Rafael J Wysocki.
+    
+     - Conversion of the ACPI AC driver to the platform bus type and
+       multiple driver fixes and cleanups related to ACPI from Zhang Rui.
+    
+     - ACPI processor driver fixes and cleanups from Hanjun Guo, Jiang Liu,
+       Bartlomiej Zolnierkiewicz, Mathieu Rhéaume, Rafael J Wysocki.
+    
+     - Fixes and cleanups and new blacklist entries related to the ACPI
+       video support from Aaron Lu, Felipe Contreras, Lennart Poettering,
+       Kirill Tkhai.
+    
+     - cpuidle core cleanups from Viresh Kumar and Lorenzo Pieralisi.
+    
+     - cpuidle drivers fixes and cleanups from Daniel Lezcano, Jingoo Han,
+       Bartlomiej Zolnierkiewicz, Prarit Bhargava.
+    
+     - devfreq updates from Sachin Kamat, Dan Carpenter, Manish Badarkhe.
+    
+     - Operation Performance Points (OPP) core updates from Nishanth Menon.
+    
+     - Runtime power management core fix from Rafael J Wysocki and update
+       from Ulf Hansson.
+    
+     - Hibernation fixes from Aaron Lu and Rafael J Wysocki.
+    
+     - Device suspend/resume lockup detection mechanism from Benoit Goby.
+    
+     - Removal of unused proc directories created for various ACPI drivers
+       from Lan Tianyu.
+    
+     - ACPI LPSS driver fix and new device IDs for the ACPI platform scan
+       handler from Heikki Krogerus and Jarkko Nikula.
+    
+     - New ACPI _OSI blacklist entry for Toshiba NB100 from Levente Kurusa.
+    
+     - Assorted fixes and cleanups related to ACPI from Andy Shevchenko, Al
+       Stone, Bartlomiej Zolnierkiewicz, Colin Ian King, Dan Carpenter,
+       Felipe Contreras, Jianguo Wu, Lan Tianyu, Yinghai Lu, Mathias Krause,
+       Liu Chuansheng.
+    
+     - Assorted PM fixes and cleanups from Andy Shevchenko, Thierry Reding,
+       Jean-Christophe Plagniol-Villard.
+    
+    * tag 'pm+acpi-3.13-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm: (386 commits)
+      cpufreq: conservative: fix requested_freq reduction issue
+      ACPI / hotplug: Consolidate deferred execution of ACPI hotplug routines
+      PM / runtime: Use pm_runtime_put_sync() in __device_release_driver()
+      ACPI / event: remove unneeded NULL pointer check
+      Revert "ACPI / video: Ignore BIOS initial backlight value for HP 250 G1"
+      ACPI / video: Quirk initial backlight level 0
+      ACPI / video: Fix initial level validity test
+      intel_pstate: skip the driver if ACPI has power mgmt option
+      PM / hibernate: Avoid overflow in hibernate_preallocate_memory()
+      ACPI / hotplug: Do not execute "insert in progress" _OST
+      ACPI / hotplug: Carry out PCI root eject directly
+      ACPI / hotplug: Merge device hot-removal routines
+      ACPI / hotplug: Make acpi_bus_hot_remove_device() internal
+      ACPI / hotplug: Simplify device ejection routines
+      ACPI / hotplug: Fix handle_root_bridge_removal()
+      ACPI / hotplug: Refuse to hot-remove all objects with disabled hotplug
+      ACPI / scan: Start matching drivers after trying scan handlers
+      ACPI: Remove acpi_pci_slot_init() headers from internal.h
+      ACPI / blacklist: fix name of ThinkPad Edge E530
+      PowerCap: Fix build error with option -Werror=format-security
+      ...
+    
+    Conflicts:
+            arch/arm/mach-omap2/opp.c
+            drivers/Kconfig
+            drivers/spi/spi.c
+
+diff --cc arch/arm/mach-exynos/common.c
+index a4e7ba828810,c17407b16d7c..61d2906ccefb
+--- a/arch/arm/mach-exynos/common.c
++++ b/arch/arm/mach-exynos/common.c
+@@@ -26,8 -26,11 +26,9 @@@
+  #include <linux/export.h>
+  #include <linux/irqdomain.h>
+  #include <linux/of_address.h>
+ -#include <linux/clocksource.h>
+ -#include <linux/clk-provider.h>
+  #include <linux/irqchip/arm-gic.h>
+  #include <linux/irqchip/chained_irq.h>
++ #include <linux/platform_device.h>
+  
+  #include <asm/proc-fns.h>
+  #include <asm/exception.h>
+diff --cc arch/arm/mach-omap2/opp.c
+index 82fd8c72f750,ec21e6eb03e1..a358a07e18f2
+--- a/arch/arm/mach-omap2/opp.c
++++ b/arch/arm/mach-omap2/opp.c
+@@@ -17,8 -17,7 +17,8 @@@
+   * GNU General Public License for more details.
+   */
+  #include <linux/module.h>
+ +#include <linux/of.h>
+- #include <linux/opp.h>
++ #include <linux/pm_opp.h>
+  #include <linux/cpu.h>
+  
+  #include "omap_device.h"
+diff --cc arch/arm/mach-ux500/Kconfig
+index c67f8ad5ccd5,7a3fc1af6944..0034d2cd6973
+--- a/arch/arm/mach-ux500/Kconfig
++++ b/arch/arm/mach-ux500/Kconfig
+@@@ -27,9 -16,24 +27,8 @@@ config ARCH_U850
+  
+  if ARCH_U8500
+  
+ -config UX500_SOC_COMMON
+ -	bool
+ -	default y
+ -	select ABX500_CORE
+ -	select AB8500_CORE
+ -	select ARM_ERRATA_754322
+ -	select ARM_ERRATA_764369 if SMP
+ -	select ARM_GIC
+ -	select CACHE_L2X0
+ -	select CLKSRC_NOMADIK_MTU
+ -	select COMMON_CLK
+ -	select PINCTRL
+ -	select PINCTRL_NOMADIK
+ -	select PINCTRL_ABX500
+ -	select PL310_ERRATA_753970 if CACHE_PL310
+ -
+  config UX500_SOC_DB8500
+  	bool
+- 	select CPU_FREQ_TABLE if CPU_FREQ
+  	select MFD_DB8500_PRCMU
+  	select PINCTRL_DB8500
+  	select PINCTRL_DB8540
+diff --cc drivers/Kconfig
+index 8f451449abd3,969e9871785c..b3138fbb46a4
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@@ -166,6 -166,6 +166,8 @@@ source "drivers/reset/Kconfig
+  
+  source "drivers/fmc/Kconfig"
+  
+ +source "drivers/phy/Kconfig"
+ +
++ source "drivers/powercap/Kconfig"
++ 
+  endmenu
+diff --cc drivers/cpuidle/Kconfig.arm
+index d6f57d5d9631,f23bd75426cd..d988948a89a0
+--- a/drivers/cpuidle/Kconfig.arm
++++ b/drivers/cpuidle/Kconfig.arm
+@@@ -2,9 -2,20 +2,20 @@@
+  # ARM CPU Idle drivers
+  #
+  
++ config ARM_BIG_LITTLE_CPUIDLE
++ 	bool "Support for ARM big.LITTLE processors"
++ 	depends on ARCH_VEXPRESS_TC2_PM
++ 	select ARM_CPU_SUSPEND
++ 	select CPU_IDLE_MULTIPLE_DRIVERS
++ 	help
++ 	  Select this option to enable CPU idle driver for big.LITTLE based
++ 	  ARM systems. Driver manages CPUs coordination through MCPM and
++ 	  define different C-states for little and big cores through the
++ 	  multiple CPU idle drivers infrastructure.
++ 
+  config ARM_HIGHBANK_CPUIDLE
+  	bool "CPU Idle Driver for Calxeda processors"
+ -	depends on ARCH_HIGHBANK
+ +	depends on ARM_PSCI
+  	select ARM_CPU_SUSPEND
+  	help
+  	  Select this to enable cpuidle on Calxeda processors.
+diff --cc drivers/spi/spi.c
+index 8d05accf706c,740f9ddda227..927998aa5e71
+--- a/drivers/spi/spi.c
++++ b/drivers/spi/spi.c
+@@@ -1145,8 -1037,10 +1157,10 @@@ static acpi_status acpi_spi_add_device(
+  		return AE_OK;
+  	}
+  
++ 	adev->power.flags.ignore_parent = true;
+ -	strlcpy(spi->modalias, dev_name(&adev->dev), sizeof(spi->modalias));
+ +	strlcpy(spi->modalias, acpi_device_hid(adev), sizeof(spi->modalias));
+  	if (spi_add_device(spi)) {
++ 		adev->power.flags.ignore_parent = false;
+  		dev_err(&master->dev, "failed to add SPI device %s from ACPI\n",
+  			dev_name(&adev->dev));
+  		spi_dev_put(spi);

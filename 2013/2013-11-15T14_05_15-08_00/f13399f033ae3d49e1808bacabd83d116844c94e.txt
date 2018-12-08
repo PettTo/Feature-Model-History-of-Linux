@@ -1,0 +1,63 @@
+commit f13399f033ae3d49e1808bacabd83d116844c94e
+Merge: 049ffa8ab33a b2c32b32a212
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Nov 15 14:05:15 2013 -0800
+
+    Merge tag 'for-linus' of git://linux-c6x.org/git/projects/linux-c6x-upstreaming
+    
+    Pull Kconfig cleanups from Mark Salter:
+     "Remove some unused config options from C6X and clean up PC_PARPORT
+      dependencies.  The latter was discussed here:
+    
+        https://lkml.org/lkml/2013/10/8/12"
+    
+    * tag 'for-linus' of git://linux-c6x.org/git/projects/linux-c6x-upstreaming:
+      c6x: remove unused COMMON_CLKDEV Kconfig parameter
+      Kconfig cleanup (PARPORT_PC dependencies)
+      x86: select ARCH_MIGHT_HAVE_PC_PARPORT
+      unicore32: select ARCH_MIGHT_HAVE_PC_PARPORT
+      sparc: select ARCH_MIGHT_HAVE_PC_PARPORT
+      sh: select ARCH_MIGHT_HAVE_PC_PARPORT
+      powerpc: select ARCH_MIGHT_HAVE_PC_PARPORT
+      parisc: select ARCH_MIGHT_HAVE_PC_PARPORT
+      mips: select ARCH_MIGHT_HAVE_PC_PARPORT
+      microblaze: select ARCH_MIGHT_HAVE_PC_PARPORT
+      m68k: select ARCH_MIGHT_HAVE_PC_PARPORT
+      ia64: select ARCH_MIGHT_HAVE_PC_PARPORT
+      arm: select ARCH_MIGHT_HAVE_PC_PARPORT
+      alpha: select ARCH_MIGHT_HAVE_PC_PARPORT
+      c6x: remove unused parameter in Kconfig
+
+diff --cc arch/arm/Kconfig
+index e089e622be79,7db8abe071f4..214b698cefea
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@@ -5,7 -5,7 +5,8 @@@ config AR
+  	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+  	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+  	select ARCH_HAVE_CUSTOM_GPIO_H
++ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ +	select ARCH_USE_CMPXCHG_LOCKREF
+  	select ARCH_WANT_IPC_PARSE_VERSION
+  	select BUILDTIME_EXTABLE_SORT if MMU
+  	select CLONE_BACKWARDS
+diff --cc drivers/parport/Kconfig
+index dc82ef096f3b,f5366850af7a..2872ece81f35
+--- a/drivers/parport/Kconfig
++++ b/drivers/parport/Kconfig
+@@@ -35,11 -41,9 +41,8 @@@ if PARPOR
+  
+  config PARPORT_PC
+  	tristate "PC-style hardware"
+- 	depends on (!SPARC64 || PCI) && !SPARC32 && !M32R && !FRV && !S390 && \
+- 		(!M68K || ISA) && !MN10300 && !AVR32 && !BLACKFIN && \
+- 		!XTENSA && !CRIS
+- 
+- 	---help---
++ 	depends on ARCH_MIGHT_HAVE_PC_PARPORT
+ -
+ -	---help---
+++	help
+  	  You should say Y here if you have a PC-style parallel port. All
+  	  IBM PC compatible computers and some Alphas have PC-style
+  	  parallel ports.  PA-RISC owners should only say Y here if they

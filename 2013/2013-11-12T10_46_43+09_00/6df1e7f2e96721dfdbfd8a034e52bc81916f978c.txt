@@ -1,0 +1,23 @@
+commit 6df1e7f2e96721dfdbfd8a034e52bc81916f978c
+Merge: d96d8aa26170 b53b5eda8194
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Nov 12 10:46:43 2013 +0900
+
+    Merge branch 'x86-cpu-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 cpu changes from Ingo Molnar:
+     "The biggest change that stands out is the increase of the
+      CONFIG_NR_CPUS range from 4096 to 8192 - as real hardware out there
+      already went beyond 4k CPUs ...
+    
+      We only allow more than 512 CPUs if offstack cpumasks are enabled.
+    
+      CONFIG_MAXSMP=y remains to be the 'you are nuts!' extreme testcase,
+      which now means a max of 8192 CPUs"
+    
+    * 'x86-cpu-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/cpu: Increase max CPU count to 8192
+      x86/cpu: Allow higher NR_CPUS values
+      x86/cpu: Always print SMP information in /proc/cpuinfo
+      x86/cpu: Track legacy CPU model data only on 32-bit kernels
+

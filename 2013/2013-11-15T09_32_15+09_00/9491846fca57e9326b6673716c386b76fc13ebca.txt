@@ -1,0 +1,80 @@
+commit 9491846fca57e9326b6673716c386b76fc13ebca
+Author: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Date:   Thu Nov 14 14:31:10 2013 -0800
+
+    x86, mm: enable split page table lock for PMD level
+    
+    Enable PMD split page table lock for X86_64 and PAE.
+    
+    [akpm@linux-foundation.org: coding-style fixes]
+    Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+    Tested-by: Alex Thorlton <athorlton@sgi.com>
+    Cc: Ingo Molnar <mingo@redhat.com>
+    Cc: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+    Cc: "Eric W . Biederman" <ebiederm@xmission.com>
+    Cc: "Paul E . McKenney" <paulmck@linux.vnet.ibm.com>
+    Cc: Al Viro <viro@zeniv.linux.org.uk>
+    Cc: Andi Kleen <ak@linux.intel.com>
+    Cc: Andrea Arcangeli <aarcange@redhat.com>
+    Cc: Dave Hansen <dave.hansen@intel.com>
+    Cc: Dave Jones <davej@redhat.com>
+    Cc: David Howells <dhowells@redhat.com>
+    Cc: Frederic Weisbecker <fweisbec@gmail.com>
+    Cc: Johannes Weiner <hannes@cmpxchg.org>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Mel Gorman <mgorman@suse.de>
+    Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+    Cc: Oleg Nesterov <oleg@redhat.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Rik van Riel <riel@redhat.com>
+    Cc: Robin Holt <robinmholt@gmail.com>
+    Cc: Sedat Dilek <sedat.dilek@gmail.com>
+    Cc: Srikar Dronamraju <srikar@linux.vnet.ibm.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Hugh Dickins <hughd@google.com>
+    Reviewed-by: Steven Rostedt <rostedt@goodmis.org>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 6e3e1cb3f6a0..af5513e5798a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1885,6 +1885,10 @@ config USE_PERCPU_NUMA_NODE_ID
+ 	def_bool y
+ 	depends on NUMA
+ 
++config ARCH_ENABLE_SPLIT_PMD_PTLOCK
++	def_bool y
++	depends on X86_64 || X86_PAE
++
+ menu "Power management and ACPI options"
+ 
+ config ARCH_HIBERNATION_HEADER
+diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
+index b4389a468fb6..c4412e972bbd 100644
+--- a/arch/x86/include/asm/pgalloc.h
++++ b/arch/x86/include/asm/pgalloc.h
+@@ -80,12 +80,21 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
+ #if PAGETABLE_LEVELS > 2
+ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
+ {
+-	return (pmd_t *)get_zeroed_page(GFP_KERNEL|__GFP_REPEAT);
++	struct page *page;
++	page = alloc_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO, 0);
++	if (!page)
++		return NULL;
++	if (!pgtable_pmd_page_ctor(page)) {
++		__free_pages(page, 0);
++		return NULL;
++	}
++	return (pmd_t *)page_address(page);
+ }
+ 
+ static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
+ {
+ 	BUG_ON((unsigned long)pmd & (PAGE_SIZE-1));
++	pgtable_pmd_page_dtor(virt_to_page(pmd));
+ 	free_page((unsigned long)pmd);
+ }
+ 

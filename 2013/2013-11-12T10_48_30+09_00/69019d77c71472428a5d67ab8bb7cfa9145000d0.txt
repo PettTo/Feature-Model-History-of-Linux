@@ -1,0 +1,46 @@
+commit 69019d77c71472428a5d67ab8bb7cfa9145000d0
+Merge: 6df1e7f2e967 88392e9dd5a5
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Nov 12 10:48:30 2013 +0900
+
+    Merge branch 'x86-efi-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 EFI changes from Ingo Molnar:
+     "Main changes:
+    
+       - Add support for earlyprintk=efi which uses the EFI framebuffer.
+         Very useful for debugging boot problems.
+    
+       - EFI stub support for large memory maps (more than 128 entries)
+    
+       - EFI ARM support - this was mostly done by generalizing x86 <-> ARM
+         platform differences, such as by moving x86 EFI code into
+         drivers/firmware/efi/ and sharing it with ARM.
+    
+       - Documentation updates
+    
+       - misc fixes"
+    
+    * 'x86-efi-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (26 commits)
+      x86/efi: Add EFI framebuffer earlyprintk support
+      boot, efi: Remove redundant memset()
+      x86/efi: Fix config_table_type array termination
+      x86 efi: bugfix interrupt disabling sequence
+      x86: EFI stub support for large memory maps
+      efi: resolve warnings found on ARM compile
+      efi: Fix types in EFI calls to match EFI function definitions.
+      efi: Renames in handle_cmdline_files() to complete generalization.
+      efi: Generalize handle_ramdisks() and rename to handle_cmdline_files().
+      efi: Allow efi_free() to be called with size of 0
+      efi: use efi_get_memory_map() to get final map for x86
+      efi: generalize efi_get_memory_map()
+      efi: Rename __get_map() to efi_get_memory_map()
+      efi: Move unicode to ASCII conversion to shared function.
+      efi: Generalize relocate_kernel() for use by other architectures.
+      efi: Move relocate_kernel() to shared file.
+      efi: Enforce minimum alignment of 1 page on allocations.
+      efi: Rename memory allocation/free functions
+      efi: Add system table pointer argument to shared functions.
+      efi: Move common EFI stub code from x86 arch code to common location
+      ...
+

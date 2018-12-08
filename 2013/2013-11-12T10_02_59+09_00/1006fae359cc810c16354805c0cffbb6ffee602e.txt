@@ -1,0 +1,41 @@
+commit 1006fae359cc810c16354805c0cffbb6ffee602e
+Merge: 70fdcb83db15 5702941eec32
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Nov 12 10:02:59 2013 +0900
+
+    Merge branch 'irq-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull IRQ changes from Ingo Molnar:
+     "The biggest change this cycle are the softirq/hardirq stack
+      interaction and nesting fixes, cleanups and reorganizations from
+      Frederic.  This is the longer followup story to the softirq nesting
+      fix that is already upstream (commit ded797547548: "irq: Force hardirq
+      exit's softirq processing on its own stack")"
+    
+    * 'irq-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      irqchip: bcm2835: Convert to use IRQCHIP_DECLARE macro
+      powerpc: Tell about irq stack coverage
+      x86: Tell about irq stack coverage
+      irq: Optimize softirq stack selection in irq exit
+      irq: Justify the various softirq stack choices
+      irq: Improve a bit softirq debugging
+      irq: Optimize call to softirq on hardirq exit
+      irq: Consolidate do_softirq() arch overriden implementations
+      x86/irq: Correct comment about i8259 initialization
+
+diff --cc arch/arm/mach-bcm2835/bcm2835.c
+index d50135be0c20,a4abd851905a..70f2f3925f0e
+--- a/arch/arm/mach-bcm2835/bcm2835.c
++++ b/arch/arm/mach-bcm2835/bcm2835.c
+@@@ -130,9 -131,9 +130,8 @@@ static const char * const bcm2835_compa
+  
+  DT_MACHINE_START(BCM2835, "BCM2835")
+  	.map_io = bcm2835_map_io,
+- 	.init_irq = bcm2835_init_irq,
+- 	.handle_irq = bcm2835_handle_irq,
++ 	.init_irq = irqchip_init,
+  	.init_machine = bcm2835_init,
+ -	.init_time = clocksource_of_init,
+  	.restart = bcm2835_restart,
+  	.dt_compat = bcm2835_compat
+  MACHINE_END
