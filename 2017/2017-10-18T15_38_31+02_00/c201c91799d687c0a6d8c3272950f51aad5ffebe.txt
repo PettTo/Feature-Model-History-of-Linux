@@ -1,0 +1,64 @@
+commit c201c91799d687c0a6d8c3272950f51aad5ffebe
+Author: Thomas Gleixner <tglx@linutronix.de>
+Date:   Tue Oct 17 09:54:59 2017 +0200
+
+    x86/vector/msi: Select CONFIG_GENERIC_IRQ_RESERVATION_MODE
+    
+    Select CONFIG_GENERIC_IRQ_RESERVATION_MODE so PCI/MSI domains get the
+    MSI_FLAG_MUST_REACTIVATE flag set in pci_msi_create_irq_domain().
+    
+    Remove the explicit setters of this flag in the apic/msi code as they are
+    not longer required.
+    
+    Fixes: 4900be83602b ("x86/vector/msi: Switch to global reservation mode")
+    Reported-and-tested-by: Dexuan Cui <decui@microsoft.com>
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Josh Poulson <jopoulso@microsoft.com>
+    Cc: Mihai Costache <v-micos@microsoft.com>
+    Cc: Stephen Hemminger <sthemmin@microsoft.com>
+    Cc: Marc Zyngier <marc.zyngier@arm.com>
+    Cc: linux-pci@vger.kernel.org
+    Cc: Haiyang Zhang <haiyangz@microsoft.com>
+    Cc: Simon Xiao <sixiao@microsoft.com>
+    Cc: Saeed Mahameed <saeedm@mellanox.com>
+    Cc: Jork Loeser <Jork.Loeser@microsoft.com>
+    Cc: Bjorn Helgaas <bhelgaas@google.com>
+    Cc: devel@linuxdriverproject.org
+    Cc: KY Srinivasan <kys@microsoft.com>
+    Link: https://lkml.kernel.org/r/20171017075600.527569354@linutronix.de
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 64e99d3c5169..ea4bedaba4b8 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -95,6 +95,7 @@ config X86
+ 	select GENERIC_IRQ_MATRIX_ALLOCATOR	if X86_LOCAL_APIC
+ 	select GENERIC_IRQ_MIGRATION		if SMP
+ 	select GENERIC_IRQ_PROBE
++	select GENERIC_IRQ_RESERVATION_MODE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_PENDING_IRQ		if SMP
+ 	select GENERIC_SMP_IDLE_THREAD
+diff --git a/arch/x86/kernel/apic/msi.c b/arch/x86/kernel/apic/msi.c
+index 5b6dd1a85ec4..9b18be764422 100644
+--- a/arch/x86/kernel/apic/msi.c
++++ b/arch/x86/kernel/apic/msi.c
+@@ -129,7 +129,7 @@ static struct msi_domain_ops pci_msi_domain_ops = {
+ 
+ static struct msi_domain_info pci_msi_domain_info = {
+ 	.flags		= MSI_FLAG_USE_DEF_DOM_OPS | MSI_FLAG_USE_DEF_CHIP_OPS |
+-			  MSI_FLAG_PCI_MSIX | MSI_FLAG_MUST_REACTIVATE,
++			  MSI_FLAG_PCI_MSIX,
+ 	.ops		= &pci_msi_domain_ops,
+ 	.chip		= &pci_msi_controller,
+ 	.handler	= handle_edge_irq,
+@@ -167,8 +167,7 @@ static struct irq_chip pci_msi_ir_controller = {
+ 
+ static struct msi_domain_info pci_msi_ir_domain_info = {
+ 	.flags		= MSI_FLAG_USE_DEF_DOM_OPS | MSI_FLAG_USE_DEF_CHIP_OPS |
+-			  MSI_FLAG_MULTI_PCI_MSI | MSI_FLAG_PCI_MSIX |
+-			  MSI_FLAG_MUST_REACTIVATE,
++			  MSI_FLAG_MULTI_PCI_MSI | MSI_FLAG_PCI_MSIX,
+ 	.ops		= &pci_msi_domain_ops,
+ 	.chip		= &pci_msi_ir_controller,
+ 	.handler	= handle_edge_irq,

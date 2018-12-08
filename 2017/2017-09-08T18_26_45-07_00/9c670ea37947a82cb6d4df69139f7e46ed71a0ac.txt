@@ -1,0 +1,84 @@
+commit 9c670ea37947a82cb6d4df69139f7e46ed71a0ac
+Author: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+Date:   Fri Sep 8 16:10:53 2017 -0700
+
+    mm: thp: introduce CONFIG_ARCH_ENABLE_THP_MIGRATION
+    
+    Introduce CONFIG_ARCH_ENABLE_THP_MIGRATION to limit thp migration
+    functionality to x86_64, which should be safer at the first step.
+    
+    Link: http://lkml.kernel.org/r/20170717193955.20207-5-zi.yan@sent.com
+    Signed-off-by: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+    Signed-off-by: Zi Yan <zi.yan@cs.rutgers.edu>
+    Reviewed-by: Anshuman Khandual <khandual@linux.vnet.ibm.com>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: Dave Hansen <dave.hansen@intel.com>
+    Cc: David Nellans <dnellans@nvidia.com>
+    Cc: Ingo Molnar <mingo@elte.hu>
+    Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+    Cc: Mel Gorman <mgorman@techsingularity.net>
+    Cc: Minchan Kim <minchan@kernel.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Vlastimil Babka <vbabka@suse.cz>
+    Cc: Andrea Arcangeli <aarcange@redhat.com>
+    Cc: Michal Hocko <mhocko@kernel.org>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4b278a33ccbb..07d9b6c75328 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2343,6 +2343,10 @@ config ARCH_ENABLE_HUGEPAGE_MIGRATION
+ 	def_bool y
+ 	depends on X86_64 && HUGETLB_PAGE && MIGRATION
+ 
++config ARCH_ENABLE_THP_MIGRATION
++	def_bool y
++	depends on X86_64 && TRANSPARENT_HUGEPAGE
++
+ menu "Power management and ACPI options"
+ 
+ config ARCH_HIBERNATION_HEADER
+diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+index ee696347f928..d8f35a0865dc 100644
+--- a/include/linux/huge_mm.h
++++ b/include/linux/huge_mm.h
+@@ -233,6 +233,11 @@ void mm_put_huge_zero_page(struct mm_struct *mm);
+ 
+ #define mk_huge_pmd(page, prot) pmd_mkhuge(mk_pmd(page, prot))
+ 
++static inline bool thp_migration_supported(void)
++{
++	return IS_ENABLED(CONFIG_ARCH_ENABLE_THP_MIGRATION);
++}
++
+ #else /* CONFIG_TRANSPARENT_HUGEPAGE */
+ #define HPAGE_PMD_SHIFT ({ BUILD_BUG(); 0; })
+ #define HPAGE_PMD_MASK ({ BUILD_BUG(); 0; })
+@@ -336,6 +341,11 @@ static inline struct page *follow_devmap_pud(struct vm_area_struct *vma,
+ {
+ 	return NULL;
+ }
++
++static inline bool thp_migration_supported(void)
++{
++	return false;
++}
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
+ 
+ #endif /* _LINUX_HUGE_MM_H */
+diff --git a/mm/Kconfig b/mm/Kconfig
+index 0ded10a22639..9ef8c2ea92ad 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -262,6 +262,9 @@ config MIGRATION
+ config ARCH_ENABLE_HUGEPAGE_MIGRATION
+ 	bool
+ 
++config ARCH_ENABLE_THP_MIGRATION
++	bool
++
+ config PHYS_ADDR_T_64BIT
+ 	def_bool 64BIT || ARCH_PHYS_ADDR_T_64BIT
+ 

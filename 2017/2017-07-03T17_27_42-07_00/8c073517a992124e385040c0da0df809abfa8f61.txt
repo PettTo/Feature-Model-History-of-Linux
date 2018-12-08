@@ -1,0 +1,35 @@
+commit 8c073517a992124e385040c0da0df809abfa8f61
+Merge: 03ffbcdd7898 df65c1bcd9b7
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jul 3 17:27:42 2017 -0700
+
+    Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 PCI updates from Thomas Gleixner:
+     "This update provides the seperation of x86 PCI accessors from the
+      global PCI lock in the generic PCI config space accessors.
+    
+      The reasons for this are:
+    
+       - x86 has it's own PCI config lock for various reasons, so the
+         accessors have to lock two locks nested.
+    
+       - The ECAM (mmconfig) access to the extended configuration space does
+         not require locking. The existing generic locking causes a massive
+         lock contention when accessing the extended config space of the
+         Uncore facility for performance monitoring.
+    
+      The commit which switched the access to the primary config space over
+      to ECAM mode has been removed from the branch, so the primary config
+      space is still accessed with type1 accessors properly serialized by
+      the x86 internal locking.
+    
+      Bjorn agreed on merging this through the x86 tree"
+    
+    * 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/PCI: Select CONFIG_PCI_LOCKLESS_CONFIG
+      PCI: Provide Kconfig option for lockless config space accessors
+      x86/PCI/ce4100: Properly lock accessor functions
+      x86/PCI: Abort if legacy init fails
+      x86/PCI: Remove duplicate defines
+

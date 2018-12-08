@@ -1,0 +1,234 @@
+commit 0fa115da408f645cca419a60a5af8f4426ad4188
+Author: Thomas Gleixner <tglx@linutronix.de>
+Date:   Wed Sep 13 23:29:38 2017 +0200
+
+    x86/irq/vector: Initialize matrix allocator
+    
+    Initialize the matrix allocator and add the proper accounting points to the
+    code.
+    
+    No functional change, just preparation.
+    
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Tested-by: Juergen Gross <jgross@suse.com>
+    Tested-by: Yu Chen <yu.c.chen@intel.com>
+    Acked-by: Juergen Gross <jgross@suse.com>
+    Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Cc: Marc Zyngier <marc.zyngier@arm.com>
+    Cc: Alok Kataria <akataria@vmware.com>
+    Cc: Joerg Roedel <joro@8bytes.org>
+    Cc: "Rafael J. Wysocki" <rjw@rjwysocki.net>
+    Cc: Steven Rostedt <rostedt@goodmis.org>
+    Cc: Christoph Hellwig <hch@lst.de>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Paolo Bonzini <pbonzini@redhat.com>
+    Cc: Rui Zhang <rui.zhang@intel.com>
+    Cc: "K. Y. Srinivasan" <kys@microsoft.com>
+    Cc: Arjan van de Ven <arjan@linux.intel.com>
+    Cc: Dan Williams <dan.j.williams@intel.com>
+    Cc: Len Brown <lenb@kernel.org>
+    Link: https://lkml.kernel.org/r/20170913213155.108410660@linutronix.de
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 971feac13506..64e99d3c5169 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -92,6 +92,7 @@ config X86
+ 	select GENERIC_FIND_FIRST_BIT
+ 	select GENERIC_IOMAP
+ 	select GENERIC_IRQ_EFFECTIVE_AFF_MASK	if SMP
++	select GENERIC_IRQ_MATRIX_ALLOCATOR	if X86_LOCAL_APIC
+ 	select GENERIC_IRQ_MIGRATION		if SMP
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+diff --git a/arch/x86/include/asm/apic.h b/arch/x86/include/asm/apic.h
+index 01bcaa8b62b3..7a8651921ed5 100644
+--- a/arch/x86/include/asm/apic.h
++++ b/arch/x86/include/asm/apic.h
+@@ -169,6 +169,10 @@ static inline int apic_is_clustered_box(void)
+ #endif
+ 
+ extern int setup_APIC_eilvt(u8 lvt_off, u8 vector, u8 msg_type, u8 mask);
++extern void lapic_assign_system_vectors(void);
++extern void lapic_assign_legacy_vector(unsigned int isairq, bool replace);
++extern void lapic_online(void);
++extern void lapic_offline(void);
+ 
+ #else /* !CONFIG_X86_LOCAL_APIC */
+ static inline void lapic_shutdown(void) { }
+@@ -179,6 +183,8 @@ static inline void disable_local_APIC(void) { }
+ # define setup_secondary_APIC_clock x86_init_noop
+ static inline void lapic_update_tsc_freq(void) { }
+ static inline void apic_intr_mode_init(void) { }
++static inline void lapic_assign_system_vectors(void) { }
++static inline void lapic_assign_legacy_vector(unsigned int i, bool r) { }
+ #endif /* !CONFIG_X86_LOCAL_APIC */
+ 
+ #ifdef CONFIG_X86_X2APIC
+diff --git a/arch/x86/include/asm/hw_irq.h b/arch/x86/include/asm/hw_irq.h
+index 6dfe366a8804..386368890376 100644
+--- a/arch/x86/include/asm/hw_irq.h
++++ b/arch/x86/include/asm/hw_irq.h
+@@ -15,6 +15,8 @@
+ 
+ #include <asm/irq_vectors.h>
+ 
++#define IRQ_MATRIX_BITS		NR_VECTORS
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/percpu.h>
+@@ -130,7 +132,6 @@ extern struct irq_cfg *irq_cfg(unsigned int irq);
+ extern struct irq_cfg *irqd_cfg(struct irq_data *irq_data);
+ extern void lock_vector_lock(void);
+ extern void unlock_vector_lock(void);
+-extern void setup_vector_irq(int cpu);
+ #ifdef CONFIG_SMP
+ extern void send_cleanup_vector(struct irq_cfg *);
+ extern void irq_complete_move(struct irq_cfg *cfg);
+diff --git a/arch/x86/kernel/apic/vector.c b/arch/x86/kernel/apic/vector.c
+index 5d5c2c064a3e..078fbd08499c 100644
+--- a/arch/x86/kernel/apic/vector.c
++++ b/arch/x86/kernel/apic/vector.c
+@@ -36,6 +36,7 @@ EXPORT_SYMBOL_GPL(x86_vector_domain);
+ static DEFINE_RAW_SPINLOCK(vector_lock);
+ static cpumask_var_t vector_cpumask, vector_searchmask, searched_cpumask;
+ static struct irq_chip lapic_controller;
++static struct irq_matrix *vector_matrix;
+ #ifdef CONFIG_SMP
+ static DEFINE_PER_CPU(struct hlist_head, cleanup_list);
+ #endif
+@@ -404,6 +405,36 @@ int __init arch_probe_nr_irqs(void)
+ 	return legacy_pic->probe();
+ }
+ 
++void lapic_assign_legacy_vector(unsigned int irq, bool replace)
++{
++	/*
++	 * Use assign system here so it wont get accounted as allocated
++	 * and moveable in the cpu hotplug check and it prevents managed
++	 * irq reservation from touching it.
++	 */
++	irq_matrix_assign_system(vector_matrix, ISA_IRQ_VECTOR(irq), replace);
++}
++
++void __init lapic_assign_system_vectors(void)
++{
++	unsigned int i, vector = 0;
++
++	for_each_set_bit_from(vector, system_vectors, NR_VECTORS)
++		irq_matrix_assign_system(vector_matrix, vector, false);
++
++	if (nr_legacy_irqs() > 1)
++		lapic_assign_legacy_vector(PIC_CASCADE_IR, false);
++
++	/* System vectors are reserved, online it */
++	irq_matrix_online(vector_matrix);
++
++	/* Mark the preallocated legacy interrupts */
++	for (i = 0; i < nr_legacy_irqs(); i++) {
++		if (i != PIC_CASCADE_IR)
++			irq_matrix_assign(vector_matrix, ISA_IRQ_VECTOR(i));
++	}
++}
++
+ int __init arch_early_irq_init(void)
+ {
+ 	struct fwnode_handle *fn;
+@@ -423,6 +454,14 @@ int __init arch_early_irq_init(void)
+ 	BUG_ON(!alloc_cpumask_var(&vector_searchmask, GFP_KERNEL));
+ 	BUG_ON(!alloc_cpumask_var(&searched_cpumask, GFP_KERNEL));
+ 
++	/*
++	 * Allocate the vector matrix allocator data structure and limit the
++	 * search area.
++	 */
++	vector_matrix = irq_alloc_matrix(NR_VECTORS, FIRST_EXTERNAL_VECTOR,
++					 FIRST_SYSTEM_VECTOR);
++	BUG_ON(!vector_matrix);
++
+ 	return arch_early_ioapic_init();
+ }
+ 
+@@ -454,14 +493,16 @@ static struct irq_desc *__setup_vector_irq(int vector)
+ 	return irq_to_desc(isairq);
+ }
+ 
+-/*
+- * Setup the vector to irq mappings. Must be called with vector_lock held.
+- */
+-void setup_vector_irq(int cpu)
++/* Online the local APIC infrastructure and initialize the vectors */
++void lapic_online(void)
+ {
+ 	unsigned int vector;
+ 
+ 	lockdep_assert_held(&vector_lock);
++
++	/* Online the vector matrix array for this CPU */
++	irq_matrix_online(vector_matrix);
++
+ 	/*
+ 	 * The interrupt affinity logic never targets interrupts to offline
+ 	 * CPUs. The exception are the legacy PIC interrupts. In general
+@@ -482,6 +523,13 @@ void setup_vector_irq(int cpu)
+ 	vector_update_shutdown_irqs();
+ }
+ 
++void lapic_offline(void)
++{
++	lock_vector_lock();
++	irq_matrix_offline(vector_matrix);
++	unlock_vector_lock();
++}
++
+ static int apic_retrigger_irq(struct irq_data *irqd)
+ {
+ 	struct apic_chip_data *apicd = apic_chip_data(irqd);
+diff --git a/arch/x86/kernel/i8259.c b/arch/x86/kernel/i8259.c
+index 4e3b8a587c88..317c5b38a318 100644
+--- a/arch/x86/kernel/i8259.c
++++ b/arch/x86/kernel/i8259.c
+@@ -113,6 +113,7 @@ static void make_8259A_irq(unsigned int irq)
+ 	io_apic_irqs &= ~(1<<irq);
+ 	irq_set_chip_and_handler(irq, &i8259A_chip, handle_level_irq);
+ 	enable_irq(irq);
++	lapic_assign_legacy_vector(irq, true);
+ }
+ 
+ /*
+diff --git a/arch/x86/kernel/irqinit.c b/arch/x86/kernel/irqinit.c
+index beafcf584e44..c7fb57505f2d 100644
+--- a/arch/x86/kernel/irqinit.c
++++ b/arch/x86/kernel/irqinit.c
+@@ -90,6 +90,7 @@ void __init native_init_IRQ(void)
+ 	x86_init.irqs.pre_vector_init();
+ 
+ 	idt_setup_apic_and_irq_gates();
++	lapic_assign_system_vectors();
+ 
+ 	if (!acpi_ioapic && !of_ioapic && nr_legacy_irqs())
+ 		setup_irq(2, &irq2);
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index d8cef3222887..91c0d1cd651e 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -260,7 +260,7 @@ static void notrace start_secondary(void *unused)
+ 	 * from seeing a half valid vector space.
+ 	 */
+ 	lock_vector_lock();
+-	setup_vector_irq(smp_processor_id());
++	lapic_online();
+ 	set_cpu_online(smp_processor_id(), true);
+ 	unlock_vector_lock();
+ 	cpu_set_state_online(smp_processor_id());
+@@ -1518,6 +1518,7 @@ void cpu_disable_common(void)
+ 	remove_cpu_from_maps(cpu);
+ 	unlock_vector_lock();
+ 	fixup_irqs();
++	lapic_offline();
+ }
+ 
+ int native_cpu_disable(void)

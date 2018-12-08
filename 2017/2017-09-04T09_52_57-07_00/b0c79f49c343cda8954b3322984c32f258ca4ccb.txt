@@ -1,0 +1,80 @@
+commit b0c79f49c343cda8954b3322984c32f258ca4ccb
+Merge: f213a6c84c1b dd88a0a0c861
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Sep 4 09:52:57 2017 -0700
+
+    Merge branch 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 asm updates from Ingo Molnar:
+    
+     - Introduce the ORC unwinder, which can be enabled via
+       CONFIG_ORC_UNWINDER=y.
+    
+       The ORC unwinder is a lightweight, Linux kernel specific debuginfo
+       implementation, which aims to be DWARF done right for unwinding.
+       Objtool is used to generate the ORC unwinder tables during build, so
+       the data format is flexible and kernel internal: there's no
+       dependency on debuginfo created by an external toolchain.
+    
+       The ORC unwinder is almost two orders of magnitude faster than the
+       (out of tree) DWARF unwinder - which is important for perf call graph
+       profiling. It is also significantly simpler and is coded defensively:
+       there has not been a single ORC related kernel crash so far, even
+       with early versions. (knock on wood!)
+    
+       But the main advantage is that enabling the ORC unwinder allows
+       CONFIG_FRAME_POINTERS to be turned off - which speeds up the kernel
+       measurably:
+    
+       With frame pointers disabled, GCC does not have to add frame pointer
+       instrumentation code to every function in the kernel. The kernel's
+       .text size decreases by about 3.2%, resulting in better cache
+       utilization and fewer instructions executed, resulting in a broad
+       kernel-wide speedup. Average speedup of system calls should be
+       roughly in the 1-3% range - measurements by Mel Gorman [1] have shown
+       a speedup of 5-10% for some function execution intense workloads.
+    
+       The main cost of the unwinder is that the unwinder data has to be
+       stored in RAM: the memory cost is 2-4MB of RAM, depending on kernel
+       config - which is a modest cost on modern x86 systems.
+    
+       Given how young the ORC unwinder code is it's not enabled by default
+       - but given the performance advantages the plan is to eventually make
+       it the default unwinder on x86.
+    
+       See Documentation/x86/orc-unwinder.txt for more details.
+    
+     - Remove lguest support: its intended role was that of a temporary
+       proof of concept for virtualization, plus its removal will enable the
+       reduction (removal) of the paravirt API as well, so Rusty agreed to
+       its removal. (Juergen Gross)
+    
+     - Clean up and fix FSGS related functionality (Andy Lutomirski)
+    
+     - Clean up IO access APIs (Andy Shevchenko)
+    
+     - Enhance the symbol namespace (Jiri Slaby)
+    
+    * 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (47 commits)
+      objtool: Handle GCC stack pointer adjustment bug
+      x86/entry/64: Use ENTRY() instead of ALIGN+GLOBAL for stub32_clone()
+      x86/fpu/math-emu: Add ENDPROC to functions
+      x86/boot/64: Extract efi_pe_entry() from startup_64()
+      x86/boot/32: Extract efi_pe_entry() from startup_32()
+      x86/lguest: Remove lguest support
+      x86/paravirt/xen: Remove xen_patch()
+      objtool: Fix objtool fallthrough detection with function padding
+      x86/xen/64: Fix the reported SS and CS in SYSCALL
+      objtool: Track DRAP separately from callee-saved registers
+      objtool: Fix validate_branch() return codes
+      x86: Clarify/fix no-op barriers for text_poke_bp()
+      x86/switch_to/64: Rewrite FS/GS switching yet again to fix AMD CPUs
+      selftests/x86/fsgsbase: Test selectors 1, 2, and 3
+      x86/fsgsbase/64: Report FSBASE and GSBASE correctly in core dumps
+      x86/fsgsbase/64: Fully initialize FS and GS state in start_thread_common
+      x86/asm: Fix UNWIND_HINT_REGS macro for older binutils
+      x86/asm/32: Fix regs_get_register() on segment registers
+      x86/xen/64: Rearrange the SYSCALL entries
+      x86/asm/32: Remove a bunch of '& 0xffff' from pt_regs segment reads
+      ...
+

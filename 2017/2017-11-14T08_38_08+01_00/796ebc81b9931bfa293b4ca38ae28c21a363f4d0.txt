@@ -1,0 +1,55 @@
+commit 796ebc81b9931bfa293b4ca38ae28c21a363f4d0
+Author: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+Date:   Mon Nov 13 22:29:42 2017 -0800
+
+    x86/umip: Select X86_INTEL_UMIP by default
+    
+    UMIP does cause any performance penalty to the vast majority of x86 code
+    that does not use the legacy instructions affected by UMIP.
+    
+    Also describe UMIP more accurately and explain the behavior that can be
+    expected by the (few) applications that use the affected instructions.
+    
+    Suggested-by: Ingo Molnar <mingo@kernel.org>
+    Signed-off-by: Ricardo Neri <ricardo.neri-calderon@linux.intel.com>
+    Cc: Andy Lutomirski <luto@kernel.org>
+    Cc: Borislav Petkov <bp@suse.de>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Paolo Bonzini <pbonzini@redhat.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Ravi V. Shankar <ravi.v.shankar@intel.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Cc: ricardo.neri@intel.com
+    Link: http://lkml.kernel.org/r/1510640985-18412-2-git-send-email-ricardo.neri-calderon@linux.intel.com
+    [ Spelling fixes, rewrote the changelog. ]
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index f08977d82ca0..a0623f0668ab 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1805,14 +1805,20 @@ config X86_SMAP
+ 	  If unsure, say Y.
+ 
+ config X86_INTEL_UMIP
+-	def_bool n
++	def_bool y
+ 	depends on CPU_SUP_INTEL
+ 	prompt "Intel User Mode Instruction Prevention" if EXPERT
+ 	---help---
+ 	  The User Mode Instruction Prevention (UMIP) is a security
+ 	  feature in newer Intel processors. If enabled, a general
+-	  protection fault is issued if the instructions SGDT, SLDT,
+-	  SIDT, SMSW and STR are executed in user mode.
++	  protection fault is issued if the SGDT, SLDT, SIDT, SMSW
++	  or STR instructions are executed in user mode. These instructions
++	  unnecessarily expose information about the hardware state.
++
++	  The vast majority of applications do not use these instructions.
++	  For the very few that do, software emulation is provided in
++	  specific cases in protected and virtual-8086 modes. Emulated
++	  results are dummy.
+ 
+ config X86_INTEL_MPX
+ 	prompt "Intel MPX (Memory Protection Extensions)"

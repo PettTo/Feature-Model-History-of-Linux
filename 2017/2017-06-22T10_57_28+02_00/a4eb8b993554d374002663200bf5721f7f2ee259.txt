@@ -1,0 +1,9 @@
+commit a4eb8b993554d374002663200bf5721f7f2ee259
+Merge: 26179670a68b 8d829b9bb878
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Thu Jun 22 10:57:28 2017 +0200
+
+    Merge branch 'linus' into x86/mm, to pick up fixes
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+

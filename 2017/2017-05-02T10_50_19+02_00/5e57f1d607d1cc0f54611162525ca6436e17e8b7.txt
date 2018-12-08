@@ -1,0 +1,91 @@
+commit 5e57f1d607d1cc0f54611162525ca6436e17e8b7
+Author: Vitaly Kuznetsov <vkuznets@redhat.com>
+Date:   Tue Mar 14 18:35:38 2017 +0100
+
+    x86/xen: add CONFIG_XEN_PV to Kconfig
+    
+    All code to support Xen PV will get under this new option. For the
+    beginning, check for it in the common code.
+    
+    Signed-off-by: Vitaly Kuznetsov <vkuznets@redhat.com>
+    Reviewed-by: Juergen Gross <jgross@suse.com>
+    Signed-off-by: Juergen Gross <jgross@suse.com>
+
+diff --git a/arch/x86/kernel/cpu/hypervisor.c b/arch/x86/kernel/cpu/hypervisor.c
+index a77f18d139c0..ce6fcc30f2ad 100644
+--- a/arch/x86/kernel/cpu/hypervisor.c
++++ b/arch/x86/kernel/cpu/hypervisor.c
+@@ -28,8 +28,10 @@
+ 
+ static const __initconst struct hypervisor_x86 * const hypervisors[] =
+ {
+-#ifdef CONFIG_XEN
++#ifdef CONFIG_XEN_PV
+ 	&x86_hyper_xen_pv,
++#endif
++#ifdef CONFIG_XEN_PVHVM
+ 	&x86_hyper_xen_hvm,
+ #endif
+ 	&x86_hyper_vmware,
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index 825a1e47cf3e..b6840bf3940b 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -446,7 +446,7 @@ __switch_to(struct task_struct *prev_p, struct task_struct *next_p)
+ 		     task_thread_info(prev_p)->flags & _TIF_WORK_CTXSW_PREV))
+ 		__switch_to_xtra(prev_p, next_p, tss);
+ 
+-#ifdef CONFIG_XEN
++#ifdef CONFIG_XEN_PV
+ 	/*
+ 	 * On Xen PV, IOPL bits in pt_regs->flags have no effect, and
+ 	 * current_pt_regs()->flags may not match the current task's
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index 76b6dbd627df..5bb14341f639 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -6,7 +6,6 @@ config XEN
+ 	bool "Xen guest support"
+ 	depends on PARAVIRT
+ 	select PARAVIRT_CLOCK
+-	select XEN_HAVE_PVMMU
+ 	select XEN_HAVE_VPMU
+ 	depends on X86_64 || (X86_32 && X86_PAE)
+ 	depends on X86_LOCAL_APIC && X86_TSC
+@@ -15,18 +14,32 @@ config XEN
+ 	  kernel to boot in a paravirtualized environment under the
+ 	  Xen hypervisor.
+ 
++config XEN_PV
++	bool "Xen PV guest support"
++	default y
++	depends on XEN
++	select XEN_HAVE_PVMMU
++	help
++	  Support running as a Xen PV guest.
++
+ config XEN_DOM0
+-	def_bool y
+-	depends on XEN && PCI_XEN && SWIOTLB_XEN
++	bool "Xen PV Dom0 support"
++	default y
++	depends on XEN_PV && PCI_XEN && SWIOTLB_XEN
+ 	depends on X86_IO_APIC && ACPI && PCI
++	help
++	  Support running as a Xen PV Dom0 guest.
+ 
+ config XEN_PVHVM
+-	def_bool y
++	bool "Xen PVHVM guest support"
++	default y
+ 	depends on XEN && PCI && X86_LOCAL_APIC
++	help
++	  Support running as a Xen PVHVM guest.
+ 
+ config XEN_512GB
+ 	bool "Limit Xen pv-domain memory to 512GB"
+-	depends on XEN && X86_64
++	depends on XEN_PV && X86_64
+ 	default y
+ 	help
+ 	  Limit paravirtualized user domains to 512GB of RAM.

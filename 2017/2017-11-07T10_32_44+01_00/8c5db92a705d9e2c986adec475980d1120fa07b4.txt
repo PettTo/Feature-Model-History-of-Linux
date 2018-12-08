@@ -1,0 +1,59 @@
+commit 8c5db92a705d9e2c986adec475980d1120fa07b4
+Merge: ca5d376e1707 e4880bc5dfb1
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Tue Nov 7 10:32:44 2017 +0100
+
+    Merge branch 'linus' into locking/core, to resolve conflicts
+    
+    Conflicts:
+            include/linux/compiler-clang.h
+            include/linux/compiler-gcc.h
+            include/linux/compiler-intel.h
+            include/uapi/linux/stddef.h
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --cc include/linux/compiler-clang.h
+index 5947a3e6c0e6,54dfef70a072..a06583e41f80
+--- a/include/linux/compiler-clang.h
++++ b/include/linux/compiler-clang.h
+@@@ -1,4 -1,5 +1,5 @@@
++ /* SPDX-License-Identifier: GPL-2.0 */
+ -#ifndef __LINUX_COMPILER_H
+ +#ifndef __LINUX_COMPILER_TYPES_H
+  #error "Please don't include <linux/compiler-clang.h> directly, include <linux/compiler.h> instead."
+  #endif
+  
+diff --cc include/linux/compiler-gcc.h
+index ce8e965646ef,bb78e5bdff26..2272ded07496
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@@ -1,4 -1,5 +1,5 @@@
++ /* SPDX-License-Identifier: GPL-2.0 */
+ -#ifndef __LINUX_COMPILER_H
+ +#ifndef __LINUX_COMPILER_TYPES_H
+  #error "Please don't include <linux/compiler-gcc.h> directly, include <linux/compiler.h> instead."
+  #endif
+  
+diff --cc include/linux/compiler-intel.h
+index e438ac89c692,523d1b74550f..bfa08160db3a
+--- a/include/linux/compiler-intel.h
++++ b/include/linux/compiler-intel.h
+@@@ -1,4 -1,5 +1,5 @@@
++ /* SPDX-License-Identifier: GPL-2.0 */
+ -#ifndef __LINUX_COMPILER_H
+ +#ifndef __LINUX_COMPILER_TYPES_H
+  #error "Please don't include <linux/compiler-intel.h> directly, include <linux/compiler.h> instead."
+  #endif
+  
+diff --cc include/uapi/linux/stddef.h
+index d1f7cb732dfc,f65b92e0e1f9..ee8220f8dcf5
+--- a/include/uapi/linux/stddef.h
++++ b/include/uapi/linux/stddef.h
+@@@ -1,4 -1,5 +1,5 @@@
++ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+ -#include <linux/compiler.h>
+ +#include <linux/compiler_types.h>
+  
+  #ifndef __always_inline
+  #define __always_inline inline

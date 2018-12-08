@@ -1,0 +1,39 @@
+commit 4422d80ed7d4bdb2d6e9fb890c66c3d9250ba694
+Merge: 9a9594efe543 32288daf3f24
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jul 3 18:33:03 2017 -0700
+
+    Merge branch 'ras-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull RAS updates from Thomas Gleixner:
+     "The RAS updates for the 4.13 merge window:
+    
+       - Cleanup of the MCE injection facility (Borsilav Petkov)
+    
+       - Rework of the AMD/SMCA handling (Yazen Ghannam)
+    
+       - Enhancements for ACPI/APEI to handle new notitication types (Shiju
+         Jose)
+    
+       - atomic_t to refcount_t conversion (Elena Reshetova)
+    
+       - A few fixes and enhancements all over the place"
+    
+    * 'ras-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      RAS/CEC: Check the correct variable in the debugfs error handling
+      x86/mce: Always save severity in machine_check_poll()
+      x86/MCE, xen/mcelog: Make /dev/mcelog registration messages more precise
+      x86/mce: Update bootlog description to reflect behavior on AMD
+      x86/mce: Don't disable MCA banks when offlining a CPU on AMD
+      x86/mce/mce-inject: Preset the MCE injection struct
+      x86/mce: Clean up include files
+      x86/mce: Get rid of register_mce_write_callback()
+      x86/mce: Merge mce_amd_inj into mce-inject
+      x86/mce/AMD: Use saved threshold block info in interrupt handler
+      x86/mce/AMD: Use msr_stat when clearing MCA_STATUS
+      x86/mce/AMD: Carve out SMCA bank configuration
+      x86/mce/AMD: Redo error logging from APIC LVT interrupt handlers
+      x86/mce: Convert threshold_bank.cpus from atomic_t to refcount_t
+      RAS: Make local function parse_ras_param() static
+      ACPI/APEI: Handle GSIV and GPIO notification types
+

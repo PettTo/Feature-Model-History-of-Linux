@@ -1,0 +1,93 @@
+commit caf9a82657b313106aae8f4a35936c116a152299
+Merge: 9c294ec08408 f6c4fd506cb6
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat Dec 23 11:53:04 2017 -0800
+
+    Merge branch 'x86-pti-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 PTI preparatory patches from Thomas Gleixner:
+     "Todays Advent calendar window contains twentyfour easy to digest
+      patches. The original plan was to have twenty three matching the date,
+      but a late fixup made that moot.
+    
+       - Move the cpu_entry_area mapping out of the fixmap into a separate
+         address space. That's necessary because the fixmap becomes too big
+         with NRCPUS=8192 and this caused already subtle and hard to
+         diagnose failures.
+    
+         The top most patch is fresh from today and cures a brain slip of
+         that tall grumpy german greybeard, who ignored the intricacies of
+         32bit wraparounds.
+    
+       - Limit the number of CPUs on 32bit to 64. That's insane big already,
+         but at least it's small enough to prevent address space issues with
+         the cpu_entry_area map, which have been observed and debugged with
+         the fixmap code
+    
+       - A few TLB flush fixes in various places plus documentation which of
+         the TLB functions should be used for what.
+    
+       - Rename the SYSENTER stack to CPU_ENTRY_AREA stack as it is used for
+         more than sysenter now and keeping the name makes backtraces
+         confusing.
+    
+       - Prevent LDT inheritance on exec() by moving it to arch_dup_mmap(),
+         which is only invoked on fork().
+    
+       - Make vysycall more robust.
+    
+       - A few fixes and cleanups of the debug_pagetables code. Check
+         PAGE_PRESENT instead of checking the PTE for 0 and a cleanup of the
+         C89 initialization of the address hint array which already was out
+         of sync with the index enums.
+    
+       - Move the ESPFIX init to a different place to prepare for PTI.
+    
+       - Several code moves with no functional change to make PTI
+         integration simpler and header files less convoluted.
+    
+       - Documentation fixes and clarifications"
+    
+    * 'x86-pti-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (24 commits)
+      x86/cpu_entry_area: Prevent wraparound in setup_cpu_entry_area_ptes() on 32bit
+      init: Invoke init_espfix_bsp() from mm_init()
+      x86/cpu_entry_area: Move it out of the fixmap
+      x86/cpu_entry_area: Move it to a separate unit
+      x86/mm: Create asm/invpcid.h
+      x86/mm: Put MMU to hardware ASID translation in one place
+      x86/mm: Remove hard-coded ASID limit checks
+      x86/mm: Move the CR3 construction functions to tlbflush.h
+      x86/mm: Add comments to clarify which TLB-flush functions are supposed to flush what
+      x86/mm: Remove superfluous barriers
+      x86/mm: Use __flush_tlb_one() for kernel memory
+      x86/microcode: Dont abuse the TLB-flush interface
+      x86/uv: Use the right TLB-flush API
+      x86/entry: Rename SYSENTER_stack to CPU_ENTRY_AREA_entry_stack
+      x86/doc: Remove obvious weirdnesses from the x86 MM layout documentation
+      x86/mm/64: Improve the memory map documentation
+      x86/ldt: Prevent LDT inheritance on exec
+      x86/ldt: Rework locking
+      arch, mm: Allow arch_dup_mmap() to fail
+      x86/vsyscall/64: Warn and fail vsyscall emulation in NATIVE mode
+      ...
+
+diff --cc arch/powerpc/include/asm/mmu_context.h
+index 6177d43f0ce8,44fdf4786638..e2a2b8400490
+--- a/arch/powerpc/include/asm/mmu_context.h
++++ b/arch/powerpc/include/asm/mmu_context.h
+@@@ -160,12 -114,12 +160,13 @@@ static inline void enter_lazy_tlb(struc
+  #endif
+  }
+  
+- static inline void arch_dup_mmap(struct mm_struct *oldmm,
+- 				 struct mm_struct *mm)
++ static inline int arch_dup_mmap(struct mm_struct *oldmm,
++ 				struct mm_struct *mm)
+  {
++ 	return 0;
+  }
+  
+ +#ifndef CONFIG_PPC_BOOK3S_64
+  static inline void arch_exit_mmap(struct mm_struct *mm)
+  {
+  }

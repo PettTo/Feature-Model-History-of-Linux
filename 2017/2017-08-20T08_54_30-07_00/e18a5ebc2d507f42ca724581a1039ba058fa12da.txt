@@ -1,0 +1,22 @@
+commit e18a5ebc2d507f42ca724581a1039ba058fa12da
+Merge: 58d4e450a490 7edaeb6841df
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Aug 20 08:54:30 2017 -0700
+
+    Merge branch 'core-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull watchdog fix from Thomas Gleixner:
+     "A fix for the hardlockup watchdog to prevent false positives with
+      extreme Turbo-Modes which make the perf/NMI watchdog fire faster than
+      the hrtimer which is used to verify.
+    
+      Slightly larger than the minimal fix, which just would increase the
+      hrtimer frequency, but comes with extra overhead of more watchdog
+      timer interrupts and thread wakeups for all users.
+    
+      With this change we restrict the overhead to the extreme Turbo-Mode
+      systems"
+    
+    * 'core-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      kernel/watchdog: Prevent false positives with turbo modes
+

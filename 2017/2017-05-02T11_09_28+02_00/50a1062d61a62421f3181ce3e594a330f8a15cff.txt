@@ -1,0 +1,72 @@
+commit 50a1062d61a62421f3181ce3e594a330f8a15cff
+Author: Vitaly Kuznetsov <vkuznets@redhat.com>
+Date:   Tue Mar 14 18:35:50 2017 +0100
+
+    x86/xen: put setup.c, pmu.c and apic.c under CONFIG_XEN_PV
+    
+    xen_pmu_init/finish() functions are used in suspend.c and
+    enlighten.c, add stubs for now.
+    
+    Signed-off-by: Vitaly Kuznetsov <vkuznets@redhat.com>
+    Reviewed-by: Juergen Gross <jgross@suse.com>
+    Signed-off-by: Juergen Gross <jgross@suse.com>
+
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index 6d15c3439ecd..3bcb091ef298 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -6,7 +6,6 @@ config XEN
+ 	bool "Xen guest support"
+ 	depends on PARAVIRT
+ 	select PARAVIRT_CLOCK
+-	select XEN_HAVE_VPMU
+ 	depends on X86_64 || (X86_32 && X86_PAE)
+ 	depends on X86_LOCAL_APIC && X86_TSC
+ 	help
+@@ -19,6 +18,7 @@ config XEN_PV
+ 	default y
+ 	depends on XEN
+ 	select XEN_HAVE_PVMMU
++	select XEN_HAVE_VPMU
+ 	help
+ 	  Support running as a Xen PV guest.
+ 
+diff --git a/arch/x86/xen/Makefile b/arch/x86/xen/Makefile
+index cf8d6c5e36d8..f610651aec4d 100644
+--- a/arch/x86/xen/Makefile
++++ b/arch/x86/xen/Makefile
+@@ -10,13 +10,13 @@ nostackp := $(call cc-option, -fno-stack-protector)
+ CFLAGS_enlighten_pv.o		:= $(nostackp)
+ CFLAGS_mmu_pv.o		:= $(nostackp)
+ 
+-obj-y		:= enlighten.o setup.o multicalls.o mmu.o irq.o \
++obj-y		:= enlighten.o multicalls.o mmu.o irq.o \
+ 			time.o xen-asm.o xen-asm_$(BITS).o \
+ 			grant-table.o suspend.o platform-pci-unplug.o \
+-			p2m.o apic.o pmu.o enlighten_pv.o mmu_pv.o
++			p2m.o enlighten_pv.o mmu_pv.o
+ 
+ obj-$(CONFIG_XEN_PVHVM)		+= enlighten_hvm.o mmu_hvm.o suspend_hvm.o
+-obj-$(CONFIG_XEN_PV)			+= suspend_pv.o
++obj-$(CONFIG_XEN_PV)			+= setup.o apic.o pmu.o suspend_pv.o
+ obj-$(CONFIG_XEN_PVH)			+= enlighten_pvh.o
+ 
+ obj-$(CONFIG_EVENT_TRACING) += trace.o
+diff --git a/arch/x86/xen/pmu.h b/arch/x86/xen/pmu.h
+index af5f0ad94078..4be5355b56f7 100644
+--- a/arch/x86/xen/pmu.h
++++ b/arch/x86/xen/pmu.h
+@@ -4,8 +4,13 @@
+ #include <xen/interface/xenpmu.h>
+ 
+ irqreturn_t xen_pmu_irq_handler(int irq, void *dev_id);
++#ifdef CONFIG_XEN_HAVE_VPMU
+ void xen_pmu_init(int cpu);
+ void xen_pmu_finish(int cpu);
++#else
++static inline void xen_pmu_init(int cpu) {}
++static inline void xen_pmu_finish(int cpu) {}
++#endif
+ bool is_xen_pmu(int cpu);
+ bool pmu_msr_read(unsigned int msr, uint64_t *val, int *err);
+ bool pmu_msr_write(unsigned int msr, uint32_t low, uint32_t high, int *err);

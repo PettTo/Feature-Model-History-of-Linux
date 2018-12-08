@@ -1,0 +1,25 @@
+commit 292d38674301c6fbee3965e446bd1c8a6672a400
+Merge: 4abaa800fdc6 5773ebfee729
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Feb 20 14:04:37 2017 -0800
+
+    Merge branch 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 boot updates from Ingo Molnar:
+     "Misc updates:
+    
+       - fix e820 error handling
+    
+       - convert page table setup code from assembly to C
+    
+       - fix kexec environment bug
+    
+       - ... plus small cleanups"
+    
+    * 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/kconfig: Remove misleading note regarding hibernation and KASLR
+      x86/boot: Fix KASLR and memmap= collision
+      x86/e820/32: Fix e820_search_gap() error handling on x86-32
+      x86/boot/32: Convert the 32-bit pgtable setup code from assembly to C
+      x86/e820: Make e820_search_gap() static and remove unused variables
+

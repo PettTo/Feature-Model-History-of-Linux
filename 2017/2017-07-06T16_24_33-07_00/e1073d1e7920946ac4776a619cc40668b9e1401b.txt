@@ -1,0 +1,127 @@
+commit e1073d1e7920946ac4776a619cc40668b9e1401b
+Author: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+Date:   Thu Jul 6 15:39:17 2017 -0700
+
+    mm/hugetlb: clean up ARCH_HAS_GIGANTIC_PAGE
+    
+    This moves the #ifdef in C code to a Kconfig dependency.  Also we move
+    the gigantic_page_supported() function to be arch specific.
+    
+    This allows architectures to conditionally enable runtime allocation of
+    gigantic huge page.  Architectures like ppc64 supports different
+    gigantic huge page size (16G and 1G) based on the translation mode
+    selected.  This provides an opportunity for ppc64 to enable runtime
+    allocation only w.r.t 1G hugepage.
+    
+    No functional change in this patch.
+    
+    Link: http://lkml.kernel.org/r/1494995292-4443-1-git-send-email-aneesh.kumar@linux.vnet.ibm.com
+    Signed-off-by: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+    Cc: Michael Ellerman <mpe@ellerman.id.au> (powerpc)
+    Cc: Anshuman Khandual <khandual@linux.vnet.ibm.com>
+    Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 9f7a934ff707..ff925ece82d6 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -13,7 +13,7 @@ config ARM64
+ 	select ARCH_HAS_ACPI_TABLE_UPGRADE if ACPI
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+-	select ARCH_HAS_GIGANTIC_PAGE
++	select ARCH_HAS_GIGANTIC_PAGE if (MEMORY_ISOLATION && COMPACTION) || CMA
+ 	select ARCH_HAS_KCOV
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN
+diff --git a/arch/arm64/include/asm/hugetlb.h b/arch/arm64/include/asm/hugetlb.h
+index bbc1e35aa601..793bd73b0d07 100644
+--- a/arch/arm64/include/asm/hugetlb.h
++++ b/arch/arm64/include/asm/hugetlb.h
+@@ -83,4 +83,8 @@ extern void huge_ptep_set_wrprotect(struct mm_struct *mm,
+ extern void huge_ptep_clear_flush(struct vm_area_struct *vma,
+ 				  unsigned long addr, pte_t *ptep);
+ 
++#ifdef CONFIG_ARCH_HAS_GIGANTIC_PAGE
++static inline bool gigantic_page_supported(void) { return true; }
++#endif
++
+ #endif /* __ASM_HUGETLB_H */
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 37abe86e5bc9..7eeb75d758c1 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -68,7 +68,7 @@ config S390
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+-	select ARCH_HAS_GIGANTIC_PAGE
++	select ARCH_HAS_GIGANTIC_PAGE if (MEMORY_ISOLATION && COMPACTION) || CMA
+ 	select ARCH_HAS_KCOV
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN
+diff --git a/arch/s390/include/asm/hugetlb.h b/arch/s390/include/asm/hugetlb.h
+index cd546a245c68..89057b2cc8fe 100644
+--- a/arch/s390/include/asm/hugetlb.h
++++ b/arch/s390/include/asm/hugetlb.h
+@@ -112,4 +112,7 @@ static inline pte_t huge_pte_modify(pte_t pte, pgprot_t newprot)
+ 	return pte_modify(pte, newprot);
+ }
+ 
++#ifdef CONFIG_ARCH_HAS_GIGANTIC_PAGE
++static inline bool gigantic_page_supported(void) { return true; }
++#endif
+ #endif /* _ASM_S390_HUGETLB_H */
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 1dbbe38f6ec0..fe53a3aa805a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -22,7 +22,7 @@ config X86_64
+ 	def_bool y
+ 	depends on 64BIT
+ 	# Options that are inherently 64-bit kernel only:
+-	select ARCH_HAS_GIGANTIC_PAGE
++	select ARCH_HAS_GIGANTIC_PAGE if (MEMORY_ISOLATION && COMPACTION) || CMA
+ 	select ARCH_SUPPORTS_INT128
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+ 	select HAVE_ARCH_SOFT_DIRTY
+diff --git a/arch/x86/include/asm/hugetlb.h b/arch/x86/include/asm/hugetlb.h
+index 3a106165e03a..535af0f2d8ac 100644
+--- a/arch/x86/include/asm/hugetlb.h
++++ b/arch/x86/include/asm/hugetlb.h
+@@ -85,4 +85,8 @@ static inline void arch_clear_hugepage_flags(struct page *page)
+ {
+ }
+ 
++#ifdef CONFIG_ARCH_HAS_GIGANTIC_PAGE
++static inline bool gigantic_page_supported(void) { return true; }
++#endif
++
+ #endif /* _ASM_X86_HUGETLB_H */
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index 332637342555..c73828e43100 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -1040,9 +1040,7 @@ static int hstate_next_node_to_free(struct hstate *h, nodemask_t *nodes_allowed)
+ 		((node = hstate_next_node_to_free(hs, mask)) || 1);	\
+ 		nr_nodes--)
+ 
+-#if defined(CONFIG_ARCH_HAS_GIGANTIC_PAGE) && \
+-	((defined(CONFIG_MEMORY_ISOLATION) && defined(CONFIG_COMPACTION)) || \
+-	defined(CONFIG_CMA))
++#ifdef CONFIG_ARCH_HAS_GIGANTIC_PAGE
+ static void destroy_compound_gigantic_page(struct page *page,
+ 					unsigned int order)
+ {
+@@ -1174,8 +1172,7 @@ static int alloc_fresh_gigantic_page(struct hstate *h,
+ 	return 0;
+ }
+ 
+-static inline bool gigantic_page_supported(void) { return true; }
+-#else
++#else /* !CONFIG_ARCH_HAS_GIGANTIC_PAGE */
+ static inline bool gigantic_page_supported(void) { return false; }
+ static inline void free_gigantic_page(struct page *page, unsigned int order) { }
+ static inline void destroy_compound_gigantic_page(struct page *page,

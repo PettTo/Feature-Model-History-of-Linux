@@ -1,0 +1,31 @@
+commit bd43f60a260c83cbc9befd7d710a3f2bfd3b2dd2
+Author: Borislav Petkov <bp@suse.de>
+Date:   Mon Jan 23 19:35:10 2017 +0100
+
+    x86/ras/amd/inj: Change dependency
+    
+    Change dependency to mce.c as we're using mce_inject_log() now to stick
+    an MCE into the MCA subsystem.
+    
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Cc: Yazen Ghannam <Yazen.Ghannam@amd.com>
+    Cc: linux-edac <linux-edac@vger.kernel.org>
+    Link: http://lkml.kernel.org/r/20170123183514.13356-6-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/ras/Kconfig b/arch/x86/ras/Kconfig
+index d957d5f21a86..0bc60a308730 100644
+--- a/arch/x86/ras/Kconfig
++++ b/arch/x86/ras/Kconfig
+@@ -1,6 +1,6 @@
+ config MCE_AMD_INJ
+ 	tristate "Simple MCE injection interface for AMD processors"
+-	depends on RAS && EDAC_DECODE_MCE && DEBUG_FS && AMD_NB
++	depends on RAS && X86_MCE && DEBUG_FS && AMD_NB
+ 	default n
+ 	help
+ 	  This is a simple debugfs interface to inject MCEs and test different

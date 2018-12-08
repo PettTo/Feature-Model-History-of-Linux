@@ -1,0 +1,64 @@
+commit d3b5d35290d729a2518af00feca867385a1b08fa
+Merge: aa2a4b6569d5 71389703839e
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon May 1 23:54:56 2017 -0700
+
+    Merge branch 'x86-mm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 mm updates from Ingo Molnar:
+     "The main x86 MM changes in this cycle were:
+    
+       - continued native kernel PCID support preparation patches to the TLB
+         flushing code (Andy Lutomirski)
+    
+       - various fixes related to 32-bit compat syscall returning address
+         over 4Gb in applications, launched from 64-bit binaries - motivated
+         by C/R frameworks such as Virtuozzo. (Dmitry Safonov)
+    
+       - continued Intel 5-level paging enablement: in particular the
+         conversion of x86 GUP to the generic GUP code. (Kirill A. Shutemov)
+    
+       - x86/mpx ABI corner case fixes/enhancements (Joerg Roedel)
+    
+       - ... plus misc updates, fixes and cleanups"
+    
+    * 'x86-mm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (62 commits)
+      mm, zone_device: Replace {get, put}_zone_device_page() with a single reference to fix pmem crash
+      x86/mm: Fix flush_tlb_page() on Xen
+      x86/mm: Make flush_tlb_mm_range() more predictable
+      x86/mm: Remove flush_tlb() and flush_tlb_current_task()
+      x86/vm86/32: Switch to flush_tlb_mm_range() in mark_screen_rdonly()
+      x86/mm/64: Fix crash in remove_pagetable()
+      Revert "x86/mm/gup: Switch GUP to the generic get_user_page_fast() implementation"
+      x86/boot/e820: Remove a redundant self assignment
+      x86/mm: Fix dump pagetables for 4 levels of page tables
+      x86/mpx, selftests: Only check bounds-vs-shadow when we keep shadow
+      x86/mpx: Correctly report do_mpx_bt_fault() failures to user-space
+      Revert "x86/mm/numa: Remove numa_nodemask_from_meminfo()"
+      x86/espfix: Add support for 5-level paging
+      x86/kasan: Extend KASAN to support 5-level paging
+      x86/mm: Add basic defines/helpers for CONFIG_X86_5LEVEL=y
+      x86/paravirt: Add 5-level support to the paravirt code
+      x86/mm: Define virtual memory map for 5-level paging
+      x86/asm: Remove __VIRTUAL_MASK_SHIFT==47 assert
+      x86/boot: Detect 5-level paging support
+      x86/mm/numa: Remove numa_nodemask_from_meminfo()
+      ...
+
+diff --cc drivers/nvdimm/pmem.c
+index 5b536be5a12e,fb7bbc79ac26..fbc640bf06b0
+--- a/drivers/nvdimm/pmem.c
++++ b/drivers/nvdimm/pmem.c
+@@@ -231,6 -232,11 +232,11 @@@ static void pmem_release_queue(void *q
+  	blk_cleanup_queue(q);
+  }
+  
++ static void pmem_freeze_queue(void *q)
++ {
+ -	blk_mq_freeze_queue_start(q);
+++	blk_freeze_queue_start(q);
++ }
++ 
+  static void pmem_release_disk(void *disk)
+  {
+  	del_gendisk(disk);

@@ -1,0 +1,138 @@
+commit 2fefc97b2180518bac923fba3f79fdca1f41dc15
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Wed Apr 5 19:17:18 2017 -0400
+
+    HAVE_ARCH_HARDENED_USERCOPY is unconditional now
+    
+    Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 0d4e71b42c77..8a7ab5e73af9 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -41,7 +41,6 @@ config ARM
+ 	select HARDIRQS_SW_RESEND
+ 	select HAVE_ARCH_AUDITSYSCALL if (AEABI && !OABI_COMPAT)
+ 	select HAVE_ARCH_BITREVERSE if (CPU_32v7M || CPU_32v7) && !CPU_32v6
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL && !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_KGDB if !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_ARCH_MMAP_RND_BITS if MMU
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 3741859765cf..b88550ab1a0c 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -60,7 +60,6 @@ config ARM64
+ 	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_ARCH_BITREVERSE
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_HUGE_VMAP
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select HAVE_ARCH_KASAN if SPARSEMEM_VMEMMAP && !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 18ca6a9ce566..6a15083cc366 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -52,7 +52,6 @@ config IA64
+ 	select MODULES_USE_ELF_RELA
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+ 	select HAVE_ARCH_AUDITSYSCALL
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	default y
+ 	help
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index a008a9f03072..81ce5b4b9251 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -68,7 +68,6 @@ config MIPS
+ 	select HANDLE_DOMAIN_IRQ
+ 	select HAVE_EXIT_THREAD
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 
+ menu "Machine selection"
+ 
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index ad294b3fb90b..531da9eb8f43 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -26,7 +26,6 @@ config PARISC
+ 	select SYSCTL_ARCH_UNALIGN_ALLOW
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select HAVE_MOD_ARCH_SPECIFIC
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select VIRT_TO_BUS
+ 	select MODULES_USE_ELF_RELA
+ 	select CLONE_BACKWARDS
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 97a8bc8a095c..053382616533 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -117,7 +117,6 @@ config PPC
+ 	select GENERIC_STRNLEN_USER
+ 	select GENERIC_TIME_VSYSCALL_OLD
+ 	select HAVE_ARCH_AUDITSYSCALL
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_SECCOMP_FILTER
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index a2dcef0aacc7..b8b143432381 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -124,7 +124,6 @@ config S390
+ 	select HAVE_ALIGNED_STRUCT_PAGE if SLUB
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_ARCH_EARLY_PFN_TO_NID
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select CPU_NO_EFFICIENT_FFS if !HAVE_MARCH_Z9_109_FEATURES
+ 	select HAVE_ARCH_SECCOMP_FILTER
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 68ac5c7cd982..b577dbff5efb 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -42,7 +42,6 @@ config SPARC
+ 	select OLD_SIGSUSPEND
+ 	select ARCH_HAS_SG_CHAIN
+ 	select CPU_NO_EFFICIENT_FFS
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select PROVE_LOCKING_SMALL if PROVE_LOCKING
+ 	select ARCH_WANT_RELAX_ORDER
+ 
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index cc98d5a294ee..1d50fdff77ee 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -98,7 +98,6 @@ config X86
+ 	select HAVE_ACPI_APEI_NMI		if ACPI
+ 	select HAVE_ALIGNED_STRUCT_PAGE		if SLUB
+ 	select HAVE_ARCH_AUDITSYSCALL
+-	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select HAVE_ARCH_HUGE_VMAP		if X86_64 || X86_PAE
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select HAVE_ARCH_KASAN			if X86_64 && SPARSEMEM_VMEMMAP
+diff --git a/security/Kconfig b/security/Kconfig
+index d900f47eaa68..213df4d4f2c1 100644
+--- a/security/Kconfig
++++ b/security/Kconfig
+@@ -125,17 +125,8 @@ config HAVE_HARDENED_USERCOPY_ALLOCATOR
+ 	  validating memory ranges against heap object sizes in
+ 	  support of CONFIG_HARDENED_USERCOPY.
+ 
+-config HAVE_ARCH_HARDENED_USERCOPY
+-	bool
+-	help
+-	  The architecture supports CONFIG_HARDENED_USERCOPY by
+-	  calling check_object_size() just before performing the
+-	  userspace copies in the low level implementation of
+-	  copy_to_user() and copy_from_user().
+-
+ config HARDENED_USERCOPY
+ 	bool "Harden memory copies between kernel and userspace"
+-	depends on HAVE_ARCH_HARDENED_USERCOPY
+ 	depends on HAVE_HARDENED_USERCOPY_ALLOCATOR
+ 	select BUG
+ 	help

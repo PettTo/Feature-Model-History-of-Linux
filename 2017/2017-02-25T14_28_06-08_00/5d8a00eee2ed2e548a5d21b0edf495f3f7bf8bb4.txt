@@ -1,0 +1,64 @@
+commit 5d8a00eee2ed2e548a5d21b0edf495f3f7bf8bb4
+Merge: 7067739df23f f59de563358e
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat Feb 25 14:28:06 2017 -0800
+
+    Merge tag 'clk-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux
+    
+    Pull clk updates from Stephen Boyd:
+     "The usual collection of new drivers, non-critical fixes, and updates
+      to existing clk drivers. The bulk of the work is on Allwinner and
+      Rockchip SoCs, but there's also an Intel Atom driver in here too.
+    
+      New Drivers:
+       - Tegra BPMP firmware
+       - Hisilicon hi3660 SoCs
+       - Rockchip rk3328 SoCs
+       - Intel Atom PMC
+       - STM32F746
+       - IDT VersaClock 5P49V5923 and 5P49V5933
+       - Marvell mv98dx3236 SoCs
+       - Allwinner V3s SoCs
+    
+      Removed Drivers:
+       - Samsung Exynos4415 SoCs
+    
+      Updates:
+       - Migrate ABx500 to OF
+       - Qualcomm IPQ4019 CPU clks and general PLL support
+       - Qualcomm MSM8974 RPM
+       - Rockchip non-critical fixes and clk id additions
+       - Samsung Exynos4412 CPUs
+       - Socionext UniPhier NAND and eMMC support
+       - ZTE zx296718 i2s and other audio clks
+       - Renesas CAN and MSIOF clks for R-Car M3-W
+       - Renesas resets for R-Car Gen2 and Gen3 and RZ/G1
+       - TI CDCE913, CDCE937, and CDCE949 clk generators
+       - Marvell Armada ap806 CPU frequencies
+       - STM32F4* I2S/SAI support
+       - Broadcom BCM2835 DSI support
+       - Allwinner sun5i and A80 conversion to new style clk bindings"
+    
+    * tag 'clk-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/clk/linux: (130 commits)
+      clk: renesas: mstp: ensure register writes complete
+      clk: qcom: Do not drop device node twice
+      clk: mvebu: adjust clock handling for the CP110 system controller
+      clk: mvebu: Expand mv98dx3236-core-clock support
+      clk: zte: add i2s clocks for zx296718
+      clk: sunxi-ng: sun9i-a80: Fix wrong pointer passed to PTR_ERR()
+      clk: sunxi-ng: select SUNXI_CCU_MULT for sun5i
+      clk: sunxi-ng: Check kzalloc() for errors and cleanup error path
+      clk: tegra: Add BPMP clock driver
+      clk: uniphier: add eMMC clock for LD11 and LD20 SoCs
+      clk: uniphier: add NAND clock for all UniPhier SoCs
+      ARM: dts: sun9i: Switch to new clock bindings
+      clk: sunxi-ng: Add A80 Display Engine CCU
+      clk: sunxi-ng: Add A80 USB CCU
+      clk: sunxi-ng: Add A80 CCU
+      clk: sunxi-ng: Support separately grouped PLL lock status register
+      clk: sunxi-ng: mux: Get closest parent rate possible with CLK_SET_RATE_PARENT
+      clk: sunxi-ng: mux: honor CLK_SET_RATE_NO_REPARENT flag
+      clk: sunxi-ng: mux: Fix determine_rate for mux clocks with pre-dividers
+      clk: qcom: SDHCI enablement on Nexus 5X / 6P
+      ...
+

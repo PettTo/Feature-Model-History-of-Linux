@@ -1,0 +1,90 @@
+commit b1b6f83ac938d176742c85757960dec2cf10e468
+Merge: 5f82e71a001d 9e52fc2b50de
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Sep 4 12:21:28 2017 -0700
+
+    Merge branch 'x86-mm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 mm changes from Ingo Molnar:
+     "PCID support, 5-level paging support, Secure Memory Encryption support
+    
+      The main changes in this cycle are support for three new, complex
+      hardware features of x86 CPUs:
+    
+       - Add 5-level paging support, which is a new hardware feature on
+         upcoming Intel CPUs allowing up to 128 PB of virtual address space
+         and 4 PB of physical RAM space - a 512-fold increase over the old
+         limits. (Supercomputers of the future forecasting hurricanes on an
+         ever warming planet can certainly make good use of more RAM.)
+    
+         Many of the necessary changes went upstream in previous cycles,
+         v4.14 is the first kernel that can enable 5-level paging.
+    
+         This feature is activated via CONFIG_X86_5LEVEL=y - disabled by
+         default.
+    
+         (By Kirill A. Shutemov)
+    
+       - Add 'encrypted memory' support, which is a new hardware feature on
+         upcoming AMD CPUs ('Secure Memory Encryption', SME) allowing system
+         RAM to be encrypted and decrypted (mostly) transparently by the
+         CPU, with a little help from the kernel to transition to/from
+         encrypted RAM. Such RAM should be more secure against various
+         attacks like RAM access via the memory bus and should make the
+         radio signature of memory bus traffic harder to intercept (and
+         decrypt) as well.
+    
+         This feature is activated via CONFIG_AMD_MEM_ENCRYPT=y - disabled
+         by default.
+    
+         (By Tom Lendacky)
+    
+       - Enable PCID optimized TLB flushing on newer Intel CPUs: PCID is a
+         hardware feature that attaches an address space tag to TLB entries
+         and thus allows to skip TLB flushing in many cases, even if we
+         switch mm's.
+    
+         (By Andy Lutomirski)
+    
+      All three of these features were in the works for a long time, and
+      it's coincidence of the three independent development paths that they
+      are all enabled in v4.14 at once"
+    
+    * 'x86-mm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (65 commits)
+      x86/mm: Enable RCU based page table freeing (CONFIG_HAVE_RCU_TABLE_FREE=y)
+      x86/mm: Use pr_cont() in dump_pagetable()
+      x86/mm: Fix SME encryption stack ptr handling
+      kvm/x86: Avoid clearing the C-bit in rsvd_bits()
+      x86/CPU: Align CR3 defines
+      x86/mm, mm/hwpoison: Clear PRESENT bit for kernel 1:1 mappings of poison pages
+      acpi, x86/mm: Remove encryption mask from ACPI page protection type
+      x86/mm, kexec: Fix memory corruption with SME on successive kexecs
+      x86/mm/pkeys: Fix typo in Documentation/x86/protection-keys.txt
+      x86/mm/dump_pagetables: Speed up page tables dump for CONFIG_KASAN=y
+      x86/mm: Implement PCID based optimization: try to preserve old TLB entries using PCID
+      x86: Enable 5-level paging support via CONFIG_X86_5LEVEL=y
+      x86/mm: Allow userspace have mappings above 47-bit
+      x86/mm: Prepare to expose larger address space to userspace
+      x86/mpx: Do not allow MPX if we have mappings above 47-bit
+      x86/mm: Rename tasksize_32bit/64bit to task_size_32bit/64bit()
+      x86/xen: Redefine XEN_ELFNOTE_INIT_P2M using PUD_SIZE * PTRS_PER_PUD
+      x86/mm/dump_pagetables: Fix printout of p4d level
+      x86/mm/dump_pagetables: Generalize address normalization
+      x86/boot: Fix memremap() related build failure
+      ...
+
+diff --cc arch/x86/Kconfig
+index cce15191e9e9,87e447286c37..b4b27ab016f6
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -169,8 -167,9 +169,9 @@@ config X8
+  	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI
+  	select HAVE_PERF_REGS
+  	select HAVE_PERF_USER_STACK_DUMP
++ 	select HAVE_RCU_TABLE_FREE
+  	select HAVE_REGS_AND_STACK_ACCESS_API
+ -	select HAVE_RELIABLE_STACKTRACE		if X86_64 && FRAME_POINTER && STACK_VALIDATION
+ +	select HAVE_RELIABLE_STACKTRACE		if X86_64 && FRAME_POINTER_UNWINDER && STACK_VALIDATION
+  	select HAVE_STACK_VALIDATION		if X86_64
+  	select HAVE_SYSCALL_TRACEPOINTS
+  	select HAVE_UNSTABLE_SCHED_CLOCK

@@ -1,0 +1,43 @@
+commit 02fc87b117a9b9ec325089d098fce86ed11966bd
+Merge: 6830c8db58c2 12a78d43de76
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Nov 26 14:11:54 2017 -0800
+
+    Merge branch 'x86-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull misc x86 fixes from Ingo Molnar:
+     - topology enumeration fixes
+     - KASAN fix
+     - two entry fixes (not yet the big series related to KASLR)
+     - remove obsolete code
+     - instruction decoder fix
+     - better /dev/mem sanity checks, hopefully working better this time
+     - pkeys fixes
+     - two ACPI fixes
+     - 5-level paging related fixes
+     - UMIP fixes that should make application visible faults more debuggable
+     - boot fix for weird virtualization environment
+    
+    * 'x86-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (24 commits)
+      x86/decoder: Add new TEST instruction pattern
+      x86/PCI: Remove unused HyperTransport interrupt support
+      x86/umip: Fix insn_get_code_seg_params()'s return value
+      x86/boot/KASLR: Remove unused variable
+      x86/entry/64: Add missing irqflags tracing to native_load_gs_index()
+      x86/mm/kasan: Don't use vmemmap_populate() to initialize shadow
+      x86/entry/64: Fix entry_SYSCALL_64_after_hwframe() IRQ tracing
+      x86/pkeys/selftests: Fix protection keys write() warning
+      x86/pkeys/selftests: Rename 'si_pkey' to 'siginfo_pkey'
+      x86/mpx/selftests: Fix up weird arrays
+      x86/pkeys: Update documentation about availability
+      x86/umip: Print a warning into the syslog if UMIP-protected instructions are used
+      x86/smpboot: Fix __max_logical_packages estimate
+      x86/topology: Avoid wasting 128k for package id array
+      perf/x86/intel/uncore: Cache logical pkg id in uncore driver
+      x86/acpi: Reduce code duplication in mp_override_legacy_irq()
+      x86/acpi: Handle SCI interrupts above legacy space gracefully
+      x86/boot: Fix boot failure when SMP MP-table is based at 0
+      x86/mm: Limit mmap() of /dev/mem to valid physical addresses
+      x86/selftests: Add test for mapping placement for 5-level paging
+      ...
+

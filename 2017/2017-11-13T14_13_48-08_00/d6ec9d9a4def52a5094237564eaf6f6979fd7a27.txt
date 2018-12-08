@@ -1,0 +1,88 @@
+commit d6ec9d9a4def52a5094237564eaf6f6979fd7a27
+Merge: 3e2014637c50 91a6a6cfee8a
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Nov 13 14:13:48 2017 -0800
+
+    Merge branch 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 core updates from Ingo Molnar:
+     "Note that in this cycle most of the x86 topics interacted at a level
+      that caused them to be merged into tip:x86/asm - but this should be a
+      temporary phenomenon, hopefully we'll back to the usual patterns in
+      the next merge window.
+    
+      The main changes in this cycle were:
+    
+      Hardware enablement:
+    
+       - Add support for the Intel UMIP (User Mode Instruction Prevention)
+         CPU feature. This is a security feature that disables certain
+         instructions such as SGDT, SLDT, SIDT, SMSW and STR. (Ricardo Neri)
+    
+         [ Note that this is disabled by default for now, there are some
+           smaller enhancements in the pipeline that I'll follow up with in
+           the next 1-2 days, which allows this to be enabled by default.]
+    
+       - Add support for the AMD SEV (Secure Encrypted Virtualization) CPU
+         feature, on top of SME (Secure Memory Encryption) support that was
+         added in v4.14. (Tom Lendacky, Brijesh Singh)
+    
+       - Enable new SSE/AVX/AVX512 CPU features: AVX512_VBMI2, GFNI, VAES,
+         VPCLMULQDQ, AVX512_VNNI, AVX512_BITALG. (Gayatri Kammela)
+    
+      Other changes:
+    
+       - A big series of entry code simplifications and enhancements (Andy
+         Lutomirski)
+    
+       - Make the ORC unwinder default on x86 and various objtool
+         enhancements. (Josh Poimboeuf)
+    
+       - 5-level paging enhancements (Kirill A. Shutemov)
+    
+       - Micro-optimize the entry code a bit (Borislav Petkov)
+    
+       - Improve the handling of interdependent CPU features in the early
+         FPU init code (Andi Kleen)
+    
+       - Build system enhancements (Changbin Du, Masahiro Yamada)
+    
+       - ... plus misc enhancements, fixes and cleanups"
+    
+    * 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (118 commits)
+      x86/build: Make the boot image generation less verbose
+      selftests/x86: Add tests for the STR and SLDT instructions
+      selftests/x86: Add tests for User-Mode Instruction Prevention
+      x86/traps: Fix up general protection faults caused by UMIP
+      x86/umip: Enable User-Mode Instruction Prevention at runtime
+      x86/umip: Force a page fault when unable to copy emulated result to user
+      x86/umip: Add emulation code for UMIP instructions
+      x86/cpufeature: Add User-Mode Instruction Prevention definitions
+      x86/insn-eval: Add support to resolve 16-bit address encodings
+      x86/insn-eval: Handle 32-bit address encodings in virtual-8086 mode
+      x86/insn-eval: Add wrapper function for 32 and 64-bit addresses
+      x86/insn-eval: Add support to resolve 32-bit address encodings
+      x86/insn-eval: Compute linear address in several utility functions
+      resource: Fix resource_size.cocci warnings
+      X86/KVM: Clear encryption attribute when SEV is active
+      X86/KVM: Decrypt shared per-cpu variables when SEV is active
+      percpu: Introduce DEFINE_PER_CPU_DECRYPTED
+      x86: Add support for changing memory encryption attribute in early boot
+      x86/io: Unroll string I/O when SEV is active
+      x86/boot: Add early boot support when running with SEV active
+      ...
+
+diff --cc arch/x86/kernel/cpu/Makefile
+index c60922a66385,570e8bb1f386..90cb82dbba57
+--- a/arch/x86/kernel/cpu/Makefile
++++ b/arch/x86/kernel/cpu/Makefile
+@@@ -22,7 -22,8 +22,8 @@@ obj-y			+= common.
+  obj-y			+= rdrand.o
+  obj-y			+= match.o
+  obj-y			+= bugs.o
+ -obj-y			+= aperfmperf.o
+ +obj-$(CONFIG_CPU_FREQ)	+= aperfmperf.o
++ obj-y			+= cpuid-deps.o
+  
+  obj-$(CONFIG_PROC_FS)	+= proc.o
+  obj-$(CONFIG_X86_FEATURE_NAMES) += capflags.o powerflags.o

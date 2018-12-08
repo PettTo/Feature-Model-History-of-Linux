@@ -1,0 +1,98 @@
+commit b18d62891aaff49d0ee8367d4b6bb9452469f807
+Merge: 7d58e1c9059e 141d3b1daacd
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Nov 13 18:29:23 2017 -0800
+
+    Merge branch 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 APIC updates from Thomas Gleixner:
+     "This update provides a major overhaul of the APIC initialization and
+      vector allocation code:
+    
+       - Unification of the APIC and interrupt mode setup which was
+         scattered all over the place and was hard to follow. This also
+         distangles the timer setup from the APIC initialization which
+         brings a clear separation of functionality.
+    
+         Great detective work from Dou Lyiang!
+    
+       - Refactoring of the x86 vector allocation mechanism. The existing
+         code was based on nested loops and rather convoluted APIC callbacks
+         which had a horrible worst case behaviour and tried to serve all
+         different use cases in one go. This led to quite odd hacks when
+         supporting the new managed interupt facility for multiqueue devices
+         and made it more or less impossible to deal with the vector space
+         exhaustion which was a major roadblock for server hibernation.
+    
+         Aside of that the code dealing with cpu hotplug and the system
+         vectors was disconnected from the actual vector management and
+         allocation code, which made it hard to follow and maintain.
+    
+         Utilizing the new bitmap matrix allocator core mechanism, the new
+         allocator and management code consolidates the handling of system
+         vectors, legacy vectors, cpu hotplug mechanisms and the actual
+         allocation which needs to be aware of system and legacy vectors and
+         hotplug constraints into a single consistent entity.
+    
+         This has one visible change: The support for multi CPU targets of
+         interrupts, which is only available on a certain subset of
+         CPUs/APIC variants has been removed in favour of single interrupt
+         targets. A proper analysis of the multi CPU target feature revealed
+         that there is no real advantage as the vast majority of interrupts
+         end up on the CPU with the lowest APIC id in the set of target CPUs
+         anyway. That change was agreed on by the relevant folks and allowed
+         to simplify the implementation significantly and to replace rather
+         fragile constructs like the vector cleanup IPI with straight
+         forward and solid code.
+    
+         Furthermore this allowed to cleanly separate the allocation details
+         for legacy, normal and managed interrupts:
+    
+          * Legacy interrupts are not longer wasting 16 vectors
+            unconditionally
+    
+          * Managed interrupts have now a guaranteed vector reservation, but
+            the actual vector assignment happens when the interrupt is
+            requested. It's guaranteed not to fail.
+    
+          * Normal interrupts no longer allocate vectors unconditionally
+            when the interrupt is set up (IO/APIC init or MSI(X) enable).
+            The mechanism has been switched to a best effort reservation
+            mode. The actual allocation happens when the interrupt is
+            requested. Contrary to managed interrupts the request can fail
+            due to vector space exhaustion, but drivers must handle a fail
+            of request_irq() anyway. When the interrupt is freed, the vector
+            is handed back as well.
+    
+            This solves a long standing problem with large unconditional
+            vector allocations for a certain class of enterprise devices
+            which prevented server hibernation due to vector space
+            exhaustion when the unused allocated vectors had to be migrated
+            to CPU0 while unplugging all non boot CPUs.
+    
+         The code has been equipped with trace points and detailed debugfs
+         information to aid analysis of the vector space"
+    
+    * 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (60 commits)
+      x86/vector/msi: Select CONFIG_GENERIC_IRQ_RESERVATION_MODE
+      PCI/MSI: Set MSI_FLAG_MUST_REACTIVATE in core code
+      genirq: Add config option for reservation mode
+      x86/vector: Use correct per cpu variable in free_moved_vector()
+      x86/apic/vector: Ignore set_affinity call for inactive interrupts
+      x86/apic: Fix spelling mistake: "symmectic" -> "symmetric"
+      x86/apic: Use dead_cpu instead of current CPU when cleaning up
+      ACPI/init: Invoke early ACPI initialization earlier
+      x86/vector: Respect affinity mask in irq descriptor
+      x86/irq: Simplify hotplug vector accounting
+      x86/vector: Switch IOAPIC to global reservation mode
+      x86/vector/msi: Switch to global reservation mode
+      x86/vector: Handle managed interrupts proper
+      x86/io_apic: Reevaluate vector configuration on activate()
+      iommu/amd: Reevaluate vector configuration on activate()
+      iommu/vt-d: Reevaluate vector configuration on activate()
+      x86/apic/msi: Force reactivation of interrupts at startup time
+      x86/vector: Untangle internal state from irq_cfg
+      x86/vector: Compile SMP only code conditionally
+      x86/apic: Remove unused callbacks
+      ...
+

@@ -1,0 +1,100 @@
+commit f01d7d51f577b5dc0fa5919ab8a9228e2bf49f3e
+Author: Vikas Shivappa <vikas.shivappa@linux.intel.com>
+Date:   Tue Jul 25 14:14:22 2017 -0700
+
+    x86/intel_rdt: Introduce a common compile option for RDT
+    
+    We currently have a CONFIG_RDT_A which is for RDT(Resource directory
+    technology) allocation based resctrl filesystem interface. As a
+    preparation to add support for RDT monitoring as well into the same
+    resctrl filesystem, change the config option to be CONFIG_RDT which
+    would include both RDT allocation and monitoring code.
+    
+    No functional change.
+    
+    Signed-off-by: Vikas Shivappa <vikas.shivappa@linux.intel.com>
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: ravi.v.shankar@intel.com
+    Cc: tony.luck@intel.com
+    Cc: fenghua.yu@intel.com
+    Cc: peterz@infradead.org
+    Cc: eranian@google.com
+    Cc: vikas.shivappa@intel.com
+    Cc: ak@linux.intel.com
+    Cc: davidcc@google.com
+    Cc: reinette.chatre@intel.com
+    Link: http://lkml.kernel.org/r/1501017287-28083-4-git-send-email-vikas.shivappa@linux.intel.com
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 781521b7cf9e..b1abda70c2d1 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -424,16 +424,16 @@ config GOLDFISH
+        def_bool y
+        depends on X86_GOLDFISH
+ 
+-config INTEL_RDT_A
+-	bool "Intel Resource Director Technology Allocation support"
++config INTEL_RDT
++	bool "Intel Resource Director Technology support"
+ 	default n
+ 	depends on X86 && CPU_SUP_INTEL
+ 	select KERNFS
+ 	help
+-	  Select to enable resource allocation which is a sub-feature of
+-	  Intel Resource Director Technology(RDT). More information about
+-	  RDT can be found in the Intel x86 Architecture Software
+-	  Developer Manual.
++	  Select to enable resource allocation and monitoring which are
++	  sub-features of Intel Resource Director Technology(RDT). More
++	  information about RDT can be found in the Intel x86
++	  Architecture Software Developer Manual.
+ 
+ 	  Say N if unsure.
+ 
+diff --git a/arch/x86/include/asm/intel_rdt.h b/arch/x86/include/asm/intel_rdt.h
+index 597dc4995678..ae1efc3609d3 100644
+--- a/arch/x86/include/asm/intel_rdt.h
++++ b/arch/x86/include/asm/intel_rdt.h
+@@ -1,7 +1,7 @@
+ #ifndef _ASM_X86_INTEL_RDT_H
+ #define _ASM_X86_INTEL_RDT_H
+ 
+-#ifdef CONFIG_INTEL_RDT_A
++#ifdef CONFIG_INTEL_RDT
+ 
+ #include <linux/sched.h>
+ #include <linux/kernfs.h>
+@@ -282,5 +282,5 @@ static inline void intel_rdt_sched_in(void)
+ 
+ static inline void intel_rdt_sched_in(void) {}
+ 
+-#endif /* CONFIG_INTEL_RDT_A */
++#endif /* CONFIG_INTEL_RDT */
+ #endif /* _ASM_X86_INTEL_RDT_H */
+diff --git a/arch/x86/kernel/cpu/Makefile b/arch/x86/kernel/cpu/Makefile
+index cdf82492b770..3622ca2b1555 100644
+--- a/arch/x86/kernel/cpu/Makefile
++++ b/arch/x86/kernel/cpu/Makefile
+@@ -33,7 +33,7 @@ obj-$(CONFIG_CPU_SUP_CENTAUR)		+= centaur.o
+ obj-$(CONFIG_CPU_SUP_TRANSMETA_32)	+= transmeta.o
+ obj-$(CONFIG_CPU_SUP_UMC_32)		+= umc.o
+ 
+-obj-$(CONFIG_INTEL_RDT_A)	+= intel_rdt.o intel_rdt_rdtgroup.o intel_rdt_schemata.o
++obj-$(CONFIG_INTEL_RDT)	+= intel_rdt.o intel_rdt_rdtgroup.o intel_rdt_schemata.o
+ 
+ obj-$(CONFIG_X86_MCE)			+= mcheck/
+ obj-$(CONFIG_MTRR)			+= mtrr/
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 8337e2db0bb2..20b2ff2f4fde 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -898,7 +898,7 @@ struct task_struct {
+ 	/* cg_list protected by css_set_lock and tsk->alloc_lock: */
+ 	struct list_head		cg_list;
+ #endif
+-#ifdef CONFIG_INTEL_RDT_A
++#ifdef CONFIG_INTEL_RDT
+ 	int				closid;
+ #endif
+ #ifdef CONFIG_FUTEX

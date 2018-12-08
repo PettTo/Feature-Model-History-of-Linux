@@ -1,0 +1,26 @@
+commit b3d9a136815ca9284ade2a897a3b7d2b0084c33c
+Merge: c7da092a1f24 e4880bc5dfb1
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Tue Nov 7 10:53:06 2017 +0100
+
+    Merge branch 'linus' into x86/asm, to pick up fixes and resolve conflicts
+    
+    Conflicts:
+            arch/x86/kernel/cpu/Makefile
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --cc arch/x86/kernel/cpu/Makefile
+index de260fae1017,236999c54edc..570e8bb1f386
+--- a/arch/x86/kernel/cpu/Makefile
++++ b/arch/x86/kernel/cpu/Makefile
+@@@ -21,8 -22,7 +22,8 @@@ obj-y			+= common.
+  obj-y			+= rdrand.o
+  obj-y			+= match.o
+  obj-y			+= bugs.o
+- obj-$(CONFIG_CPU_FREQ)	+= aperfmperf.o
++ obj-y			+= aperfmperf.o
+ +obj-y			+= cpuid-deps.o
+  
+  obj-$(CONFIG_PROC_FS)	+= proc.o
+  obj-$(CONFIG_X86_FEATURE_NAMES) += capflags.o powerflags.o

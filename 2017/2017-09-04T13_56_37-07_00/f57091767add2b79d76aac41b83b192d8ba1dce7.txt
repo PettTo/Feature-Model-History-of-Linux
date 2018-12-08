@@ -1,0 +1,68 @@
+commit f57091767add2b79d76aac41b83b192d8ba1dce7
+Merge: d725c7ac8b96 d56593eb5eda
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Sep 4 13:56:37 2017 -0700
+
+    Merge branch 'x86-cache-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 cache quality monitoring update from Thomas Gleixner:
+     "This update provides a complete rewrite of the Cache Quality
+      Monitoring (CQM) facility.
+    
+      The existing CQM support was duct taped into perf with a lot of issues
+      and the attempts to fix those turned out to be incomplete and
+      horrible.
+    
+      After lengthy discussions it was decided to integrate the CQM support
+      into the Resource Director Technology (RDT) facility, which is the
+      obvious choise as in hardware CQM is part of RDT. This allowed to add
+      Memory Bandwidth Monitoring support on top.
+    
+      As a result the mechanisms for allocating cache/memory bandwidth and
+      the corresponding monitoring mechanisms are integrated into a single
+      management facility with a consistent user interface"
+    
+    * 'x86-cache-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (37 commits)
+      x86/intel_rdt: Turn off most RDT features on Skylake
+      x86/intel_rdt: Add command line options for resource director technology
+      x86/intel_rdt: Move special case code for Haswell to a quirk function
+      x86/intel_rdt: Remove redundant ternary operator on return
+      x86/intel_rdt/cqm: Improve limbo list processing
+      x86/intel_rdt/mbm: Fix MBM overflow handler during CPU hotplug
+      x86/intel_rdt: Modify the intel_pqr_state for better performance
+      x86/intel_rdt/cqm: Clear the default RMID during hotcpu
+      x86/intel_rdt: Show bitmask of shareable resource with other executing units
+      x86/intel_rdt/mbm: Handle counter overflow
+      x86/intel_rdt/mbm: Add mbm counter initialization
+      x86/intel_rdt/mbm: Basic counting of MBM events (total and local)
+      x86/intel_rdt/cqm: Add CPU hotplug support
+      x86/intel_rdt/cqm: Add sched_in support
+      x86/intel_rdt: Introduce rdt_enable_key for scheduling
+      x86/intel_rdt/cqm: Add mount,umount support
+      x86/intel_rdt/cqm: Add rmdir support
+      x86/intel_rdt: Separate the ctrl bits from rmdir
+      x86/intel_rdt/cqm: Add mon_data
+      x86/intel_rdt: Prepare for RDT monitor data support
+      ...
+
+diff --cc include/linux/perf_event.h
+index 718ba163c1b9,4572dbabd4e8..8e22f24ded6a
+--- a/include/linux/perf_event.h
++++ b/include/linux/perf_event.h
+@@@ -139,14 -139,9 +139,6 @@@ struct hw_perf_event 
+  			/* for tp_event->class */
+  			struct list_head	tp_list;
+  		};
+- 		struct { /* intel_cqm */
+- 			int			cqm_state;
+- 			u32			cqm_rmid;
+- 			int			is_group_event;
+- 			struct list_head	cqm_events_entry;
+- 			struct list_head	cqm_groups_entry;
+- 			struct list_head	cqm_group_entry;
+ -		struct { /* itrace */
+ -			int			itrace_started;
+--		};
+  		struct { /* amd_power */
+  			u64	pwr_acc;
+  			u64	ptsc;

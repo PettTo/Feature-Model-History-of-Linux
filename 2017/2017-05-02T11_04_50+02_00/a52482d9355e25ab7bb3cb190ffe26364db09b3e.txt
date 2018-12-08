@@ -1,0 +1,227 @@
+commit a52482d9355e25ab7bb3cb190ffe26364db09b3e
+Author: Vitaly Kuznetsov <vkuznets@redhat.com>
+Date:   Tue Mar 14 18:35:45 2017 +0100
+
+    x86/xen: split off smp_hvm.c
+    
+    Move PVHVM related code to smp_hvm.c. Drop 'static' qualifier from
+    xen_smp_send_reschedule(), xen_smp_send_call_function_ipi(),
+    xen_smp_send_call_function_single_ipi(), these functions will be moved to
+    common smp code when smp_pv.c is split.
+    
+    Signed-off-by: Vitaly Kuznetsov <vkuznets@redhat.com>
+    Reviewed-by: Juergen Gross <jgross@suse.com>
+    Signed-off-by: Juergen Gross <jgross@suse.com>
+
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index 5bb14341f639..6d15c3439ecd 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -37,6 +37,10 @@ config XEN_PVHVM
+ 	help
+ 	  Support running as a Xen PVHVM guest.
+ 
++config XEN_PVHVM_SMP
++	def_bool y
++	depends on XEN_PVHVM && SMP
++
+ config XEN_512GB
+ 	bool "Limit Xen pv-domain memory to 512GB"
+ 	depends on XEN_PV && X86_64
+diff --git a/arch/x86/xen/Makefile b/arch/x86/xen/Makefile
+index 5ca8d3eb4c93..bc7df8c58d77 100644
+--- a/arch/x86/xen/Makefile
++++ b/arch/x86/xen/Makefile
+@@ -21,6 +21,7 @@ obj-$(CONFIG_XEN_PVH)			+= enlighten_pvh.o
+ obj-$(CONFIG_EVENT_TRACING) += trace.o
+ 
+ obj-$(CONFIG_SMP)		+= smp.o
++obj-$(CONFIG_XEN_PVHVM_SMP)  	+= smp_hvm.o
+ obj-$(CONFIG_PARAVIRT_SPINLOCKS)+= spinlock.o
+ obj-$(CONFIG_XEN_DEBUG_FS)	+= debugfs.o
+ obj-$(CONFIG_XEN_DOM0)		+= vga.o
+diff --git a/arch/x86/xen/smp.c b/arch/x86/xen/smp.c
+index c51d1a699869..148e62cfc22f 100644
+--- a/arch/x86/xen/smp.c
++++ b/arch/x86/xen/smp.c
+@@ -328,25 +328,6 @@ static void __init xen_pv_smp_prepare_boot_cpu(void)
+ 	xen_init_spinlocks();
+ }
+ 
+-static void __init xen_hvm_smp_prepare_boot_cpu(void)
+-{
+-	BUG_ON(smp_processor_id() != 0);
+-	native_smp_prepare_boot_cpu();
+-
+-	/*
+-	 * Setup vcpu_info for boot CPU.
+-	 */
+-	xen_vcpu_setup(0);
+-
+-	/*
+-	 * The alternative logic (which patches the unlock/lock) runs before
+-	 * the smp bootup up code is activated. Hence we need to set this up
+-	 * the core kernel is being patched. Otherwise we will have only
+-	 * modules patched but not core code.
+-	 */
+-	xen_init_spinlocks();
+-}
+-
+ static void __init xen_smp_prepare_cpus(unsigned int max_cpus)
+ {
+ 	unsigned cpu;
+@@ -530,15 +511,6 @@ static void xen_pv_cpu_die(unsigned int cpu)
+ 	}
+ }
+ 
+-static void xen_hvm_cpu_die(unsigned int cpu)
+-{
+-	if (common_cpu_die(cpu) == 0) {
+-		xen_smp_intr_free(cpu);
+-		xen_uninit_lock_cpu(cpu);
+-		xen_teardown_timer(cpu);
+-	}
+-}
+-
+ static void xen_play_dead(void) /* used only with HOTPLUG_CPU */
+ {
+ 	play_dead_common();
+@@ -566,11 +538,6 @@ static void xen_pv_cpu_die(unsigned int cpu)
+ 	BUG();
+ }
+ 
+-static void xen_hvm_cpu_die(unsigned int cpu)
+-{
+-	BUG();
+-}
+-
+ static void xen_play_dead(void)
+ {
+ 	BUG();
+@@ -596,7 +563,7 @@ static void xen_stop_other_cpus(int wait)
+ 	smp_call_function(stop_self, NULL, wait);
+ }
+ 
+-static void xen_smp_send_reschedule(int cpu)
++void xen_smp_send_reschedule(int cpu)
+ {
+ 	xen_send_IPI_one(cpu, XEN_RESCHEDULE_VECTOR);
+ }
+@@ -610,7 +577,7 @@ static void __xen_send_IPI_mask(const struct cpumask *mask,
+ 		xen_send_IPI_one(cpu, vector);
+ }
+ 
+-static void xen_smp_send_call_function_ipi(const struct cpumask *mask)
++void xen_smp_send_call_function_ipi(const struct cpumask *mask)
+ {
+ 	int cpu;
+ 
+@@ -625,7 +592,7 @@ static void xen_smp_send_call_function_ipi(const struct cpumask *mask)
+ 	}
+ }
+ 
+-static void xen_smp_send_call_function_single_ipi(int cpu)
++void xen_smp_send_call_function_single_ipi(int cpu)
+ {
+ 	__xen_send_IPI_mask(cpumask_of(cpu),
+ 			  XEN_CALL_FUNCTION_SINGLE_VECTOR);
+@@ -763,21 +730,3 @@ void __init xen_smp_init(void)
+ 	smp_ops = xen_smp_ops;
+ 	xen_fill_possible_map();
+ }
+-
+-static void __init xen_hvm_smp_prepare_cpus(unsigned int max_cpus)
+-{
+-	native_smp_prepare_cpus(max_cpus);
+-	WARN_ON(xen_smp_intr_init(0));
+-
+-	xen_init_lock_cpu(0);
+-}
+-
+-void __init xen_hvm_smp_init(void)
+-{
+-	smp_ops.smp_prepare_cpus = xen_hvm_smp_prepare_cpus;
+-	smp_ops.smp_send_reschedule = xen_smp_send_reschedule;
+-	smp_ops.cpu_die = xen_hvm_cpu_die;
+-	smp_ops.send_call_func_ipi = xen_smp_send_call_function_ipi;
+-	smp_ops.send_call_func_single_ipi = xen_smp_send_call_function_single_ipi;
+-	smp_ops.smp_prepare_boot_cpu = xen_hvm_smp_prepare_boot_cpu;
+-}
+diff --git a/arch/x86/xen/smp.h b/arch/x86/xen/smp.h
+index 33320cea5a01..2e8cd56c5a8f 100644
+--- a/arch/x86/xen/smp.h
++++ b/arch/x86/xen/smp.h
+@@ -14,6 +14,9 @@ extern void xen_smp_intr_free(unsigned int cpu);
+ int xen_smp_intr_init_pv(unsigned int cpu);
+ void xen_smp_intr_free_pv(unsigned int cpu);
+ 
++void xen_smp_send_reschedule(int cpu);
++void xen_smp_send_call_function_ipi(const struct cpumask *mask);
++void xen_smp_send_call_function_single_ipi(int cpu);
+ #else /* CONFIG_SMP */
+ 
+ static inline int xen_smp_intr_init(unsigned int cpu)
+diff --git a/arch/x86/xen/smp_hvm.c b/arch/x86/xen/smp_hvm.c
+new file mode 100644
+index 000000000000..8bed434cd7d7
+--- /dev/null
++++ b/arch/x86/xen/smp_hvm.c
+@@ -0,0 +1,58 @@
++#include <asm/smp.h>
++
++#include "xen-ops.h"
++#include "smp.h"
++
++
++static void __init xen_hvm_smp_prepare_boot_cpu(void)
++{
++	BUG_ON(smp_processor_id() != 0);
++	native_smp_prepare_boot_cpu();
++
++	/*
++	 * Setup vcpu_info for boot CPU.
++	 */
++	xen_vcpu_setup(0);
++
++	/*
++	 * The alternative logic (which patches the unlock/lock) runs before
++	 * the smp bootup up code is activated. Hence we need to set this up
++	 * the core kernel is being patched. Otherwise we will have only
++	 * modules patched but not core code.
++	 */
++	xen_init_spinlocks();
++}
++
++static void __init xen_hvm_smp_prepare_cpus(unsigned int max_cpus)
++{
++	native_smp_prepare_cpus(max_cpus);
++	WARN_ON(xen_smp_intr_init(0));
++
++	xen_init_lock_cpu(0);
++}
++
++#ifdef CONFIG_HOTPLUG_CPU
++static void xen_hvm_cpu_die(unsigned int cpu)
++{
++	if (common_cpu_die(cpu) == 0) {
++		xen_smp_intr_free(cpu);
++		xen_uninit_lock_cpu(cpu);
++		xen_teardown_timer(cpu);
++	}
++}
++#else
++static void xen_hvm_cpu_die(unsigned int cpu)
++{
++	BUG();
++}
++#endif
++
++void __init xen_hvm_smp_init(void)
++{
++	smp_ops.smp_prepare_cpus = xen_hvm_smp_prepare_cpus;
++	smp_ops.smp_send_reschedule = xen_smp_send_reschedule;
++	smp_ops.cpu_die = xen_hvm_cpu_die;
++	smp_ops.send_call_func_ipi = xen_smp_send_call_function_ipi;
++	smp_ops.send_call_func_single_ipi = xen_smp_send_call_function_single_ipi;
++	smp_ops.smp_prepare_boot_cpu = xen_hvm_smp_prepare_boot_cpu;
++}

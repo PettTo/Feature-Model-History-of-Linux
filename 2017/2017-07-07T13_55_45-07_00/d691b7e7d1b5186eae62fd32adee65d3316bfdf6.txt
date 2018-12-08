@@ -1,0 +1,59 @@
+commit d691b7e7d1b5186eae62fd32adee65d3316bfdf6
+Merge: b59eea554f57 1e0fc9d1eb2b
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Jul 7 13:55:45 2017 -0700
+
+    Merge tag 'powerpc-4.13-1' of git://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux
+    
+    Pull powerpc updates from Michael Ellerman:
+     "Highlights include:
+    
+       - Support for STRICT_KERNEL_RWX on 64-bit server CPUs.
+    
+       - Platform support for FSP2 (476fpe) board
+    
+       - Enable ZONE_DEVICE on 64-bit server CPUs.
+    
+       - Generic & powerpc spin loop primitives to optimise busy waiting
+    
+       - Convert VDSO update function to use new update_vsyscall() interface
+    
+       - Optimisations to hypercall/syscall/context-switch paths
+    
+       - Improvements to the CPU idle code on Power8 and Power9.
+    
+      As well as many other fixes and improvements.
+    
+      Thanks to: Akshay Adiga, Andrew Donnellan, Andrew Jeffery, Anshuman
+      Khandual, Anton Blanchard, Balbir Singh, Benjamin Herrenschmidt,
+      Christophe Leroy, Christophe Lombard, Colin Ian King, Dan Carpenter,
+      Gautham R. Shenoy, Hari Bathini, Ian Munsie, Ivan Mikhaylov, Javier
+      Martinez Canillas, Madhavan Srinivasan, Masahiro Yamada, Matt Brown,
+      Michael Neuling, Michal Suchanek, Murilo Opsfelder Araujo, Naveen N.
+      Rao, Nicholas Piggin, Oliver O'Halloran, Paul Mackerras, Pavel Machek,
+      Russell Currey, Santosh Sivaraj, Stephen Rothwell, Thiago Jung
+      Bauermann, Yang Li"
+    
+    * tag 'powerpc-4.13-1' of git://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux: (158 commits)
+      powerpc/Kconfig: Enable STRICT_KERNEL_RWX for some configs
+      powerpc/mm/radix: Implement STRICT_RWX/mark_rodata_ro() for Radix
+      powerpc/mm/hash: Implement mark_rodata_ro() for hash
+      powerpc/vmlinux.lds: Align __init_begin to 16M
+      powerpc/lib/code-patching: Use alternate map for patch_instruction()
+      powerpc/xmon: Add patch_instruction() support for xmon
+      powerpc/kprobes/optprobes: Use patch_instruction()
+      powerpc/kprobes: Move kprobes over to patch_instruction()
+      powerpc/mm/radix: Fix execute permissions for interrupt_vectors
+      powerpc/pseries: Fix passing of pp0 in updatepp() and updateboltedpp()
+      powerpc/64s: Blacklist rtas entry/exit from kprobes
+      powerpc/64s: Blacklist functions invoked on a trap
+      powerpc/64s: Un-blacklist system_call() from kprobes
+      powerpc/64s: Move system_call() symbol to just after setting MSR_EE
+      powerpc/64s: Blacklist system_call() and system_call_common() from kprobes
+      powerpc/64s: Convert .L__replay_interrupt_return to a local label
+      powerpc64/elfv1: Only dereference function descriptor for non-text symbols
+      cxl: Export library to support IBM XSL
+      powerpc/dts: Use #include "..." to include local DT
+      powerpc/perf/hv-24x7: Aggregate result elements on POWER9 SMT8
+      ...
+

@@ -1,0 +1,507 @@
+commit 701cac61d0250912b89cbc28589969530179099a
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Wed Apr 5 19:15:53 2017 -0400
+
+    CONFIG_ARCH_HAS_RAW_COPY_USER is unconditional now
+    
+    all architectures converted
+    
+    Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 315d37626ddc..cd211a14a88f 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -847,7 +847,4 @@ config STRICT_MODULE_RWX
+ config ARCH_WANT_RELAX_ORDER
+ 	bool
+ 
+-config ARCH_HAS_RAW_COPY_USER
+-	bool
+-
+ source "kernel/gcov/Kconfig"
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index 1be5f61dc630..0e49d39ea74a 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -26,7 +26,6 @@ config ALPHA
+ 	select ODD_RT_SIGACTION
+ 	select OLD_SIGSUSPEND
+ 	select CPU_NO_EFFICIENT_FFS if !ALPHA_EV67
+-	select ARCH_HAS_RAW_COPY_USER
+ 	help
+ 	  The Alpha is a 64-bit general-purpose processor designed and
+ 	  marketed by the Digital Equipment Corporation of blessed memory,
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 7e213ff4f01f..c9f30f4763ab 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -44,7 +44,6 @@ config ARC
+ 	select HAVE_GENERIC_DMA_COHERENT
+ 	select HAVE_KERNEL_GZIP
+ 	select HAVE_KERNEL_LZMA
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config MIGHT_HAVE_PCI
+ 	bool
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 6fab7f34739c..0d4e71b42c77 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -96,7 +96,6 @@ config ARM
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
+ 	select SYS_SUPPORTS_APM_EMULATION
+-	select ARCH_HAS_RAW_COPY_USER
+ 	# Above selects are sorted alphabetically; please add new ones
+ 	# according to that.  Thanks.
+ 	help
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 3c833ff3303c..3741859765cf 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -115,7 +115,6 @@ config ARM64
+ 	select SPARSE_IRQ
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select THREAD_INFO_IN_TASK
+-	select ARCH_HAS_RAW_COPY_USER
+ 	help
+ 	  ARM 64-bit (AArch64) Linux support.
+ 
+diff --git a/arch/avr32/Kconfig b/arch/avr32/Kconfig
+index 8c349f2a9ebb..7e75d45e20cd 100644
+--- a/arch/avr32/Kconfig
++++ b/arch/avr32/Kconfig
+@@ -19,7 +19,6 @@ config AVR32
+ 	select HAVE_MOD_ARCH_SPECIFIC
+ 	select MODULES_USE_ELF_RELA
+ 	select HAVE_NMI
+-	select ARCH_HAS_RAW_COPY_USER
+ 	help
+ 	  AVR32 is a high-performance 32-bit RISC microprocessor core,
+ 	  designed for cost-sensitive embedded applications, with particular
+diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+index 919dad1436f7..3c1bd640042a 100644
+--- a/arch/blackfin/Kconfig
++++ b/arch/blackfin/Kconfig
+@@ -41,7 +41,6 @@ config BLACKFIN
+ 	select MODULES_USE_ELF_RELA
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select HAVE_NMI
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config GENERIC_CSUM
+ 	def_bool y
+diff --git a/arch/c6x/Kconfig b/arch/c6x/Kconfig
+index 3c7bd9a29f90..5aa8ea8bad2d 100644
+--- a/arch/c6x/Kconfig
++++ b/arch/c6x/Kconfig
+@@ -18,7 +18,6 @@ config C6X
+ 	select GENERIC_CLOCKEVENTS
+ 	select MODULES_USE_ELF_RELA
+ 	select ARCH_NO_COHERENT_DMA_MMAP
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config MMU
+ 	def_bool n
+diff --git a/arch/cris/Kconfig b/arch/cris/Kconfig
+index 36f94c45e3f9..71b758dc3a96 100644
+--- a/arch/cris/Kconfig
++++ b/arch/cris/Kconfig
+@@ -71,7 +71,6 @@ config CRIS
+ 	select GENERIC_SCHED_CLOCK if ETRAX_ARCH_V32
+ 	select HAVE_DEBUG_BUGVERBOSE if ETRAX_ARCH_V32
+ 	select HAVE_NMI
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config HZ
+ 	int
+diff --git a/arch/frv/Kconfig b/arch/frv/Kconfig
+index e489fef111dd..eefd9a4ed156 100644
+--- a/arch/frv/Kconfig
++++ b/arch/frv/Kconfig
+@@ -16,7 +16,6 @@ config FRV
+ 	select OLD_SIGACTION
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select ARCH_NO_COHERENT_DMA_MMAP
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config ZONE_DMA
+ 	bool
+diff --git a/arch/h8300/Kconfig b/arch/h8300/Kconfig
+index 473883417004..3ae852507e57 100644
+--- a/arch/h8300/Kconfig
++++ b/arch/h8300/Kconfig
+@@ -22,7 +22,6 @@ config H8300
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_HASH
+ 	select CPU_NO_EFFICIENT_FFS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config RWSEM_GENERIC_SPINLOCK
+ 	def_bool y
+diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
+index 0c536a83ea71..1941e4baaee6 100644
+--- a/arch/hexagon/Kconfig
++++ b/arch/hexagon/Kconfig
+@@ -26,7 +26,6 @@ config HEXAGON
+ 	select GENERIC_CLOCKEVENTS_BROADCAST
+ 	select MODULES_USE_ELF_RELA
+ 	select GENERIC_CPU_DEVICES
+-	select ARCH_HAS_RAW_COPY_USER
+ 	---help---
+ 	  Qualcomm Hexagon is a processor architecture designed for high
+ 	  performance and low power across a wide variety of applications.
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 0ed0e44856b2..18ca6a9ce566 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -53,7 +53,6 @@ config IA64
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_ARCH_HARDENED_USERCOPY
+-	select ARCH_HAS_RAW_COPY_USER
+ 	default y
+ 	help
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index b3e82bdd6db0..95474460b367 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -19,7 +19,6 @@ config M32R
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select CPU_NO_EFFICIENT_FFS
+ 	select DMA_NOOP_OPS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config SBUS
+ 	bool
+diff --git a/arch/m68k/Kconfig b/arch/m68k/Kconfig
+index 7d345758ea16..d140206d5d29 100644
+--- a/arch/m68k/Kconfig
++++ b/arch/m68k/Kconfig
+@@ -22,7 +22,6 @@ config M68K
+ 	select MODULES_USE_ELF_RELA
+ 	select OLD_SIGSUSPEND3
+ 	select OLD_SIGACTION
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config RWSEM_GENERIC_SPINLOCK
+ 	bool
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index ecce0c5ec8e8..5b7a45d99cfb 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -1,6 +1,5 @@
+ config METAG
+ 	def_bool y
+-	select ARCH_HAS_RAW_COPY_USER
+ 	select EMBEDDED
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index 1aff3658a104..85885a501dce 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -34,7 +34,6 @@ config MICROBLAZE
+ 	select TRACING_SUPPORT
+ 	select VIRT_TO_BUS
+ 	select CPU_NO_EFFICIENT_FFS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config SWAP
+ 	def_bool n
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index aff5633bfe4d..a008a9f03072 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -69,7 +69,6 @@ config MIPS
+ 	select HAVE_EXIT_THREAD
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+ 	select HAVE_ARCH_HARDENED_USERCOPY
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ menu "Machine selection"
+ 
+diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
+index a96f3dcb0119..38e3494bfb63 100644
+--- a/arch/mn10300/Kconfig
++++ b/arch/mn10300/Kconfig
+@@ -16,7 +16,6 @@ config MN10300
+ 	select OLD_SIGACTION
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select ARCH_NO_COHERENT_DMA_MMAP
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config AM33_2
+ 	def_bool n
+diff --git a/arch/nios2/Kconfig b/arch/nios2/Kconfig
+index 45b4727e3136..51a56c8b04b4 100644
+--- a/arch/nios2/Kconfig
++++ b/arch/nios2/Kconfig
+@@ -16,7 +16,6 @@ config NIOS2
+ 	select SPARSE_IRQ
+ 	select USB_ARCH_HAS_HCD if USB_SUPPORT
+ 	select CPU_NO_EFFICIENT_FFS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config GENERIC_CSUM
+ 	def_bool y
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index 38954181fa96..1e95920b0737 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -28,7 +28,6 @@ config OPENRISC
+ 	select OR1K_PIC
+ 	select CPU_NO_EFFICIENT_FFS if !OPENRISC_HAVE_INST_FF1
+ 	select NO_BOOTMEM
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config MMU
+ 	def_bool y
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index 15b7b279a169..ad294b3fb90b 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -41,7 +41,6 @@ config PARISC
+ 	select GENERIC_CLOCKEVENTS
+ 	select ARCH_NO_COHERENT_DMA_MMAP
+ 	select CPU_NO_EFFICIENT_FFS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ 	help
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 839f08887269..97a8bc8a095c 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -87,7 +87,6 @@ config PPC
+ 	select ARCH_HAS_DMA_SET_COHERENT_MASK
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+-	select ARCH_HAS_RAW_COPY_USER
+ 	select ARCH_HAS_SCALED_CPUTIME		if VIRT_CPU_ACCOUNTING_NATIVE
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAS_TICK_BROADCAST		if GENERIC_CLOCKEVENTS_BROADCAST
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 0724dbf2d8f8..a2dcef0aacc7 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -178,7 +178,6 @@ config S390
+ 	select ARCH_HAS_SCALED_CPUTIME
+ 	select VIRT_TO_BUS
+ 	select HAVE_NMI
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ 
+ config SCHED_OMIT_FRAME_POINTER
+diff --git a/arch/score/Kconfig b/arch/score/Kconfig
+index 4d241cfedc3b..507d63181389 100644
+--- a/arch/score/Kconfig
++++ b/arch/score/Kconfig
+@@ -15,7 +15,6 @@ config SCORE
+ 	select MODULES_USE_ELF_REL
+ 	select CLONE_BACKWARDS
+ 	select CPU_NO_EFFICIENT_FFS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ choice
+ 	prompt "System type"
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index c689645eb8b7..ee086958b2b2 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -48,7 +48,6 @@ config SUPERH
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select HAVE_FUTEX_CMPXCHG if FUTEX
+ 	select HAVE_NMI
+-	select ARCH_HAS_RAW_COPY_USER
+ 	help
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
+ 	  and consumer electronics; it was also used in the Sega Dreamcast
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 68353048f24e..68ac5c7cd982 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -45,7 +45,6 @@ config SPARC
+ 	select HAVE_ARCH_HARDENED_USERCOPY
+ 	select PROVE_LOCKING_SMALL if PROVE_LOCKING
+ 	select ARCH_WANT_RELAX_ORDER
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config SPARC32
+ 	def_bool !64BIT
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 27808d86eb57..4583c0320059 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -33,7 +33,6 @@ config TILE
+ 	select USER_STACKTRACE_SUPPORT
+ 	select USE_PMC if PERF_EVENTS
+ 	select VIRT_TO_BUS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config MMU
+ 	def_bool y
+diff --git a/arch/um/Kconfig.common b/arch/um/Kconfig.common
+index e13f763849b1..fd443852103c 100644
+--- a/arch/um/Kconfig.common
++++ b/arch/um/Kconfig.common
+@@ -13,7 +13,6 @@ config UML
+ 	select GENERIC_CLOCKEVENTS
+ 	select HAVE_GCC_PLUGINS
+ 	select TTY # Needed for line.c
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config MMU
+ 	bool
+diff --git a/arch/unicore32/Kconfig b/arch/unicore32/Kconfig
+index 319519eaed24..0769066929c6 100644
+--- a/arch/unicore32/Kconfig
++++ b/arch/unicore32/Kconfig
+@@ -18,7 +18,6 @@ config UNICORE32
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select GENERIC_IOMAP
+ 	select MODULES_USE_ELF_REL
+-	select ARCH_HAS_RAW_COPY_USER
+ 	help
+ 	  UniCore-32 is 32-bit Instruction Set Architecture,
+ 	  including a series of low-power-consumption RISC chip
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5f59fc388063..cc98d5a294ee 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -175,7 +175,6 @@ config X86
+ 	select USER_STACKTRACE_SUPPORT
+ 	select VIRT_TO_BUS
+ 	select X86_FEATURE_NAMES		if PROC_FS
+-	select ARCH_HAS_RAW_COPY_USER
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index 043d37d45919..f4126cf997a4 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -29,7 +29,6 @@ config XTENSA
+ 	select NO_BOOTMEM
+ 	select PERF_USE_VMALLOC
+ 	select VIRT_TO_BUS
+-	select ARCH_HAS_RAW_COPY_USER
+ 	help
+ 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
+ 	  primarily for embedded systems.  These processors are both
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index d65c311eb128..bbe4bb438e39 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -86,11 +86,7 @@ static inline int __access_ok(unsigned long addr, unsigned long size)
+ 
+ static inline int __put_user_fn(size_t size, void __user *ptr, void *x)
+ {
+-#ifdef CONFIG_ARCH_HAS_RAW_COPY_USER
+ 	return unlikely(raw_copy_to_user(ptr, x, size)) ? -EFAULT : 0;
+-#else
+-	return unlikely(__copy_to_user(ptr, x, size)) ? -EFAULT : 0;
+-#endif
+ }
+ 
+ #define __put_user_fn(sz, u, k)	__put_user_fn(sz, u, k)
+@@ -151,11 +147,7 @@ extern int __put_user_bad(void) __attribute__((noreturn));
+ #ifndef __get_user_fn
+ static inline int __get_user_fn(size_t size, const void __user *ptr, void *x)
+ {
+-#ifdef CONFIG_ARCH_HAS_RAW_COPY_USER
+ 	return unlikely(raw_copy_from_user(x, ptr, size)) ? -EFAULT : 0;
+-#else
+-	return unlikely(__copy_from_user(x, ptr, size)) ? -EFAULT : 0;
+-#endif
+ }
+ 
+ #define __get_user_fn(sz, u, k)	__get_user_fn(sz, u, k)
+@@ -164,39 +156,6 @@ static inline int __get_user_fn(size_t size, const void __user *ptr, void *x)
+ 
+ extern int __get_user_bad(void) __attribute__((noreturn));
+ 
+-#ifndef CONFIG_ARCH_HAS_RAW_COPY_USER
+-
+-#ifndef __copy_from_user_inatomic
+-#define __copy_from_user_inatomic __copy_from_user
+-#endif
+-
+-#ifndef __copy_to_user_inatomic
+-#define __copy_to_user_inatomic __copy_to_user
+-#endif
+-
+-static inline long copy_from_user(void *to,
+-		const void __user * from, unsigned long n)
+-{
+-	unsigned long res = n;
+-	might_fault();
+-	if (likely(access_ok(VERIFY_READ, from, n)))
+-		res = __copy_from_user(to, from, n);
+-	if (unlikely(res))
+-		memset(to + (n - res), 0, res);
+-	return res;
+-}
+-
+-static inline long copy_to_user(void __user *to,
+-		const void *from, unsigned long n)
+-{
+-	might_fault();
+-	if (access_ok(VERIFY_WRITE, to, n))
+-		return __copy_to_user(to, from, n);
+-	else
+-		return n;
+-}
+-#endif
+-
+ /*
+  * Copy a null terminated string from userspace.
+  */
+diff --git a/include/linux/uaccess.h b/include/linux/uaccess.h
+index 7fc2104b88bc..e0cbfb09e60f 100644
+--- a/include/linux/uaccess.h
++++ b/include/linux/uaccess.h
+@@ -12,12 +12,10 @@
+ 
+ #include <asm/uaccess.h>
+ 
+-#ifdef CONFIG_ARCH_HAS_RAW_COPY_USER
+ /*
+  * Architectures should provide two primitives (raw_copy_{to,from}_user())
+- * select ARCH_HAS_RAW_COPY_FROM_USER and get rid of their private instances
+- * of copy_{to,from}_user() and __copy_{to,from}_user{,_inatomic}().  Once
+- * all of them switch, this part of linux/uaccess.h will become unconditional.
++ * and get rid of their private instances of copy_{to,from}_user() and
++ * __copy_{to,from}_user{,_inatomic}().
+  *
+  * raw_copy_{to,from}_user(to, from, size) should copy up to size bytes and
+  * return the amount left to copy.  They should assume that access_ok() has
+@@ -196,7 +194,6 @@ copy_in_user(void __user *to, const void *from, unsigned long n)
+ 	return n;
+ }
+ #endif
+-#endif
+ 
+ static __always_inline void pagefault_disabled_inc(void)
+ {
+diff --git a/lib/Makefile b/lib/Makefile
+index 7d875c389172..b47cf97e1e68 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -41,7 +41,7 @@ obj-y += bcd.o div64.o sort.o parser.o debug_locks.o random32.o \
+ 	 gcd.o lcm.o list_sort.o uuid.o flex_array.o iov_iter.o clz_ctz.o \
+ 	 bsearch.o find_bit.o llist.o memweight.o kfifo.o \
+ 	 percpu-refcount.o percpu_ida.o rhashtable.o reciprocal_div.o \
+-	 once.o refcount.o
++	 once.o refcount.o usercopy.o
+ obj-y += string_helpers.o
+ obj-$(CONFIG_TEST_STRING_HELPERS) += test-string_helpers.o
+ obj-y += hexdump.o
+@@ -242,5 +242,3 @@ UBSAN_SANITIZE_ubsan.o := n
+ obj-$(CONFIG_SBITMAP) += sbitmap.o
+ 
+ obj-$(CONFIG_PARMAN) += parman.o
+-
+-obj-$(CONFIG_ARCH_HAS_RAW_COPY_USER) += usercopy.o

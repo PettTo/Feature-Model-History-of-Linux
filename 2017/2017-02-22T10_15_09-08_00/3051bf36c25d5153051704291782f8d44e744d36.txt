@@ -1,0 +1,415 @@
+commit 3051bf36c25d5153051704291782f8d44e744d36
+Merge: 1e74a2eb1f5c 005c3490e9db
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Feb 22 10:15:09 2017 -0800
+
+    Merge git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next
+    
+    Pull networking updates from David Miller:
+     "Highlights:
+    
+       1) Support TX_RING in AF_PACKET TPACKET_V3 mode, from Sowmini
+          Varadhan.
+    
+       2) Simplify classifier state on sk_buff in order to shrink it a bit.
+          From Willem de Bruijn.
+    
+       3) Introduce SIPHASH and it's usage for secure sequence numbers and
+          syncookies. From Jason A. Donenfeld.
+    
+       4) Reduce CPU usage for ICMP replies we are going to limit or
+          suppress, from Jesper Dangaard Brouer.
+    
+       5) Introduce Shared Memory Communications socket layer, from Ursula
+          Braun.
+    
+       6) Add RACK loss detection and allow it to actually trigger fast
+          recovery instead of just assisting after other algorithms have
+          triggered it. From Yuchung Cheng.
+    
+       7) Add xmit_more and BQL support to mvneta driver, from Simon Guinot.
+    
+       8) skb_cow_data avoidance in esp4 and esp6, from Steffen Klassert.
+    
+       9) Export MPLS packet stats via netlink, from Robert Shearman.
+    
+      10) Significantly improve inet port bind conflict handling, especially
+          when an application is restarted and changes it's setting of
+          reuseport. From Josef Bacik.
+    
+      11) Implement TX batching in vhost_net, from Jason Wang.
+    
+      12) Extend the dummy device so that VF (virtual function) features,
+          such as configuration, can be more easily tested. From Phil
+          Sutter.
+    
+      13) Avoid two atomic ops per page on x86 in bnx2x driver, from Eric
+          Dumazet.
+    
+      14) Add new bpf MAP, implementing a longest prefix match trie. From
+          Daniel Mack.
+    
+      15) Packet sample offloading support in mlxsw driver, from Yotam Gigi.
+    
+      16) Add new aquantia driver, from David VomLehn.
+    
+      17) Add bpf tracepoints, from Daniel Borkmann.
+    
+      18) Add support for port mirroring to b53 and bcm_sf2 drivers, from
+          Florian Fainelli.
+    
+      19) Remove custom busy polling in many drivers, it is done in the core
+          networking since 4.5 times. From Eric Dumazet.
+    
+      20) Support XDP adjust_head in virtio_net, from John Fastabend.
+    
+      21) Fix several major holes in neighbour entry confirmation, from
+          Julian Anastasov.
+    
+      22) Add XDP support to bnxt_en driver, from Michael Chan.
+    
+      23) VXLAN offloads for enic driver, from Govindarajulu Varadarajan.
+    
+      24) Add IPVTAP driver (IP-VLAN based tap driver) from Sainath Grandhi.
+    
+      25) Support GRO in IPSEC protocols, from Steffen Klassert"
+    
+    * git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next: (1764 commits)
+      Revert "ath10k: Search SMBIOS for OEM board file extension"
+      net: socket: fix recvmmsg not returning error from sock_error
+      bnxt_en: use eth_hw_addr_random()
+      bpf: fix unlocking of jited image when module ronx not set
+      arch: add ARCH_HAS_SET_MEMORY config
+      net: napi_watchdog() can use napi_schedule_irqoff()
+      tcp: Revert "tcp: tcp_probe: use spin_lock_bh()"
+      net/hsr: use eth_hw_addr_random()
+      net: mvpp2: enable building on 64-bit platforms
+      net: mvpp2: switch to build_skb() in the RX path
+      net: mvpp2: simplify MVPP2_PRS_RI_* definitions
+      net: mvpp2: fix indentation of MVPP2_EXT_GLOBAL_CTRL_DEFAULT
+      net: mvpp2: remove unused register definitions
+      net: mvpp2: simplify mvpp2_bm_bufs_add()
+      net: mvpp2: drop useless fields in mvpp2_bm_pool and related code
+      net: mvpp2: remove unused 'tx_skb' field of 'struct mvpp2_tx_queue'
+      net: mvpp2: release reference to txq_cpu[] entry after unmapping
+      net: mvpp2: handle too large value in mvpp2_rx_time_coal_set()
+      net: mvpp2: handle too large value handling in mvpp2_rx_pkts_coal_set()
+      net: mvpp2: remove useless arguments in mvpp2_rx_{pkts, time}_coal_set
+      ...
+
+diff --cc MAINTAINERS
+index 7099fe18cb47,d8f71f21fb88..2d79f8fcb265
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@@ -9994,13 -9994,20 +10022,20 @@@ L:	linuxppc-dev@lists.ozlabs.or
+  S:	Maintained
+  F:	drivers/block/ps3vram.c
+  
++ PSAMPLE PACKET SAMPLING SUPPORT:
++ M:	Yotam Gigi <yotamg@mellanox.com>
++ S:	Maintained
++ F:	net/psample
++ F:	include/net/psample.h
++ F:	include/uapi/linux/psample.h
++ 
+  PSTORE FILESYSTEM
+ +M:	Kees Cook <keescook@chromium.org>
+  M:	Anton Vorontsov <anton@enomsg.org>
+  M:	Colin Cross <ccross@android.com>
+ -M:	Kees Cook <keescook@chromium.org>
+  M:	Tony Luck <tony.luck@intel.com>
+  S:	Maintained
+ -T:	git git://git.kernel.org/pub/scm/linux/kernel/git/aegl/linux.git
+ +T:	git git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git for-next/pstore
+  F:	fs/pstore/
+  F:	include/linux/pstore*
+  F:	drivers/firmware/efi/efi-pstore.c
+diff --cc arch/Kconfig
+index 2bbf5baff690,e8ada79ec71f..f761142976e5
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@@ -803,38 -785,7 +807,41 @@@ config VMAP_STAC
+  	  the stack to map directly to the KASAN shadow map using a formula
+  	  that is incorrect if the stack is in vmalloc space.
+  
+ +config ARCH_OPTIONAL_KERNEL_RWX
+ +	def_bool n
+ +
+ +config ARCH_OPTIONAL_KERNEL_RWX_DEFAULT
+ +	def_bool n
+ +
+ +config ARCH_HAS_STRICT_KERNEL_RWX
+ +	def_bool n
+ +
+ +config STRICT_KERNEL_RWX
+ +	bool "Make kernel text and rodata read-only" if ARCH_OPTIONAL_KERNEL_RWX
+ +	depends on ARCH_HAS_STRICT_KERNEL_RWX
+ +	default !ARCH_OPTIONAL_KERNEL_RWX || ARCH_OPTIONAL_KERNEL_RWX_DEFAULT
+ +	help
+ +	  If this is set, kernel text and rodata memory will be made read-only,
+ +	  and non-text memory will be made non-executable. This provides
+ +	  protection against certain security exploits (e.g. executing the heap
+ +	  or modifying text)
+ +
+ +	  These features are considered standard security practice these days.
+ +	  You should say Y here in almost all cases.
+ +
+ +config ARCH_HAS_STRICT_MODULE_RWX
+ +	def_bool n
+ +
+ +config STRICT_MODULE_RWX
+ +	bool "Set loadable kernel module data as NX and text as RO" if ARCH_OPTIONAL_KERNEL_RWX
+ +	depends on ARCH_HAS_STRICT_MODULE_RWX && MODULES
+ +	default !ARCH_OPTIONAL_KERNEL_RWX || ARCH_OPTIONAL_KERNEL_RWX_DEFAULT
+ +	help
+ +	  If this is set, module text and rodata memory will be made read-only,
+ +	  and non-text memory will be made non-executable. This provides
+ +	  protection against certain security exploits (e.g. writing to text)
+ +
++ config ARCH_WANT_RELAX_ORDER
++ 	bool
++ 
+  source "kernel/gcov/Kconfig"
+diff --cc arch/arm/Kconfig
+index 8748353ed5e0,edae056b2af0..fda6a46d27cf
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@@ -4,8 -4,7 +4,9 @@@ config AR
+  	select ARCH_CLOCKSOURCE_DATA
+  	select ARCH_HAS_DEVMEM_IS_ALLOWED
+  	select ARCH_HAS_ELF_RANDOMIZE
++ 	select ARCH_HAS_SET_MEMORY
+ +	select ARCH_HAS_STRICT_KERNEL_RWX if MMU && !XIP_KERNEL
+ +	select ARCH_HAS_STRICT_MODULE_RWX if MMU
+  	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+  	select ARCH_HAVE_CUSTOM_GPIO_H
+  	select ARCH_HAS_GCOV_PROFILE_ALL
+diff --cc arch/arm64/Kconfig
+index 3bebdaf1d009,1853405a897e..916024d6a2b1
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@@ -12,9 -12,8 +12,10 @@@ config ARM6
+  	select ARCH_HAS_GCOV_PROFILE_ALL
+  	select ARCH_HAS_GIGANTIC_PAGE
+  	select ARCH_HAS_KCOV
++ 	select ARCH_HAS_SET_MEMORY
+  	select ARCH_HAS_SG_CHAIN
+ +	select ARCH_HAS_STRICT_KERNEL_RWX
+ +	select ARCH_HAS_STRICT_MODULE_RWX
+  	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+  	select ARCH_USE_CMPXCHG_LOCKREF
+  	select ARCH_SUPPORTS_ATOMIC_RMW
+diff --cc arch/s390/Kconfig
+index 53bb0e3e0db3,094deb1abbe7..2ef031bee7ab
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@@ -69,9 -72,8 +69,10 @@@ config S39
+  	select ARCH_HAS_GCOV_PROFILE_ALL
+  	select ARCH_HAS_GIGANTIC_PAGE
+  	select ARCH_HAS_KCOV
++ 	select ARCH_HAS_SET_MEMORY
+  	select ARCH_HAS_SG_CHAIN
+ +	select ARCH_HAS_STRICT_KERNEL_RWX
+ +	select ARCH_HAS_STRICT_MODULE_RWX
+  	select ARCH_HAS_UBSAN_SANITIZE_ALL
+  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+  	select ARCH_INLINE_READ_LOCK
+diff --cc arch/x86/Kconfig
+index 4ca8c41623f4,434dd2a1c5f2..f793820cee4c
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -53,9 -53,8 +53,10 @@@ config X8
+  	select ARCH_HAS_KCOV			if X86_64
+  	select ARCH_HAS_MMIO_FLUSH
+  	select ARCH_HAS_PMEM_API		if X86_64
++ 	select ARCH_HAS_SET_MEMORY
+  	select ARCH_HAS_SG_CHAIN
+ +	select ARCH_HAS_STRICT_KERNEL_RWX
+ +	select ARCH_HAS_STRICT_MODULE_RWX
+  	select ARCH_HAS_UBSAN_SANITIZE_ALL
+  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+  	select ARCH_MIGHT_HAVE_ACPI_PDC		if ACPI
+diff --cc kernel/extable.c
+index 6b0d09051efb,bd82117ad424..2676d7f8baf6
+--- a/kernel/extable.c
++++ b/kernel/extable.c
+@@@ -21,7 -20,7 +21,8 @@@
+  #include <linux/module.h>
+  #include <linux/mutex.h>
+  #include <linux/init.h>
+ +#include <linux/kprobes.h>
++ #include <linux/filter.h>
+  
+  #include <asm/sections.h>
+  #include <linux/uaccess.h>
+@@@ -106,8 -105,8 +107,10 @@@ int __kernel_text_address(unsigned lon
+  		return 1;
+  	if (is_ftrace_trampoline(addr))
+  		return 1;
+ +	if (is_kprobe_optinsn_slot(addr) || is_kprobe_insn_slot(addr))
+ +		return 1;
++ 	if (is_bpf_text_address(addr))
++ 		return 1;
+  	/*
+  	 * There might be init symbols in saved stacktraces.
+  	 * Give those symbols a chance to be printed in
+@@@ -129,8 -128,8 +132,10 @@@ int kernel_text_address(unsigned long a
+  		return 1;
+  	if (is_ftrace_trampoline(addr))
+  		return 1;
+ +	if (is_kprobe_optinsn_slot(addr) || is_kprobe_insn_slot(addr))
+ +		return 1;
++ 	if (is_bpf_text_address(addr))
++ 		return 1;
+  	return 0;
+  }
+  
+diff --cc security/selinux/hooks.c
+index 9bc12bcddc2c,5eebce1af9a4..e6b1b7410321
+--- a/security/selinux/hooks.c
++++ b/security/selinux/hooks.c
+@@@ -1347,66 -1342,6 +1347,68 @@@ static inline u16 socket_type_to_securi
+  		return SECCLASS_APPLETALK_SOCKET;
+  	}
+  
+ +	if (extsockclass) {
+ +		switch (family) {
+ +		case PF_AX25:
+ +			return SECCLASS_AX25_SOCKET;
+ +		case PF_IPX:
+ +			return SECCLASS_IPX_SOCKET;
+ +		case PF_NETROM:
+ +			return SECCLASS_NETROM_SOCKET;
+ +		case PF_ATMPVC:
+ +			return SECCLASS_ATMPVC_SOCKET;
+ +		case PF_X25:
+ +			return SECCLASS_X25_SOCKET;
+ +		case PF_ROSE:
+ +			return SECCLASS_ROSE_SOCKET;
+ +		case PF_DECnet:
+ +			return SECCLASS_DECNET_SOCKET;
+ +		case PF_ATMSVC:
+ +			return SECCLASS_ATMSVC_SOCKET;
+ +		case PF_RDS:
+ +			return SECCLASS_RDS_SOCKET;
+ +		case PF_IRDA:
+ +			return SECCLASS_IRDA_SOCKET;
+ +		case PF_PPPOX:
+ +			return SECCLASS_PPPOX_SOCKET;
+ +		case PF_LLC:
+ +			return SECCLASS_LLC_SOCKET;
+ +		case PF_CAN:
+ +			return SECCLASS_CAN_SOCKET;
+ +		case PF_TIPC:
+ +			return SECCLASS_TIPC_SOCKET;
+ +		case PF_BLUETOOTH:
+ +			return SECCLASS_BLUETOOTH_SOCKET;
+ +		case PF_IUCV:
+ +			return SECCLASS_IUCV_SOCKET;
+ +		case PF_RXRPC:
+ +			return SECCLASS_RXRPC_SOCKET;
+ +		case PF_ISDN:
+ +			return SECCLASS_ISDN_SOCKET;
+ +		case PF_PHONET:
+ +			return SECCLASS_PHONET_SOCKET;
+ +		case PF_IEEE802154:
+ +			return SECCLASS_IEEE802154_SOCKET;
+ +		case PF_CAIF:
+ +			return SECCLASS_CAIF_SOCKET;
+ +		case PF_ALG:
+ +			return SECCLASS_ALG_SOCKET;
+ +		case PF_NFC:
+ +			return SECCLASS_NFC_SOCKET;
+ +		case PF_VSOCK:
+ +			return SECCLASS_VSOCK_SOCKET;
+ +		case PF_KCM:
+ +			return SECCLASS_KCM_SOCKET;
+ +		case PF_QIPCRTR:
+ +			return SECCLASS_QIPCRTR_SOCKET;
+- #if PF_MAX > 43
+++		case PF_SMC:
+++			return SECCLASS_SMC_SOCKET;
+++#if PF_MAX > 44
+ +#error New address family defined, please update this function.
+ +#endif
+ +		}
+ +	}
+ +
+  	return SECCLASS_SOCKET;
+  }
+  
+diff --cc security/selinux/include/classmap.h
+index 7898ffa6d3e6,13ae49b0baa0..d429c4a1c551
+--- a/security/selinux/include/classmap.h
++++ b/security/selinux/include/classmap.h
+@@@ -171,67 -171,5 +171,69 @@@ struct security_class_mapping secclass_
+  	  { COMMON_CAP_PERMS, NULL } },
+  	{ "cap2_userns",
+  	  { COMMON_CAP2_PERMS, NULL } },
+ +	{ "sctp_socket",
+ +	  { COMMON_SOCK_PERMS,
+ +	    "node_bind", NULL } },
+ +	{ "icmp_socket",
+ +	  { COMMON_SOCK_PERMS,
+ +	    "node_bind", NULL } },
+ +	{ "ax25_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "ipx_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "netrom_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "atmpvc_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "x25_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "rose_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "decnet_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "atmsvc_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "rds_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "irda_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "pppox_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "llc_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "can_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "tipc_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "bluetooth_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "iucv_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "rxrpc_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "isdn_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "phonet_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "ieee802154_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "caif_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "alg_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "nfc_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "vsock_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "kcm_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+ +	{ "qipcrtr_socket",
+ +	  { COMMON_SOCK_PERMS, NULL } },
+++	{ "smc_socket",
+++	  { COMMON_SOCK_PERMS, NULL } },
+  	{ NULL }
+    };
+ +
+- #if PF_MAX > 43
+++#if PF_MAX > 44
+ +#error New address family defined, please update secclass_map.
+ +#endif

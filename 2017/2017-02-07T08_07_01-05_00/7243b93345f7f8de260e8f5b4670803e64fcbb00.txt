@@ -1,0 +1,393 @@
+commit 7243b93345f7f8de260e8f5b4670803e64fcbb00
+Author: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Date:   Sun Feb 5 19:50:52 2017 -0500
+
+    xen/pvh: Bootstrap PVH guest
+    
+    Start PVH guest at XEN_ELFNOTE_PHYS32_ENTRY address. Setup hypercall
+    page, initialize boot_params, enable early page tables.
+    
+    Since this stub is executed before kernel entry point we cannot use
+    variables in .bss which is cleared by kernel. We explicitly place
+    variables that are initialized here into .data.
+    
+    While adjusting xen_hvm_init_shared_info() make it use cpuid_e?x()
+    instead of cpuid() (wherever possible).
+    
+    Signed-off-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+    Reviewed-by: Juergen Gross <jgross@suse.com>
+
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index c7b15f3e2cf3..76b6dbd627df 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -53,5 +53,5 @@ config XEN_DEBUG_FS
+ 
+ config XEN_PVH
+ 	bool "Support for running as a PVH guest"
+-	depends on X86_64 && XEN && XEN_PVHVM
++	depends on XEN && XEN_PVHVM && ACPI
+ 	def_bool n
+diff --git a/arch/x86/xen/Makefile b/arch/x86/xen/Makefile
+index e47e52787d32..cb0164aee156 100644
+--- a/arch/x86/xen/Makefile
++++ b/arch/x86/xen/Makefile
+@@ -23,3 +23,4 @@ obj-$(CONFIG_XEN_DEBUG_FS)	+= debugfs.o
+ obj-$(CONFIG_XEN_DOM0)		+= vga.o
+ obj-$(CONFIG_SWIOTLB_XEN)	+= pci-swiotlb-xen.o
+ obj-$(CONFIG_XEN_EFI)		+= efi.o
++obj-$(CONFIG_XEN_PVH)	 	+= xen-pvh.o
+diff --git a/arch/x86/xen/enlighten.c b/arch/x86/xen/enlighten.c
+index 828f1b226f56..d2144f7c8fab 100644
+--- a/arch/x86/xen/enlighten.c
++++ b/arch/x86/xen/enlighten.c
+@@ -45,6 +45,7 @@
+ #include <xen/interface/memory.h>
+ #include <xen/interface/nmi.h>
+ #include <xen/interface/xen-mca.h>
++#include <xen/interface/hvm/start_info.h>
+ #include <xen/features.h>
+ #include <xen/page.h>
+ #include <xen/hvm.h>
+@@ -176,6 +177,20 @@ struct tls_descs {
+  */
+ static DEFINE_PER_CPU(struct tls_descs, shadow_tls_desc);
+ 
++#ifdef CONFIG_XEN_PVH
++/*
++ * PVH variables.
++ *
++ * xen_pvh and pvh_bootparams need to live in data segment since they
++ * are used after startup_{32|64}, which clear .bss, are invoked.
++ */
++bool xen_pvh __attribute__((section(".data"))) = 0;
++struct boot_params pvh_bootparams __attribute__((section(".data")));
++
++struct hvm_start_info pvh_start_info;
++unsigned int pvh_start_info_sz = sizeof(pvh_start_info);
++#endif
++
+ static void clamp_max_cpus(void)
+ {
+ #ifdef CONFIG_SMP
+@@ -1656,6 +1671,90 @@ asmlinkage __visible void __init xen_start_kernel(void)
+ #endif
+ }
+ 
++#ifdef CONFIG_XEN_PVH
++static void __init init_pvh_bootparams(void)
++{
++	struct xen_memory_map memmap;
++	unsigned int i;
++	int rc;
++
++	memset(&pvh_bootparams, 0, sizeof(pvh_bootparams));
++
++	memmap.nr_entries = ARRAY_SIZE(pvh_bootparams.e820_map);
++	set_xen_guest_handle(memmap.buffer, pvh_bootparams.e820_map);
++	rc = HYPERVISOR_memory_op(XENMEM_memory_map, &memmap);
++	if (rc) {
++		xen_raw_printk("XENMEM_memory_map failed (%d)\n", rc);
++		BUG();
++	}
++
++	if (memmap.nr_entries < E820MAX - 1) {
++		pvh_bootparams.e820_map[memmap.nr_entries].addr =
++			ISA_START_ADDRESS;
++		pvh_bootparams.e820_map[memmap.nr_entries].size =
++			ISA_END_ADDRESS - ISA_START_ADDRESS;
++		pvh_bootparams.e820_map[memmap.nr_entries].type =
++			E820_RESERVED;
++		memmap.nr_entries++;
++	} else
++		xen_raw_printk("Warning: Can fit ISA range into e820\n");
++
++	sanitize_e820_map(pvh_bootparams.e820_map,
++			  ARRAY_SIZE(pvh_bootparams.e820_map),
++			  &memmap.nr_entries);
++
++	pvh_bootparams.e820_entries = memmap.nr_entries;
++	for (i = 0; i < pvh_bootparams.e820_entries; i++)
++		e820_add_region(pvh_bootparams.e820_map[i].addr,
++				pvh_bootparams.e820_map[i].size,
++				pvh_bootparams.e820_map[i].type);
++
++	pvh_bootparams.hdr.cmd_line_ptr =
++		pvh_start_info.cmdline_paddr;
++
++	/* The first module is always ramdisk. */
++	if (pvh_start_info.nr_modules) {
++		struct hvm_modlist_entry *modaddr =
++			__va(pvh_start_info.modlist_paddr);
++		pvh_bootparams.hdr.ramdisk_image = modaddr->paddr;
++		pvh_bootparams.hdr.ramdisk_size = modaddr->size;
++	}
++
++	/*
++	 * See Documentation/x86/boot.txt.
++	 *
++	 * Version 2.12 supports Xen entry point but we will use default x86/PC
++	 * environment (i.e. hardware_subarch 0).
++	 */
++	pvh_bootparams.hdr.version = 0x212;
++	pvh_bootparams.hdr.type_of_loader = (9 << 4) | 0; /* Xen loader */
++}
++
++/*
++ * This routine (and those that it might call) should not use
++ * anything that lives in .bss since that segment will be cleared later.
++ */
++void __init xen_prepare_pvh(void)
++{
++	u32 msr;
++	u64 pfn;
++
++	if (pvh_start_info.magic != XEN_HVM_START_MAGIC_VALUE) {
++		xen_raw_printk("Error: Unexpected magic value (0x%08x)\n",
++				pvh_start_info.magic);
++		BUG();
++	}
++
++	xen_pvh = 1;
++
++	msr = cpuid_ebx(xen_cpuid_base() + 2);
++	pfn = __pa(hypercall_page);
++	wrmsr_safe(msr, (u32)pfn, (u32)(pfn >> 32));
++
++	init_pvh_bootparams();
++}
++#endif
++
+ void __ref xen_hvm_init_shared_info(void)
+ {
+ 	int cpu;
+@@ -1695,20 +1794,29 @@ void __ref xen_hvm_init_shared_info(void)
+ static void __init init_hvm_pv_info(void)
+ {
+ 	int major, minor;
+-	uint32_t eax, ebx, ecx, edx, pages, msr, base;
+-	u64 pfn;
++	uint32_t eax, ebx, ecx, edx, base;
+ 
+ 	base = xen_cpuid_base();
+-	cpuid(base + 1, &eax, &ebx, &ecx, &edx);
++	eax = cpuid_eax(base + 1);
+ 
+ 	major = eax >> 16;
+ 	minor = eax & 0xffff;
+ 	printk(KERN_INFO "Xen version %d.%d.\n", major, minor);
+ 
+-	cpuid(base + 2, &pages, &msr, &ecx, &edx);
++	xen_domain_type = XEN_HVM_DOMAIN;
+ 
+-	pfn = __pa(hypercall_page);
+-	wrmsr_safe(msr, (u32)pfn, (u32)(pfn >> 32));
++	/* PVH set up hypercall page in xen_prepare_pvh(). */
++	if (xen_pvh_domain())
++		pv_info.name = "Xen PVH";
++	else {
++		u64 pfn;
++		uint32_t msr;
++
++		pv_info.name = "Xen HVM";
++		msr = cpuid_ebx(base + 2);
++		pfn = __pa(hypercall_page);
++		wrmsr_safe(msr, (u32)pfn, (u32)(pfn >> 32));
++	}
+ 
+ 	xen_setup_features();
+ 
+@@ -1717,10 +1825,6 @@ static void __init init_hvm_pv_info(void)
+ 		this_cpu_write(xen_vcpu_id, ebx);
+ 	else
+ 		this_cpu_write(xen_vcpu_id, smp_processor_id());
+-
+-	pv_info.name = "Xen HVM";
+-
+-	xen_domain_type = XEN_HVM_DOMAIN;
+ }
+ #endif
+ 
+diff --git a/arch/x86/xen/xen-pvh.S b/arch/x86/xen/xen-pvh.S
+new file mode 100644
+index 000000000000..5e246716d58f
+--- /dev/null
++++ b/arch/x86/xen/xen-pvh.S
+@@ -0,0 +1,161 @@
++/*
++ * Copyright C 2016, Oracle and/or its affiliates. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++	.code32
++	.text
++#define _pa(x)          ((x) - __START_KERNEL_map)
++
++#include <linux/elfnote.h>
++#include <linux/init.h>
++#include <linux/linkage.h>
++#include <asm/segment.h>
++#include <asm/asm.h>
++#include <asm/boot.h>
++#include <asm/processor-flags.h>
++#include <asm/msr.h>
++#include <xen/interface/elfnote.h>
++
++	__HEAD
++
++/*
++ * Entry point for PVH guests.
++ *
++ * Xen ABI specifies the following register state when we come here:
++ *
++ * - `ebx`: contains the physical memory address where the loader has placed
++ *          the boot start info structure.
++ * - `cr0`: bit 0 (PE) must be set. All the other writeable bits are cleared.
++ * - `cr4`: all bits are cleared.
++ * - `cs `: must be a 32-bit read/execute code segment with a base of ‘0’
++ *          and a limit of ‘0xFFFFFFFF’. The selector value is unspecified.
++ * - `ds`, `es`: must be a 32-bit read/write data segment with a base of
++ *               ‘0’ and a limit of ‘0xFFFFFFFF’. The selector values are all
++ *               unspecified.
++ * - `tr`: must be a 32-bit TSS (active) with a base of '0' and a limit
++ *         of '0x67'.
++ * - `eflags`: bit 17 (VM) must be cleared. Bit 9 (IF) must be cleared.
++ *             Bit 8 (TF) must be cleared. Other bits are all unspecified.
++ *
++ * All other processor registers and flag bits are unspecified. The OS is in
++ * charge of setting up it's own stack, GDT and IDT.
++ */
++
++ENTRY(pvh_start_xen)
++	cld
++
++	lgdt (_pa(gdt))
++
++	mov $(__BOOT_DS),%eax
++	mov %eax,%ds
++	mov %eax,%es
++	mov %eax,%ss
++
++	/* Stash hvm_start_info. */
++	mov $_pa(pvh_start_info), %edi
++	mov %ebx, %esi
++	mov _pa(pvh_start_info_sz), %ecx
++	shr $2,%ecx
++	rep
++	movsl
++
++	mov $_pa(early_stack_end), %esp
++
++	/* Enable PAE mode. */
++	mov %cr4, %eax
++	orl $X86_CR4_PAE, %eax
++	mov %eax, %cr4
++
++#ifdef CONFIG_X86_64
++	/* Enable Long mode. */
++	mov $MSR_EFER, %ecx
++	rdmsr
++	btsl $_EFER_LME, %eax
++	wrmsr
++
++	/* Enable pre-constructed page tables. */
++	mov $_pa(init_level4_pgt), %eax
++	mov %eax, %cr3
++	mov $(X86_CR0_PG | X86_CR0_PE), %eax
++	mov %eax, %cr0
++
++	/* Jump to 64-bit mode. */
++	ljmp $__KERNEL_CS, $_pa(1f)
++
++	/* 64-bit entry point. */
++	.code64
++1:
++	call xen_prepare_pvh
++
++	/* startup_64 expects boot_params in %rsi. */
++	mov $_pa(pvh_bootparams), %rsi
++	mov $_pa(startup_64), %rax
++	jmp *%rax
++
++#else /* CONFIG_X86_64 */
++
++	call mk_early_pgtbl_32
++
++	mov $_pa(initial_page_table), %eax
++	mov %eax, %cr3
++
++	mov %cr0, %eax
++	or $(X86_CR0_PG | X86_CR0_PE), %eax
++	mov %eax, %cr0
++
++	ljmp $__BOOT_CS, $1f
++1:
++	call xen_prepare_pvh
++	mov $_pa(pvh_bootparams), %esi
++
++	/* startup_32 doesn't expect paging and PAE to be on. */
++	ljmp $__BOOT_CS, $_pa(2f)
++2:
++	mov %cr0, %eax
++	and $~X86_CR0_PG, %eax
++	mov %eax, %cr0
++	mov %cr4, %eax
++	and $~X86_CR4_PAE, %eax
++	mov %eax, %cr4
++
++	ljmp $__BOOT_CS, $_pa(startup_32)
++#endif
++END(pvh_start_xen)
++
++	.section ".init.data","aw"
++	.balign 8
++gdt:
++	.word gdt_end - gdt_start
++	.long _pa(gdt_start)
++	.word 0
++gdt_start:
++	.quad 0x0000000000000000            /* NULL descriptor */
++	.quad 0x0000000000000000            /* reserved */
++#ifdef CONFIG_X86_64
++	.quad GDT_ENTRY(0xa09a, 0, 0xfffff) /* __KERNEL_CS */
++#else
++	.quad GDT_ENTRY(0xc09a, 0, 0xfffff) /* __KERNEL_CS */
++#endif
++	.quad GDT_ENTRY(0xc092, 0, 0xfffff) /* __KERNEL_DS */
++gdt_end:
++
++	.balign 4
++early_stack:
++	.fill 256, 1, 0
++early_stack_end:
++
++	ELFNOTE(Xen, XEN_ELFNOTE_PHYS32_ENTRY,
++	             _ASM_PTR (pvh_start_xen - __START_KERNEL_map))
+diff --git a/include/xen/xen.h b/include/xen/xen.h
+index d0f96840f71f..6e8b7fc79801 100644
+--- a/include/xen/xen.h
++++ b/include/xen/xen.h
+@@ -29,6 +29,11 @@ extern enum xen_domain_type xen_domain_type;
+ #define xen_initial_domain()	(0)
+ #endif	/* CONFIG_XEN_DOM0 */
+ 
++#ifdef CONFIG_XEN_PVH
++extern bool xen_pvh;
++#define xen_pvh_domain()	(xen_hvm_domain() && xen_pvh)
++#else
+ #define xen_pvh_domain()	(0)
++#endif
+ 
+ #endif	/* _XEN_XEN_H */

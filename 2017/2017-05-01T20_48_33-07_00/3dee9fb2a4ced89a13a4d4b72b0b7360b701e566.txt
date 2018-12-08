@@ -1,0 +1,54 @@
+commit 3dee9fb2a4ced89a13a4d4b72b0b7360b701e566
+Merge: 7c8c03bfc7b9 c6a9583fb41c
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon May 1 20:48:33 2017 -0700
+
+    Merge branch 'ras-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull RAS updates from Ingo Molnar:
+     "The main changes in this cycle were:
+    
+       - add the 'Corrected Errors Collector' kernel feature which collect
+         and monitor correctable errors statistics and will preemptively
+         (soft-)offline physical pages that have a suspiciously high error
+         count.
+    
+       - handle MCE errors during kexec() more gracefully
+    
+       - factor out and deprecate the /dev/mcelog driver
+    
+       - ... plus misc fixes and cleanpus"
+    
+    * 'ras-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/mce: Check MCi_STATUS[MISCV] for usable addr on Intel only
+      ACPI/APEI: Use setup_deferrable_timer()
+      x86/mce: Update notifier priority check
+      x86/mce: Enable PPIN for Knights Landing/Mill
+      x86/mce: Do not register notifiers with invalid prio
+      x86/mce: Factor out and deprecate the /dev/mcelog driver
+      RAS: Add a Corrected Errors Collector
+      x86/mce: Rename mce_log to mce_log_buffer
+      x86/mce: Rename mce_log()'s argument
+      x86/mce: Init some CPU features early
+      x86/mce: Handle broadcasted MCE gracefully with kexec
+
+diff --cc arch/x86/kernel/cpu/mcheck/mce.c
+index af44ebeb593f,4a29f7481761..5abd4bf73d6e
+--- a/arch/x86/kernel/cpu/mcheck/mce.c
++++ b/arch/x86/kernel/cpu/mcheck/mce.c
+@@@ -216,11 -157,12 +157,12 @@@ static atomic_t num_notifiers
+  
+  void mce_register_decode_chain(struct notifier_block *nb)
+  {
+- 	atomic_inc(&num_notifiers);
++ 	if (WARN_ON(nb->priority > MCE_PRIO_MCELOG && nb->priority < MCE_PRIO_EDAC))
++ 		return;
+  
+- 	WARN_ON(nb->priority > MCE_PRIO_LOWEST && nb->priority < MCE_PRIO_EDAC);
++ 	atomic_inc(&num_notifiers);
+  
+ -	atomic_notifier_chain_register(&x86_mce_decoder_chain, nb);
+ +	blocking_notifier_chain_register(&x86_mce_decoder_chain, nb);
+  }
+  EXPORT_SYMBOL_GPL(mce_register_decode_chain);
+  

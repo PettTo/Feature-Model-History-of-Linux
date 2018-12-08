@@ -1,0 +1,50 @@
+commit 65f7d049788763969180c72ef98dab8bf0340c55
+Author: Oliver O'Halloran <oohall@gmail.com>
+Date:   Wed Jun 28 11:32:31 2017 +1000
+
+    mm, x86: Add ARCH_HAS_ZONE_DEVICE to Kconfig
+    
+    Currently ZONE_DEVICE depends on X86_64 and this will get unwieldly as
+    new architectures (and platforms) get ZONE_DEVICE support. Move to an
+    arch selected Kconfig option to save us the trouble.
+    
+    Cc: linux-mm@kvack.org
+    Acked-by: Ingo Molnar <mingo@kernel.org>
+    Acked-by: Balbir Singh <bsingharora@gmail.com>
+    Signed-off-by: Oliver O'Halloran <oohall@gmail.com>
+    Signed-off-by: Michael Ellerman <mpe@ellerman.id.au>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4ccfacc7232a..32903e30e347 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -59,6 +59,7 @@ config X86
+ 	select ARCH_HAS_STRICT_KERNEL_RWX
+ 	select ARCH_HAS_STRICT_MODULE_RWX
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
++	select ARCH_HAS_ZONE_DEVICE		if X86_64
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select ARCH_MIGHT_HAVE_ACPI_PDC		if ACPI
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+diff --git a/mm/Kconfig b/mm/Kconfig
+index beb7a455915d..790e52a8a486 100644
+--- a/mm/Kconfig
++++ b/mm/Kconfig
+@@ -683,12 +683,16 @@ config IDLE_PAGE_TRACKING
+ 
+ 	  See Documentation/vm/idle_page_tracking.txt for more details.
+ 
++# arch_add_memory() comprehends device memory
++config ARCH_HAS_ZONE_DEVICE
++	bool
++
+ config ZONE_DEVICE
+ 	bool "Device memory (pmem, etc...) hotplug support"
+ 	depends on MEMORY_HOTPLUG
+ 	depends on MEMORY_HOTREMOVE
+ 	depends on SPARSEMEM_VMEMMAP
+-	depends on X86_64 #arch_add_memory() comprehends device memory
++	depends on ARCH_HAS_ZONE_DEVICE
+ 
+ 	help
+ 	  Device memory hotplug support allows for establishing pmem,

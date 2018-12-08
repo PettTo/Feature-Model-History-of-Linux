@@ -1,0 +1,12 @@
+commit 141d3b1daacd11bdbd6fa74c2b163093e10d17ee
+Merge: c201c91799d6 e4880bc5dfb1
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Tue Nov 7 10:51:10 2017 +0100
+
+    Merge branch 'linus' into x86/apic, to resolve conflicts
+    
+    Conflicts:
+            arch/x86/include/asm/x2apic.h
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+

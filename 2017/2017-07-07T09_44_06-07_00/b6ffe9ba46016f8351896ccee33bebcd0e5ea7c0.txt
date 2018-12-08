@@ -1,0 +1,135 @@
+commit b6ffe9ba46016f8351896ccee33bebcd0e5ea7c0
+Merge: 9f45efb92862 9d92573fff3e
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Jul 7 09:44:06 2017 -0700
+
+    Merge tag 'libnvdimm-for-4.13' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm
+    
+    Pull libnvdimm updates from Dan Williams:
+     "libnvdimm updates for the latest ACPI and UEFI specifications. This
+      pull request also includes new 'struct dax_operations' enabling to
+      undo the abuse of copy_user_nocache() for copy operations to pmem.
+    
+      The dax work originally missed 4.12 to address concerns raised by Al.
+    
+      Summary:
+    
+       - Introduce the _flushcache() family of memory copy helpers and use
+         them for persistent memory write operations on x86. The
+         _flushcache() semantic indicates that the cache is either bypassed
+         for the copy operation (movnt) or any lines dirtied by the copy
+         operation are written back (clwb, clflushopt, or clflush).
+    
+       - Extend dax_operations with ->copy_from_iter() and ->flush()
+         operations. These operations and other infrastructure updates allow
+         all persistent memory specific dax functionality to be pushed into
+         libnvdimm and the pmem driver directly. It also allows dax-specific
+         sysfs attributes to be linked to a host device, for example:
+         /sys/block/pmem0/dax/write_cache
+    
+       - Add support for the new NVDIMM platform/firmware mechanisms
+         introduced in ACPI 6.2 and UEFI 2.7. This support includes the v1.2
+         namespace label format, extensions to the address-range-scrub
+         command set, new error injection commands, and a new BTT
+         (block-translation-table) layout. These updates support inter-OS
+         and pre-OS compatibility.
+    
+       - Fix a longstanding memory corruption bug in nfit_test.
+    
+       - Make the pmem and nvdimm-region 'badblocks' sysfs files poll(2)
+         capable.
+    
+       - Miscellaneous fixes and small updates across libnvdimm and the nfit
+         driver.
+    
+      Acknowledgements that came after the branch was pushed: commit
+      6aa734a2f38e ("libnvdimm, region, pmem: fix 'badblocks'
+      sysfs_get_dirent() reference lifetime") was reviewed by Toshi Kani
+      <toshi.kani@hpe.com>"
+    
+    * tag 'libnvdimm-for-4.13' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm: (42 commits)
+      libnvdimm, namespace: record 'lbasize' for pmem namespaces
+      acpi/nfit: Issue Start ARS to retrieve existing records
+      libnvdimm: New ACPI 6.2 DSM functions
+      acpi, nfit: Show bus_dsm_mask in sysfs
+      libnvdimm, acpi, nfit: Add bus level dsm mask for pass thru.
+      acpi, nfit: Enable DSM pass thru for root functions.
+      libnvdimm: passthru functions clear to send
+      libnvdimm, btt: convert some info messages to warn/err
+      libnvdimm, region, pmem: fix 'badblocks' sysfs_get_dirent() reference lifetime
+      libnvdimm: fix the clear-error check in nsio_rw_bytes
+      libnvdimm, btt: fix btt_rw_page not returning errors
+      acpi, nfit: quiet invalid block-aperture-region warnings
+      libnvdimm, btt: BTT updates for UEFI 2.7 format
+      acpi, nfit: constify *_attribute_group
+      libnvdimm, pmem: disable dax flushing when pmem is fronting a volatile region
+      libnvdimm, pmem, dax: export a cache control attribute
+      dax: convert to bitmask for flags
+      dax: remove default copy_from_iter fallback
+      libnvdimm, nfit: enable support for volatile ranges
+      libnvdimm, pmem: fix persistence warning
+      ...
+
+diff --cc drivers/md/dm-linear.c
+index c03c203a90b4,25e661974319..41971a090e34
+--- a/drivers/md/dm-linear.c
++++ b/drivers/md/dm-linear.c
+@@@ -170,10 -159,38 +170,38 @@@ static long linear_dax_direct_access(st
+  	return dax_direct_access(dax_dev, pgoff, nr_pages, kaddr, pfn);
+  }
+  
++ static size_t linear_dax_copy_from_iter(struct dm_target *ti, pgoff_t pgoff,
++ 		void *addr, size_t bytes, struct iov_iter *i)
++ {
++ 	struct linear_c *lc = ti->private;
++ 	struct block_device *bdev = lc->dev->bdev;
++ 	struct dax_device *dax_dev = lc->dev->dax_dev;
++ 	sector_t dev_sector, sector = pgoff * PAGE_SECTORS;
++ 
++ 	dev_sector = linear_map_sector(ti, sector);
++ 	if (bdev_dax_pgoff(bdev, dev_sector, ALIGN(bytes, PAGE_SIZE), &pgoff))
++ 		return 0;
++ 	return dax_copy_from_iter(dax_dev, pgoff, addr, bytes, i);
++ }
++ 
++ static void linear_dax_flush(struct dm_target *ti, pgoff_t pgoff, void *addr,
++ 		size_t size)
++ {
++ 	struct linear_c *lc = ti->private;
++ 	struct block_device *bdev = lc->dev->bdev;
++ 	struct dax_device *dax_dev = lc->dev->dax_dev;
++ 	sector_t dev_sector, sector = pgoff * PAGE_SECTORS;
++ 
++ 	dev_sector = linear_map_sector(ti, sector);
++ 	if (bdev_dax_pgoff(bdev, dev_sector, ALIGN(size, PAGE_SIZE), &pgoff))
++ 		return;
++ 	dax_flush(dax_dev, pgoff, addr, size);
++ }
++ 
+  static struct target_type linear_target = {
+  	.name   = "linear",
+ -	.version = {1, 3, 0},
+ -	.features = DM_TARGET_PASSES_INTEGRITY,
+ +	.version = {1, 4, 0},
+ +	.features = DM_TARGET_PASSES_INTEGRITY | DM_TARGET_ZONED_HM,
+  	.module = THIS_MODULE,
+  	.ctr    = linear_ctr,
+  	.dtr    = linear_dtr,
+diff --cc drivers/nvdimm/pmem.c
+index 6b577afb1d44,e0f6d83c5a6e..f7099adaabc0
+--- a/drivers/nvdimm/pmem.c
++++ b/drivers/nvdimm/pmem.c
+@@@ -339,10 -365,12 +365,11 @@@ static int pmem_attach_disk(struct devi
+  		return PTR_ERR(addr);
+  	pmem->virt_addr = addr;
+  
+- 	blk_queue_write_cache(q, true, true);
++ 	blk_queue_write_cache(q, wbc, fua);
+  	blk_queue_make_request(q, pmem_make_request);
+  	blk_queue_physical_block_size(q, PAGE_SIZE);
++ 	blk_queue_logical_block_size(q, pmem_sector_size(ndns));
+  	blk_queue_max_hw_sectors(q, UINT_MAX);
+ -	blk_queue_bounce_limit(q, BLK_BOUNCE_ANY);
+  	queue_flag_set_unlocked(QUEUE_FLAG_NONROT, q);
+  	queue_flag_set_unlocked(QUEUE_FLAG_DAX, q);
+  	q->queuedata = pmem;

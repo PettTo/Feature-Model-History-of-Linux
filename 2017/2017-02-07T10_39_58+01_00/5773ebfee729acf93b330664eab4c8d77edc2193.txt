@@ -1,0 +1,37 @@
+commit 5773ebfee729acf93b330664eab4c8d77edc2193
+Author: Niklas Cassel <niklas.cassel@axis.com>
+Date:   Mon Feb 6 17:43:49 2017 +0100
+
+    x86/kconfig: Remove misleading note regarding hibernation and KASLR
+    
+    There used to be a restriction with KASLR and hibernation, but this is no
+    longer true, and since commit:
+    
+      65fe935dd238 ("x86/KASLR, x86/power: Remove x86 hibernation restrictions")
+    
+    the parameter "kaslr" does no longer exist.
+    
+    Signed-off-by: Niklas Cassel <niklas.cassel@axis.com>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Niklas Cassel <niklass@axis.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1486399429-23078-1-git-send-email-niklass@axis.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index e487493bbd47..4e6dbca03aed 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1994,10 +1994,6 @@ config RANDOMIZE_BASE
+ 	  theoretically possible, but the implementations are further
+ 	  limited due to memory layouts.
+ 
+-	  If CONFIG_HIBERNATE is also enabled, KASLR is disabled at boot
+-	  time. To enable it, boot with "kaslr" on the kernel command
+-	  line (which will also disable hibernation).
+-
+ 	  If unsure, say N.
+ 
+ # Relocation on x86 needs some additional build support

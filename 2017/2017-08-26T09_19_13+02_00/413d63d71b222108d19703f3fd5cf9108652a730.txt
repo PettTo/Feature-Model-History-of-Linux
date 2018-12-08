@@ -1,0 +1,66 @@
+commit 413d63d71b222108d19703f3fd5cf9108652a730
+Merge: d6c8103b0265 90a6cd503982
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Sat Aug 26 09:19:13 2017 +0200
+
+    Merge branch 'linus' into x86/mm to pick up fixes and to fix conflicts
+    
+    Conflicts:
+            arch/x86/kernel/head64.c
+            arch/x86/mm/mmap.c
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --cc arch/x86/include/asm/mmu_context.h
+index 14b3cdccf4f9,265c907d7d4c..d25d9f4abb15
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@@ -300,11 -292,8 +300,11 @@@ static inline unsigned long __get_curre
+  {
+  	unsigned long cr3 = __pa(this_cpu_read(cpu_tlbstate.loaded_mm)->pgd);
+  
+ +	if (static_cpu_has(X86_FEATURE_PCID))
+ +		cr3 |= this_cpu_read(cpu_tlbstate.loaded_mm_asid);
+ +
+  	/* For now, be very restrictive about when this can be called. */
+- 	VM_WARN_ON(in_nmi() || !in_atomic());
++ 	VM_WARN_ON(in_nmi() || preemptible());
+  
+  	VM_BUG_ON(cr3 != __read_cr3());
+  	return cr3;
+diff --cc arch/x86/kernel/head64.c
+index 925b2928f377,9ba79543d9ee..6a193b93fd95
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@@ -99,11 -92,10 +100,13 @@@ unsigned long __head __startup_64(unsig
+  	 * creates a bunch of nonsense entries but that is fine --
+  	 * it avoids problems around wraparound.
+  	 */
+ +
+- 	pud = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
+- 	pmd = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
++ 	next_pgt_ptr = fixup_pointer(&next_early_pgt, physaddr);
++ 	pud = fixup_pointer(early_dynamic_pgts[(*next_pgt_ptr)++], physaddr);
++ 	pmd = fixup_pointer(early_dynamic_pgts[(*next_pgt_ptr)++], physaddr);
++ 
+ +	pgtable_flags = _KERNPG_TABLE_NOENC + sme_get_me_mask();
+ +
+  	if (IS_ENABLED(CONFIG_X86_5LEVEL)) {
+  		p4d = fixup_pointer(early_dynamic_pgts[next_early_pgt++], physaddr);
+  
+diff --cc arch/x86/mm/mmap.c
+index c15a50a70b24,a88cfbfbd078..a99679826846
+--- a/arch/x86/mm/mmap.c
++++ b/arch/x86/mm/mmap.c
+@@@ -50,9 -50,8 +50,8 @@@ unsigned long task_size_64bit(int full_
+  static unsigned long stack_maxrandom_size(unsigned long task_size)
+  {
+  	unsigned long max = 0;
+- 	if ((current->flags & PF_RANDOMIZE) &&
+- 		!(current->personality & ADDR_NO_RANDOMIZE)) {
++ 	if (current->flags & PF_RANDOMIZE) {
+ -		max = (-1UL) & __STACK_RND_MASK(task_size == tasksize_32bit());
+ +		max = (-1UL) & __STACK_RND_MASK(task_size == task_size_32bit());
+  		max <<= PAGE_SHIFT;
+  	}
+  

@@ -1,0 +1,57 @@
+commit 7b3d61cc73a1abe4c2c7eaf00093b338c8b233b0
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Tue Aug 29 13:10:35 2017 +0200
+
+    locking/refcounts, x86/asm: Disable CONFIG_ARCH_HAS_REFCOUNT for the time being
+    
+    Mike Galbraith bisected a boot crash back to the following commit:
+    
+      7a46ec0e2f48 ("locking/refcounts, x86/asm: Implement fast refcount overflow protection")
+    
+    The crash/hang pattern is:
+    
+     > Symptom is a few splats as below, with box finally hanging.  Network
+     > comes up, but neither ssh nor console login is possible.
+     >
+     >  ------------[ cut here ]------------
+     >  WARNING: CPU: 4 PID: 0 at net/netlink/af_netlink.c:374 netlink_sock_destruct+0x82/0xa0
+     >  ...
+     >  __sk_destruct()
+     >  rcu_process_callbacks()
+     >  __do_softirq()
+     >  irq_exit()
+     >  smp_apic_timer_interrupt()
+     >  apic_timer_interrupt()
+    
+    We are at -rc7 already, and the code has grown some dependencies, so
+    instead of a plain revert disable the config temporarily, in the hope
+    of getting real fixes.
+    
+    Reported-by: Mike Galbraith <efault@gmx.de>
+    Tested-by: Mike Galbraith <efault@gmx.de>
+    Cc: Arnd Bergmann <arnd@arndb.de>
+    Cc: Davidlohr Bueso <dave@stgolabs.net>
+    Cc: Elena Reshetova <elena.reshetova@intel.com>
+    Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Rik van Riel <riel@redhat.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/tip-7a46ec0e2f4850407de5e1d19a44edee6efa58ec@git.kernel.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 6e01f585d57c..efd9df53b9e7 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -55,7 +55,8 @@ config X86
+ 	select ARCH_HAS_KCOV			if X86_64
+ 	select ARCH_HAS_MMIO_FLUSH
+ 	select ARCH_HAS_PMEM_API		if X86_64
+-	select ARCH_HAS_REFCOUNT
++	# Causing hangs/crashes, see the commit that added this change for details.
++	select ARCH_HAS_REFCOUNT		if BROKEN
+ 	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
+ 	select ARCH_HAS_SET_MEMORY
+ 	select ARCH_HAS_SG_CHAIN

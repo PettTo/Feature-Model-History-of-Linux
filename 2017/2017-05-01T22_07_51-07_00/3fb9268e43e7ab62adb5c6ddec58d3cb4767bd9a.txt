@@ -1,0 +1,42 @@
+commit 3fb9268e43e7ab62adb5c6ddec58d3cb4767bd9a
+Merge: 12ca7c8db30d 262fa734a002
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon May 1 22:07:51 2017 -0700
+
+    Merge branch 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 asm updates from Ingo Molnar:
+     "The main changes in this cycle were:
+    
+       - unwinder fixes and enhancements
+    
+       - improve ftrace interaction with the unwinder
+    
+       - optimize the code footprint of WARN() and related debugging
+         constructs
+    
+       - ... plus misc updates, cleanups and fixes"
+    
+    * 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (24 commits)
+      x86/unwind: Dump all stacks in unwind_dump()
+      x86/unwind: Silence more entry-code related warnings
+      x86/ftrace: Fix ebp in ftrace_regs_caller that screws up unwinder
+      x86/unwind: Remove unused 'sp' parameter in unwind_dump()
+      x86/unwind: Prepend hex mask value with '0x' in unwind_dump()
+      x86/unwind: Properly zero-pad 32-bit values in unwind_dump()
+      x86/unwind: Ensure stack pointer is aligned
+      debug: Avoid setting BUGFLAG_WARNING twice
+      x86/unwind: Silence entry-related warnings
+      x86/unwind: Read stack return address in update_stack_state()
+      x86/unwind: Move common code into update_stack_state()
+      debug: Fix __bug_table[] in arch linker scripts
+      debug: Add _ONCE() logic to report_bug()
+      x86/debug: Define BUG() again for !CONFIG_BUG
+      x86/debug: Implement __WARN() using UD0
+      x86/ftrace: Use Makefile logic instead of #ifdef for compiling ftrace_*.o
+      x86/ftrace: Add -mfentry support to x86_32 with DYNAMIC_FTRACE set
+      x86/ftrace: Clean up ftrace_regs_caller
+      x86/ftrace: Add stack frame pointer to ftrace_caller
+      x86/ftrace: Move the ftrace specific code out of entry_32.S
+      ...
+

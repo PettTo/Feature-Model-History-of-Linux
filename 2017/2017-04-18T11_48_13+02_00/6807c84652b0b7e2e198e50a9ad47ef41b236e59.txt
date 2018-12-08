@@ -1,0 +1,81 @@
+commit 6807c84652b0b7e2e198e50a9ad47ef41b236e59
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Tue Apr 18 11:08:12 2017 +0200
+
+    x86: Enable KASLR by default
+    
+    KASLR is mature (and important) enough to be enabled by default on x86.
+    
+    Also enable it by default in the defconfigs.
+    
+    Acked-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Baoquan He <bhe@redhat.com>
+    Cc: Borislav Petkov <bp@suse.de>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Yinghai Lu <yinghai@kernel.org>
+    Cc: dan.j.williams@intel.com
+    Cc: dave.jiang@intel.com
+    Cc: dyoung@redhat.com
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: linux-kernel@vger.kernel.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index cc98d5a294ee..dc12dddb40b2 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1966,7 +1966,7 @@ config RELOCATABLE
+ config RANDOMIZE_BASE
+ 	bool "Randomize the address of the kernel image (KASLR)"
+ 	depends on RELOCATABLE
+-	default n
++	default y
+ 	---help---
+ 	  In support of Kernel Address Space Layout Randomization (KASLR),
+ 	  this randomizes the physical address at which the kernel image
+@@ -1996,7 +1996,7 @@ config RANDOMIZE_BASE
+ 	  theoretically possible, but the implementations are further
+ 	  limited due to memory layouts.
+ 
+-	  If unsure, say N.
++	  If unsure, say Y.
+ 
+ # Relocation on x86 needs some additional build support
+ config X86_NEED_RELOCS
+@@ -2045,7 +2045,7 @@ config RANDOMIZE_MEMORY
+ 	   configuration have in average 30,000 different possible virtual
+ 	   addresses for each memory section.
+ 
+-	   If unsure, say N.
++	   If unsure, say Y.
+ 
+ config RANDOMIZE_MEMORY_PHYSICAL_PADDING
+ 	hex "Physical memory mapping padding" if EXPERT
+diff --git a/arch/x86/configs/i386_defconfig b/arch/x86/configs/i386_defconfig
+index 5fa6ee2c2dde..6cf79e1a6830 100644
+--- a/arch/x86/configs/i386_defconfig
++++ b/arch/x86/configs/i386_defconfig
+@@ -57,6 +57,8 @@ CONFIG_EFI=y
+ CONFIG_HZ_1000=y
+ CONFIG_KEXEC=y
+ CONFIG_CRASH_DUMP=y
++CONFIG_RANDOMIZE_BASE=y
++CONFIG_RANDOMIZE_MEMORY=y
+ # CONFIG_COMPAT_VDSO is not set
+ CONFIG_HIBERNATION=y
+ CONFIG_PM_DEBUG=y
+diff --git a/arch/x86/configs/x86_64_defconfig b/arch/x86/configs/x86_64_defconfig
+index 7ef4a099defc..8a9521b6a537 100644
+--- a/arch/x86/configs/x86_64_defconfig
++++ b/arch/x86/configs/x86_64_defconfig
+@@ -55,6 +55,8 @@ CONFIG_EFI=y
+ CONFIG_HZ_1000=y
+ CONFIG_KEXEC=y
+ CONFIG_CRASH_DUMP=y
++CONFIG_RANDOMIZE_BASE=y
++CONFIG_RANDOMIZE_MEMORY=y
+ # CONFIG_COMPAT_VDSO is not set
+ CONFIG_HIBERNATION=y
+ CONFIG_PM_DEBUG=y

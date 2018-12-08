@@ -1,0 +1,89 @@
+commit c7d6c9dd871f42c4e0ce5563d2f684e78ea673cf
+Author: Thomas Gleixner <tglx@linutronix.de>
+Date:   Tue Jun 20 01:37:46 2017 +0200
+
+    x86/apic: Implement effective irq mask update
+    
+    Add the effective irq mask update to the apic implementations and enable
+    effective irq masks for x86.
+    
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Jens Axboe <axboe@kernel.dk>
+    Cc: Marc Zyngier <marc.zyngier@arm.com>
+    Cc: Michael Ellerman <mpe@ellerman.id.au>
+    Cc: Keith Busch <keith.busch@intel.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Christoph Hellwig <hch@lst.de>
+    Link: http://lkml.kernel.org/r/20170619235446.878370703@linutronix.de
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index fcf1dad582f5..0172c0b844d4 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -87,6 +87,7 @@ config X86
+ 	select GENERIC_EARLY_IOREMAP
+ 	select GENERIC_FIND_FIRST_BIT
+ 	select GENERIC_IOMAP
++	select GENERIC_IRQ_EFFECTIVE_AFF_MASK	if SMP
+ 	select GENERIC_IRQ_MIGRATION		if SMP
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+diff --git a/arch/x86/kernel/apic/apic.c b/arch/x86/kernel/apic/apic.c
+index 14e5a47192b7..e7409468efc6 100644
+--- a/arch/x86/kernel/apic/apic.c
++++ b/arch/x86/kernel/apic/apic.c
+@@ -2210,6 +2210,7 @@ int default_cpu_mask_to_apicid(const struct cpumask *mask,
+ 	if (cpu >= nr_cpu_ids)
+ 		return -EINVAL;
+ 	*apicid = per_cpu(x86_cpu_to_apicid, cpu);
++	irq_data_update_effective_affinity(irqdata, cpumask_of(cpu));
+ 	return 0;
+ }
+ 
+@@ -2218,11 +2219,13 @@ int flat_cpu_mask_to_apicid(const struct cpumask *mask,
+ 			    unsigned int *apicid)
+ 
+ {
++	struct cpumask *effmsk = irq_data_get_effective_affinity_mask(irqdata);
+ 	unsigned long cpu_mask = cpumask_bits(mask)[0] & APIC_ALL_CPUS;
+ 
+ 	if (!cpu_mask)
+ 		return -EINVAL;
+ 	*apicid = (unsigned int)cpu_mask;
++	cpumask_bits(effmsk)[0] = cpu_mask;
+ 	return 0;
+ }
+ 
+diff --git a/arch/x86/kernel/apic/x2apic_cluster.c b/arch/x86/kernel/apic/x2apic_cluster.c
+index 305031e0a228..481237cb1544 100644
+--- a/arch/x86/kernel/apic/x2apic_cluster.c
++++ b/arch/x86/kernel/apic/x2apic_cluster.c
+@@ -4,6 +4,7 @@
+ #include <linux/kernel.h>
+ #include <linux/ctype.h>
+ #include <linux/dmar.h>
++#include <linux/irq.h>
+ #include <linux/cpu.h>
+ 
+ #include <asm/smp.h>
+@@ -107,6 +108,7 @@ static int
+ x2apic_cpu_mask_to_apicid(const struct cpumask *mask, struct irq_data *irqdata,
+ 			  unsigned int *apicid)
+ {
++	struct cpumask *effmsk = irq_data_get_effective_affinity_mask(irqdata);
+ 	unsigned int cpu;
+ 	u32 dest = 0;
+ 	u16 cluster;
+@@ -118,10 +120,12 @@ x2apic_cpu_mask_to_apicid(const struct cpumask *mask, struct irq_data *irqdata,
+ 	dest = per_cpu(x86_cpu_to_logical_apicid, cpu);
+ 	cluster = x2apic_cluster(cpu);
+ 
++	cpumask_clear(effmsk);
+ 	for_each_cpu(cpu, mask) {
+ 		if (cluster != x2apic_cluster(cpu))
+ 			continue;
+ 		dest |= per_cpu(x86_cpu_to_logical_apicid, cpu);
++		cpumask_set_cpu(cpu, effmsk);
+ 	}
+ 
+ 	*apicid = dest;

@@ -1,0 +1,580 @@
+commit beba3a20bf90ce1b93e24592c3ebf0d0bb581bbe
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Sat Mar 25 19:33:21 2017 -0400
+
+    x86: switch to RAW_COPY_USER
+    
+    Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index cc98d5a294ee..5f59fc388063 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -175,6 +175,7 @@ config X86
+ 	select USER_STACKTRACE_SUPPORT
+ 	select VIRT_TO_BUS
+ 	select X86_FEATURE_NAMES		if PROC_FS
++	select ARCH_HAS_RAW_COPY_USER
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+index 26410afcb8b0..68766b276d9e 100644
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -682,59 +682,6 @@ extern struct movsl_mask {
+ # include <asm/uaccess_64.h>
+ #endif
+ 
+-unsigned long __must_check _copy_from_user(void *to, const void __user *from,
+-					   unsigned n);
+-unsigned long __must_check _copy_to_user(void __user *to, const void *from,
+-					 unsigned n);
+-
+-extern void __compiletime_error("usercopy buffer size is too small")
+-__bad_copy_user(void);
+-
+-static inline void copy_user_overflow(int size, unsigned long count)
+-{
+-	WARN(1, "Buffer overflow detected (%d < %lu)!\n", size, count);
+-}
+-
+-static __always_inline unsigned long __must_check
+-copy_from_user(void *to, const void __user *from, unsigned long n)
+-{
+-	int sz = __compiletime_object_size(to);
+-
+-	might_fault();
+-
+-	kasan_check_write(to, n);
+-
+-	if (likely(sz < 0 || sz >= n)) {
+-		check_object_size(to, n, false);
+-		n = _copy_from_user(to, from, n);
+-	} else if (!__builtin_constant_p(n))
+-		copy_user_overflow(sz, n);
+-	else
+-		__bad_copy_user();
+-
+-	return n;
+-}
+-
+-static __always_inline unsigned long __must_check
+-copy_to_user(void __user *to, const void *from, unsigned long n)
+-{
+-	int sz = __compiletime_object_size(from);
+-
+-	kasan_check_read(from, n);
+-
+-	might_fault();
+-
+-	if (likely(sz < 0 || sz >= n)) {
+-		check_object_size(from, n, true);
+-		n = _copy_to_user(to, from, n);
+-	} else if (!__builtin_constant_p(n))
+-		copy_user_overflow(sz, n);
+-	else
+-		__bad_copy_user();
+-
+-	return n;
+-}
+-
+ /*
+  * We rely on the nested NMI work to allow atomic faults from the NMI path; the
+  * nested NMI paths are careful to preserve CR2.
+diff --git a/arch/x86/include/asm/uaccess_32.h b/arch/x86/include/asm/uaccess_32.h
+index 19e6c050c438..aeda9bb8af50 100644
+--- a/arch/x86/include/asm/uaccess_32.h
++++ b/arch/x86/include/asm/uaccess_32.h
+@@ -8,113 +8,48 @@
+ #include <asm/asm.h>
+ #include <asm/page.h>
+ 
+-unsigned long __must_check __copy_to_user_ll
+-		(void __user *to, const void *from, unsigned long n);
+-unsigned long __must_check __copy_from_user_ll
+-		(void *to, const void __user *from, unsigned long n);
+-unsigned long __must_check __copy_from_user_ll_nozero
+-		(void *to, const void __user *from, unsigned long n);
++unsigned long __must_check __copy_user_ll
++		(void *to, const void *from, unsigned long n);
+ unsigned long __must_check __copy_from_user_ll_nocache_nozero
+ 		(void *to, const void __user *from, unsigned long n);
+ 
+-/**
+- * __copy_to_user_inatomic: - Copy a block of data into user space, with less checking.
+- * @to:   Destination address, in user space.
+- * @from: Source address, in kernel space.
+- * @n:    Number of bytes to copy.
+- *
+- * Context: User context only.
+- *
+- * Copy data from kernel space to user space.  Caller must check
+- * the specified block with access_ok() before calling this function.
+- * The caller should also make sure he pins the user space address
+- * so that we don't result in page fault and sleep.
+- */
+ static __always_inline unsigned long __must_check
+-__copy_to_user_inatomic(void __user *to, const void *from, unsigned long n)
++raw_copy_to_user(void __user *to, const void *from, unsigned long n)
+ {
+-	check_object_size(from, n, true);
+-	return __copy_to_user_ll(to, from, n);
++	return __copy_user_ll((__force void *)to, from, n);
+ }
+ 
+-/**
+- * __copy_to_user: - Copy a block of data into user space, with less checking.
+- * @to:   Destination address, in user space.
+- * @from: Source address, in kernel space.
+- * @n:    Number of bytes to copy.
+- *
+- * Context: User context only. This function may sleep if pagefaults are
+- *          enabled.
+- *
+- * Copy data from kernel space to user space.  Caller must check
+- * the specified block with access_ok() before calling this function.
+- *
+- * Returns number of bytes that could not be copied.
+- * On success, this will be zero.
+- */
+-static __always_inline unsigned long __must_check
+-__copy_to_user(void __user *to, const void *from, unsigned long n)
+-{
+-	might_fault();
+-	return __copy_to_user_inatomic(to, from, n);
+-}
+-
+-static __always_inline unsigned long
+-__copy_from_user_inatomic(void *to, const void __user *from, unsigned long n)
+-{
+-	return __copy_from_user_ll_nozero(to, from, n);
+-}
+-
+-/**
+- * __copy_from_user: - Copy a block of data from user space, with less checking.
+- * @to:   Destination address, in kernel space.
+- * @from: Source address, in user space.
+- * @n:    Number of bytes to copy.
+- *
+- * Context: User context only. This function may sleep if pagefaults are
+- *          enabled.
+- *
+- * Copy data from user space to kernel space.  Caller must check
+- * the specified block with access_ok() before calling this function.
+- *
+- * Returns number of bytes that could not be copied.
+- * On success, this will be zero.
+- *
+- * If some data could not be copied, this function will pad the copied
+- * data to the requested size using zero bytes.
+- *
+- * An alternate version - __copy_from_user_inatomic() - may be called from
+- * atomic context and will fail rather than sleep.  In this case the
+- * uncopied bytes will *NOT* be padded with zeros.  See fs/filemap.h
+- * for explanation of why this is needed.
+- */
+ static __always_inline unsigned long
+-__copy_from_user(void *to, const void __user *from, unsigned long n)
++raw_copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
+-	might_fault();
+-	check_object_size(to, n, false);
+ 	if (__builtin_constant_p(n)) {
+ 		unsigned long ret;
+ 
+ 		switch (n) {
+ 		case 1:
++			ret = 0;
+ 			__uaccess_begin();
+-			__get_user_size(*(u8 *)to, from, 1, ret, 1);
++			__get_user_asm_nozero(*(u8 *)to, from, ret,
++					      "b", "b", "=q", 1);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 2:
++			ret = 0;
+ 			__uaccess_begin();
+-			__get_user_size(*(u16 *)to, from, 2, ret, 2);
++			__get_user_asm_nozero(*(u16 *)to, from, ret,
++					      "w", "w", "=r", 2);
+ 			__uaccess_end();
+ 			return ret;
+ 		case 4:
++			ret = 0;
+ 			__uaccess_begin();
+-			__get_user_size(*(u32 *)to, from, 4, ret, 4);
++			__get_user_asm_nozero(*(u32 *)to, from, ret,
++					      "l", "k", "=r", 4);
+ 			__uaccess_end();
+ 			return ret;
+ 		}
+ 	}
+-	return __copy_from_user_ll(to, from, n);
++	return __copy_user_ll(to, (__force const void *)from, n);
+ }
+ 
+ static __always_inline unsigned long
+diff --git a/arch/x86/include/asm/uaccess_64.h b/arch/x86/include/asm/uaccess_64.h
+index 497ca1bb0440..c5504b9a472e 100644
+--- a/arch/x86/include/asm/uaccess_64.h
++++ b/arch/x86/include/asm/uaccess_64.h
+@@ -45,15 +45,11 @@ copy_user_generic(void *to, const void *from, unsigned len)
+ 	return ret;
+ }
+ 
+-__must_check unsigned long
+-copy_in_user(void __user *to, const void __user *from, unsigned len);
+-
+-static __always_inline __must_check
+-int __copy_from_user_nocheck(void *dst, const void __user *src, unsigned size)
++static __always_inline __must_check unsigned long
++raw_copy_from_user(void *dst, const void __user *src, unsigned long size)
+ {
+ 	int ret = 0;
+ 
+-	check_object_size(dst, size, false);
+ 	if (!__builtin_constant_p(size))
+ 		return copy_user_generic(dst, (__force void *)src, size);
+ 	switch (size) {
+@@ -106,20 +102,11 @@ int __copy_from_user_nocheck(void *dst, const void __user *src, unsigned size)
+ 	}
+ }
+ 
+-static __always_inline __must_check
+-int __copy_from_user(void *dst, const void __user *src, unsigned size)
+-{
+-	might_fault();
+-	kasan_check_write(dst, size);
+-	return __copy_from_user_nocheck(dst, src, size);
+-}
+-
+-static __always_inline __must_check
+-int __copy_to_user_nocheck(void __user *dst, const void *src, unsigned size)
++static __always_inline __must_check unsigned long
++raw_copy_to_user(void __user *dst, const void *src, unsigned long size)
+ {
+ 	int ret = 0;
+ 
+-	check_object_size(src, size, true);
+ 	if (!__builtin_constant_p(size))
+ 		return copy_user_generic((__force void *)dst, src, size);
+ 	switch (size) {
+@@ -175,34 +162,12 @@ int __copy_to_user_nocheck(void __user *dst, const void *src, unsigned size)
+ }
+ 
+ static __always_inline __must_check
+-int __copy_to_user(void __user *dst, const void *src, unsigned size)
+-{
+-	might_fault();
+-	kasan_check_read(src, size);
+-	return __copy_to_user_nocheck(dst, src, size);
+-}
+-
+-static __always_inline __must_check
+-int __copy_in_user(void __user *dst, const void __user *src, unsigned size)
++unsigned long raw_copy_in_user(void __user *dst, const void __user *src, unsigned long size)
+ {
+ 	return copy_user_generic((__force void *)dst,
+ 				 (__force void *)src, size);
+ }
+ 
+-static __must_check __always_inline int
+-__copy_from_user_inatomic(void *dst, const void __user *src, unsigned size)
+-{
+-	kasan_check_write(dst, size);
+-	return __copy_from_user_nocheck(dst, src, size);
+-}
+-
+-static __must_check __always_inline int
+-__copy_to_user_inatomic(void __user *dst, const void *src, unsigned size)
+-{
+-	kasan_check_read(src, size);
+-	return __copy_to_user_nocheck(dst, src, size);
+-}
+-
+ extern long __copy_user_nocache(void *dst, const void __user *src,
+ 				unsigned size, int zerorest);
+ 
+diff --git a/arch/x86/lib/usercopy.c b/arch/x86/lib/usercopy.c
+index a851f3d199c2..c8c6ad0d58b8 100644
+--- a/arch/x86/lib/usercopy.c
++++ b/arch/x86/lib/usercopy.c
+@@ -4,12 +4,9 @@
+  *  For licencing details see kernel-base/COPYING
+  */
+ 
+-#include <linux/highmem.h>
++#include <linux/uaccess.h>
+ #include <linux/export.h>
+ 
+-#include <asm/word-at-a-time.h>
+-#include <linux/sched.h>
+-
+ /*
+  * We rely on the nested NMI work to allow atomic faults from the NMI path; the
+  * nested NMI paths are careful to preserve CR2.
+@@ -34,53 +31,3 @@ copy_from_user_nmi(void *to, const void __user *from, unsigned long n)
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(copy_from_user_nmi);
+-
+-/**
+- * copy_to_user: - Copy a block of data into user space.
+- * @to:   Destination address, in user space.
+- * @from: Source address, in kernel space.
+- * @n:    Number of bytes to copy.
+- *
+- * Context: User context only. This function may sleep if pagefaults are
+- *          enabled.
+- *
+- * Copy data from kernel space to user space.
+- *
+- * Returns number of bytes that could not be copied.
+- * On success, this will be zero.
+- */
+-unsigned long _copy_to_user(void __user *to, const void *from, unsigned n)
+-{
+-	if (access_ok(VERIFY_WRITE, to, n))
+-		n = __copy_to_user(to, from, n);
+-	return n;
+-}
+-EXPORT_SYMBOL(_copy_to_user);
+-
+-/**
+- * copy_from_user: - Copy a block of data from user space.
+- * @to:   Destination address, in kernel space.
+- * @from: Source address, in user space.
+- * @n:    Number of bytes to copy.
+- *
+- * Context: User context only. This function may sleep if pagefaults are
+- *          enabled.
+- *
+- * Copy data from user space to kernel space.
+- *
+- * Returns number of bytes that could not be copied.
+- * On success, this will be zero.
+- *
+- * If some data could not be copied, this function will pad the copied
+- * data to the requested size using zero bytes.
+- */
+-unsigned long _copy_from_user(void *to, const void __user *from, unsigned n)
+-{
+-	unsigned long res = n;
+-	if (access_ok(VERIFY_READ, from, n))
+-		res = __copy_from_user_inatomic(to, from, n);
+-	if (unlikely(res))
+-		memset(to + n - res, 0, res);
+-	return res;
+-}
+-EXPORT_SYMBOL(_copy_from_user);
+diff --git a/arch/x86/lib/usercopy_32.c b/arch/x86/lib/usercopy_32.c
+index 02aa7aa8b9f3..bd057a4ffe6e 100644
+--- a/arch/x86/lib/usercopy_32.c
++++ b/arch/x86/lib/usercopy_32.c
+@@ -5,12 +5,7 @@
+  * Copyright 1997 Andi Kleen <ak@muc.de>
+  * Copyright 1997 Linus Torvalds
+  */
+-#include <linux/mm.h>
+-#include <linux/highmem.h>
+-#include <linux/blkdev.h>
+ #include <linux/export.h>
+-#include <linux/backing-dev.h>
+-#include <linux/interrupt.h>
+ #include <linux/uaccess.h>
+ #include <asm/mmx.h>
+ #include <asm/asm.h>
+@@ -201,98 +196,6 @@ __copy_user_intel(void __user *to, const void *from, unsigned long size)
+ 	return size;
+ }
+ 
+-static unsigned long
+-__copy_user_zeroing_intel(void *to, const void __user *from, unsigned long size)
+-{
+-	int d0, d1;
+-	__asm__ __volatile__(
+-		       "        .align 2,0x90\n"
+-		       "0:      movl 32(%4), %%eax\n"
+-		       "        cmpl $67, %0\n"
+-		       "        jbe 2f\n"
+-		       "1:      movl 64(%4), %%eax\n"
+-		       "        .align 2,0x90\n"
+-		       "2:      movl 0(%4), %%eax\n"
+-		       "21:     movl 4(%4), %%edx\n"
+-		       "        movl %%eax, 0(%3)\n"
+-		       "        movl %%edx, 4(%3)\n"
+-		       "3:      movl 8(%4), %%eax\n"
+-		       "31:     movl 12(%4),%%edx\n"
+-		       "        movl %%eax, 8(%3)\n"
+-		       "        movl %%edx, 12(%3)\n"
+-		       "4:      movl 16(%4), %%eax\n"
+-		       "41:     movl 20(%4), %%edx\n"
+-		       "        movl %%eax, 16(%3)\n"
+-		       "        movl %%edx, 20(%3)\n"
+-		       "10:     movl 24(%4), %%eax\n"
+-		       "51:     movl 28(%4), %%edx\n"
+-		       "        movl %%eax, 24(%3)\n"
+-		       "        movl %%edx, 28(%3)\n"
+-		       "11:     movl 32(%4), %%eax\n"
+-		       "61:     movl 36(%4), %%edx\n"
+-		       "        movl %%eax, 32(%3)\n"
+-		       "        movl %%edx, 36(%3)\n"
+-		       "12:     movl 40(%4), %%eax\n"
+-		       "71:     movl 44(%4), %%edx\n"
+-		       "        movl %%eax, 40(%3)\n"
+-		       "        movl %%edx, 44(%3)\n"
+-		       "13:     movl 48(%4), %%eax\n"
+-		       "81:     movl 52(%4), %%edx\n"
+-		       "        movl %%eax, 48(%3)\n"
+-		       "        movl %%edx, 52(%3)\n"
+-		       "14:     movl 56(%4), %%eax\n"
+-		       "91:     movl 60(%4), %%edx\n"
+-		       "        movl %%eax, 56(%3)\n"
+-		       "        movl %%edx, 60(%3)\n"
+-		       "        addl $-64, %0\n"
+-		       "        addl $64, %4\n"
+-		       "        addl $64, %3\n"
+-		       "        cmpl $63, %0\n"
+-		       "        ja  0b\n"
+-		       "5:      movl  %0, %%eax\n"
+-		       "        shrl  $2, %0\n"
+-		       "        andl $3, %%eax\n"
+-		       "        cld\n"
+-		       "6:      rep; movsl\n"
+-		       "        movl %%eax,%0\n"
+-		       "7:      rep; movsb\n"
+-		       "8:\n"
+-		       ".section .fixup,\"ax\"\n"
+-		       "9:      lea 0(%%eax,%0,4),%0\n"
+-		       "16:     pushl %0\n"
+-		       "        pushl %%eax\n"
+-		       "        xorl %%eax,%%eax\n"
+-		       "        rep; stosb\n"
+-		       "        popl %%eax\n"
+-		       "        popl %0\n"
+-		       "        jmp 8b\n"
+-		       ".previous\n"
+-		       _ASM_EXTABLE(0b,16b)
+-		       _ASM_EXTABLE(1b,16b)
+-		       _ASM_EXTABLE(2b,16b)
+-		       _ASM_EXTABLE(21b,16b)
+-		       _ASM_EXTABLE(3b,16b)
+-		       _ASM_EXTABLE(31b,16b)
+-		       _ASM_EXTABLE(4b,16b)
+-		       _ASM_EXTABLE(41b,16b)
+-		       _ASM_EXTABLE(10b,16b)
+-		       _ASM_EXTABLE(51b,16b)
+-		       _ASM_EXTABLE(11b,16b)
+-		       _ASM_EXTABLE(61b,16b)
+-		       _ASM_EXTABLE(12b,16b)
+-		       _ASM_EXTABLE(71b,16b)
+-		       _ASM_EXTABLE(13b,16b)
+-		       _ASM_EXTABLE(81b,16b)
+-		       _ASM_EXTABLE(14b,16b)
+-		       _ASM_EXTABLE(91b,16b)
+-		       _ASM_EXTABLE(6b,9b)
+-		       _ASM_EXTABLE(7b,16b)
+-		       : "=&c"(size), "=&D" (d0), "=&S" (d1)
+-		       :  "1"(to), "2"(from), "0"(size)
+-		       : "eax", "edx", "memory");
+-	return size;
+-}
+-
+ static unsigned long __copy_user_intel_nocache(void *to,
+ 				const void __user *from, unsigned long size)
+ {
+@@ -387,8 +290,6 @@ static unsigned long __copy_user_intel_nocache(void *to,
+  * Leave these declared but undefined.  They should not be any references to
+  * them
+  */
+-unsigned long __copy_user_zeroing_intel(void *to, const void __user *from,
+-					unsigned long size);
+ unsigned long __copy_user_intel(void __user *to, const void *from,
+ 					unsigned long size);
+ #endif /* CONFIG_X86_INTEL_USERCOPY */
+@@ -427,47 +328,7 @@ do {									\
+ 		: "memory");						\
+ } while (0)
+ 
+-#define __copy_user_zeroing(to, from, size)				\
+-do {									\
+-	int __d0, __d1, __d2;						\
+-	__asm__ __volatile__(						\
+-		"	cmp  $7,%0\n"					\
+-		"	jbe  1f\n"					\
+-		"	movl %1,%0\n"					\
+-		"	negl %0\n"					\
+-		"	andl $7,%0\n"					\
+-		"	subl %0,%3\n"					\
+-		"4:	rep; movsb\n"					\
+-		"	movl %3,%0\n"					\
+-		"	shrl $2,%0\n"					\
+-		"	andl $3,%3\n"					\
+-		"	.align 2,0x90\n"				\
+-		"0:	rep; movsl\n"					\
+-		"	movl %3,%0\n"					\
+-		"1:	rep; movsb\n"					\
+-		"2:\n"							\
+-		".section .fixup,\"ax\"\n"				\
+-		"5:	addl %3,%0\n"					\
+-		"	jmp 6f\n"					\
+-		"3:	lea 0(%3,%0,4),%0\n"				\
+-		"6:	pushl %0\n"					\
+-		"	pushl %%eax\n"					\
+-		"	xorl %%eax,%%eax\n"				\
+-		"	rep; stosb\n"					\
+-		"	popl %%eax\n"					\
+-		"	popl %0\n"					\
+-		"	jmp 2b\n"					\
+-		".previous\n"						\
+-		_ASM_EXTABLE(4b,5b)					\
+-		_ASM_EXTABLE(0b,3b)					\
+-		_ASM_EXTABLE(1b,6b)					\
+-		: "=&c"(size), "=&D" (__d0), "=&S" (__d1), "=r"(__d2)	\
+-		: "3"(size), "0"(size), "1"(to), "2"(from)		\
+-		: "memory");						\
+-} while (0)
+-
+-unsigned long __copy_to_user_ll(void __user *to, const void *from,
+-				unsigned long n)
++unsigned long __copy_user_ll(void *to, const void *from, unsigned long n)
+ {
+ 	stac();
+ 	if (movsl_is_ok(to, from, n))
+@@ -477,34 +338,7 @@ unsigned long __copy_to_user_ll(void __user *to, const void *from,
+ 	clac();
+ 	return n;
+ }
+-EXPORT_SYMBOL(__copy_to_user_ll);
+-
+-unsigned long __copy_from_user_ll(void *to, const void __user *from,
+-					unsigned long n)
+-{
+-	stac();
+-	if (movsl_is_ok(to, from, n))
+-		__copy_user_zeroing(to, from, n);
+-	else
+-		n = __copy_user_zeroing_intel(to, from, n);
+-	clac();
+-	return n;
+-}
+-EXPORT_SYMBOL(__copy_from_user_ll);
+-
+-unsigned long __copy_from_user_ll_nozero(void *to, const void __user *from,
+-					 unsigned long n)
+-{
+-	stac();
+-	if (movsl_is_ok(to, from, n))
+-		__copy_user(to, from, n);
+-	else
+-		n = __copy_user_intel((void __user *)to,
+-				      (const void *)from, n);
+-	clac();
+-	return n;
+-}
+-EXPORT_SYMBOL(__copy_from_user_ll_nozero);
++EXPORT_SYMBOL(__copy_user_ll);
+ 
+ unsigned long __copy_from_user_ll_nocache_nozero(void *to, const void __user *from,
+ 					unsigned long n)

@@ -1,0 +1,56 @@
+commit ca78d3173cff3503bcd15723b049757f75762d15
+Merge: a4ee7bacd6c0 ffe7afd17135
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Feb 22 10:46:44 2017 -0800
+
+    Merge tag 'arm64-upstream' of git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux
+    
+    Pull arm64 updates from Will Deacon:
+     - Errata workarounds for Qualcomm's Falkor CPU
+     - Qualcomm L2 Cache PMU driver
+     - Qualcomm SMCCC firmware quirk
+     - Support for DEBUG_VIRTUAL
+     - CPU feature detection for userspace via MRS emulation
+     - Preliminary work for the Statistical Profiling Extension
+     - Misc cleanups and non-critical fixes
+    
+    * tag 'arm64-upstream' of git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux: (74 commits)
+      arm64/kprobes: consistently handle MRS/MSR with XZR
+      arm64: cpufeature: correctly handle MRS to XZR
+      arm64: traps: correctly handle MRS/MSR with XZR
+      arm64: ptrace: add XZR-safe regs accessors
+      arm64: include asm/assembler.h in entry-ftrace.S
+      arm64: fix warning about swapper_pg_dir overflow
+      arm64: Work around Falkor erratum 1003
+      arm64: head.S: Enable EL1 (host) access to SPE when entered at EL2
+      arm64: arch_timer: document Hisilicon erratum 161010101
+      arm64: use is_vmalloc_addr
+      arm64: use linux/sizes.h for constants
+      arm64: uaccess: consistently check object sizes
+      perf: add qcom l2 cache perf events driver
+      arm64: remove wrong CONFIG_PROC_SYSCTL ifdef
+      ARM: smccc: Update HVC comment to describe new quirk parameter
+      arm64: do not trace atomic operations
+      ACPI/IORT: Fix the error return code in iort_add_smmu_platform_device()
+      ACPI/IORT: Fix iort_node_get_id() mapping entries indexing
+      arm64: mm: enable CONFIG_HOLES_IN_ZONE for NUMA
+      perf: xgene: Include module.h
+      ...
+
+diff --cc arch/arm64/kernel/insn.c
+index 67f9cb9e8512,022d4a9d1738..b6badff5a151
+--- a/arch/arm64/kernel/insn.c
++++ b/arch/arm64/kernel/insn.c
+@@@ -93,10 -93,10 +93,10 @@@ static void __kprobes *patch_map(void *
+  	bool module = !core_kernel_text(uintaddr);
+  	struct page *page;
+  
+ -	if (module && IS_ENABLED(CONFIG_DEBUG_SET_MODULE_RONX))
+ +	if (module && IS_ENABLED(CONFIG_STRICT_MODULE_RWX))
+  		page = vmalloc_to_page(addr);
+  	else if (!module)
+- 		page = pfn_to_page(PHYS_PFN(__pa(addr)));
++ 		page = phys_to_page(__pa_symbol(addr));
+  	else
+  		return addr;
+  

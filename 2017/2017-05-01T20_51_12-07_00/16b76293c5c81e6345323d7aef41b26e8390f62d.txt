@@ -1,0 +1,43 @@
+commit 16b76293c5c81e6345323d7aef41b26e8390f62d
+Merge: 3dee9fb2a4ce da63b6b20077
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon May 1 20:51:12 2017 -0700
+
+    Merge branch 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 boot updates from Ingo Molnar:
+     "The biggest changes in this cycle were:
+    
+       - reworking of the e820 code: separate in-kernel and boot-ABI data
+         structures and apply a whole range of cleanups to the kernel side.
+    
+         No change in functionality.
+    
+       - enable KASLR by default: it's used by all major distros and it's
+         out of the experimental stage as well.
+    
+       - ... misc fixes and cleanups"
+    
+    * 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (63 commits)
+      x86/KASLR: Fix kexec kernel boot crash when KASLR randomization fails
+      x86/reboot: Turn off KVM when halting a CPU
+      x86/boot: Fix BSS corruption/overwrite bug in early x86 kernel startup
+      x86: Enable KASLR by default
+      boot/param: Move next_arg() function to lib/cmdline.c for later reuse
+      x86/boot: Fix Sparse warning by including required header file
+      x86/boot/64: Rename start_cpu()
+      x86/xen: Update e820 table handling to the new core x86 E820 code
+      x86/boot: Fix pr_debug() API braindamage
+      xen, x86/headers: Add <linux/device.h> dependency to <asm/xen/page.h>
+      x86/boot/e820: Simplify e820__update_table()
+      x86/boot/e820: Separate the E820 ABI structures from the in-kernel structures
+      x86/boot/e820: Fix and clean up e820_type switch() statements
+      x86/boot/e820: Rename the remaining E820 APIs to the e820__*() prefix
+      x86/boot/e820: Remove unnecessary #include's
+      x86/boot/e820: Rename e820_mark_nosave_regions() to e820__register_nosave_regions()
+      x86/boot/e820: Rename e820_reserve_resources*() to e820__reserve_resources*()
+      x86/boot/e820: Use bool in query APIs
+      x86/boot/e820: Document e820__reserve_setup_data()
+      x86/boot/e820: Clean up __e820__update_table() et al
+      ...
+

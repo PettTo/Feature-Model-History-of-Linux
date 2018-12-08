@@ -1,0 +1,65 @@
+commit 89fd915c402113528750353ad6de9ea68a787e5c
+Merge: 66c9457df392 04c3c982fcc0
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Sep 11 13:10:57 2017 -0700
+
+    Merge tag 'libnvdimm-for-4.14' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm
+    
+    Pull libnvdimm from Dan Williams:
+     "A rework of media error handling in the BTT driver and other updates.
+      It has appeared in a few -next releases and collected some late-
+      breaking build-error and warning fixups as a result.
+    
+      Summary:
+    
+       - Media error handling support in the Block Translation Table (BTT)
+         driver is reworked to address sleeping-while-atomic locking and
+         memory-allocation-context conflicts.
+    
+       - The dax_device lookup overhead for xfs and ext4 is moved out of the
+         iomap hot-path to a mount-time lookup.
+    
+       - A new 'ecc_unit_size' sysfs attribute is added to advertise the
+         read-modify-write boundary property of a persistent memory range.
+    
+       - Preparatory fix-ups for arm and powerpc pmem support are included
+         along with other miscellaneous fixes"
+    
+    * tag 'libnvdimm-for-4.14' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm: (26 commits)
+      libnvdimm, btt: fix format string warnings
+      libnvdimm, btt: clean up warning and error messages
+      ext4: fix null pointer dereference on sbi
+      libnvdimm, nfit: move the check on nd_reserved2 to the endpoint
+      dax: fix FS_DAX=n BLOCK=y compilation
+      libnvdimm: fix integer overflow static analysis warning
+      libnvdimm, nd_blk: remove mmio_flush_range()
+      libnvdimm, btt: rework error clearing
+      libnvdimm: fix potential deadlock while clearing errors
+      libnvdimm, btt: cache sector_size in arena_info
+      libnvdimm, btt: ensure that flags were also unchanged during a map_read
+      libnvdimm, btt: refactor map entry operations with macros
+      libnvdimm, btt: fix a missed NVDIMM_IO_ATOMIC case in the write path
+      libnvdimm, nfit: export an 'ecc_unit_size' sysfs attribute
+      ext4: perform dax_device lookup at mount
+      ext2: perform dax_device lookup at mount
+      xfs: perform dax_device lookup at mount
+      dax: introduce a fs_dax_get_by_bdev() helper
+      libnvdimm, btt: check memory allocation failure
+      libnvdimm, label: fix index block size calculation
+      ...
+
+diff --cc arch/x86/Kconfig
+index a3e6e6136a47,87602cef7aba..971feac13506
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -53,10 -53,7 +53,9 @@@ config X8
+  	select ARCH_HAS_FORTIFY_SOURCE
+  	select ARCH_HAS_GCOV_PROFILE_ALL
+  	select ARCH_HAS_KCOV			if X86_64
+- 	select ARCH_HAS_MMIO_FLUSH
+  	select ARCH_HAS_PMEM_API		if X86_64
+ +	# Causing hangs/crashes, see the commit that added this change for details.
+ +	select ARCH_HAS_REFCOUNT		if BROKEN
+  	select ARCH_HAS_UACCESS_FLUSHCACHE	if X86_64
+  	select ARCH_HAS_SET_MEMORY
+  	select ARCH_HAS_SG_CHAIN

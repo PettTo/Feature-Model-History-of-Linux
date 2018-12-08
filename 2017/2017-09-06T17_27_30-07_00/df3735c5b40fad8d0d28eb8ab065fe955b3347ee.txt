@@ -1,0 +1,117 @@
+commit df3735c5b40fad8d0d28eb8ab065fe955b3347ee
+Author: Rik van Riel <riel@redhat.com>
+Date:   Wed Sep 6 16:25:11 2017 -0700
+
+    x86,mpx: make mpx depend on x86-64 to free up VMA flag
+    
+    Patch series "mm,fork,security: introduce MADV_WIPEONFORK", v4.
+    
+    If a child process accesses memory that was MADV_WIPEONFORK, it will get
+    zeroes.  The address ranges are still valid, they are just empty.
+    
+    If a child process accesses memory that was MADV_DONTFORK, it will get a
+    segmentation fault, since those address ranges are no longer valid in
+    the child after fork.
+    
+    Since MADV_DONTFORK also seems to be used to allow very large programs
+    to fork in systems with strict memory overcommit restrictions, changing
+    the semantics of MADV_DONTFORK might break existing programs.
+    
+    The use case is libraries that store or cache information, and want to
+    know that they need to regenerate it in the child process after fork.
+    
+    Examples of this would be:
+     - systemd/pulseaudio API checks (fail after fork) (replacing a getpid
+       check, which is too slow without a PID cache)
+     - PKCS#11 API reinitialization check (mandated by specification)
+     - glibc's upcoming PRNG (reseed after fork)
+     - OpenSSL PRNG (reseed after fork)
+    
+    The security benefits of a forking server having a re-inialized PRNG in
+    every child process are pretty obvious.  However, due to libraries
+    having all kinds of internal state, and programs getting compiled with
+    many different versions of each library, it is unreasonable to expect
+    calling programs to re-initialize everything manually after fork.
+    
+    A further complication is the proliferation of clone flags, programs
+    bypassing glibc's functions to call clone directly, and programs calling
+    unshare, causing the glibc pthread_atfork hook to not get called.
+    
+    It would be better to have the kernel take care of this automatically.
+    
+    The patchset also adds MADV_KEEPONFORK, to undo the effects of a prior
+    MADV_WIPEONFORK.
+    
+    This is similar to the OpenBSD minherit syscall with MAP_INHERIT_ZERO:
+    
+        https://man.openbsd.org/minherit.2
+    
+    This patch (of 2):
+    
+    MPX only seems to be available on 64 bit CPUs, starting with Skylake and
+    Goldmont.  Move VM_MPX into the 64 bit only portion of vma->vm_flags, in
+    order to free up a VMA flag.
+    
+    Link: http://lkml.kernel.org/r/20170811212829.29186-2-riel@redhat.com
+    Signed-off-by: Rik van Riel <riel@redhat.com>
+    Acked-by: Dave Hansen <dave.hansen@intel.com>
+    Cc: Mike Kravetz <mike.kravetz@oracle.com>
+    Cc: Florian Weimer <fweimer@redhat.com>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Will Drewry <wad@chromium.org>
+    Cc: Ingo Molnar <mingo@kernel.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: "Kirill A. Shutemov" <kirill@shutemov.name>
+    Cc: Matthew Wilcox <willy@infradead.org>
+    Cc: Colm MacCártaigh <colm@allcosts.net>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index acb366bf6bc1..4b278a33ccbb 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1806,7 +1806,9 @@ config X86_SMAP
+ config X86_INTEL_MPX
+ 	prompt "Intel MPX (Memory Protection Extensions)"
+ 	def_bool n
+-	depends on CPU_SUP_INTEL
++	# Note: only available in 64-bit mode due to VMA flags shortage
++	depends on CPU_SUP_INTEL && X86_64
++	select ARCH_USES_HIGH_VMA_FLAGS
+ 	---help---
+ 	  MPX provides hardware features that can be used in
+ 	  conjunction with compiler-instrumented code to check
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 0acea73af839..9efe62032094 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -208,10 +208,12 @@ extern unsigned int kobjsize(const void *objp);
+ #define VM_HIGH_ARCH_BIT_1	33	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_2	34	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_BIT_3	35	/* bit only usable on 64-bit architectures */
++#define VM_HIGH_ARCH_BIT_4	36	/* bit only usable on 64-bit architectures */
+ #define VM_HIGH_ARCH_0	BIT(VM_HIGH_ARCH_BIT_0)
+ #define VM_HIGH_ARCH_1	BIT(VM_HIGH_ARCH_BIT_1)
+ #define VM_HIGH_ARCH_2	BIT(VM_HIGH_ARCH_BIT_2)
+ #define VM_HIGH_ARCH_3	BIT(VM_HIGH_ARCH_BIT_3)
++#define VM_HIGH_ARCH_4	BIT(VM_HIGH_ARCH_BIT_4)
+ #endif /* CONFIG_ARCH_USES_HIGH_VMA_FLAGS */
+ 
+ #if defined(CONFIG_X86)
+@@ -235,9 +237,11 @@ extern unsigned int kobjsize(const void *objp);
+ # define VM_MAPPED_COPY	VM_ARCH_1	/* T if mapped copy of data (nommu mmap) */
+ #endif
+ 
+-#if defined(CONFIG_X86)
++#if defined(CONFIG_X86_INTEL_MPX)
+ /* MPX specific bounds table or bounds directory */
+-# define VM_MPX		VM_ARCH_2
++# define VM_MPX		VM_HIGH_ARCH_BIT_4
++#else
++# define VM_MPX		VM_NONE
+ #endif
+ 
+ #ifndef VM_GROWSUP

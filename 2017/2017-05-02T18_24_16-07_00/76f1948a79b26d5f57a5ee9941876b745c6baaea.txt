@@ -1,0 +1,176 @@
+commit 76f1948a79b26d5f57a5ee9941876b745c6baaea
+Merge: 7af4c727c7b6 a0841609f658
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue May 2 18:24:16 2017 -0700
+
+    Merge branch 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/jikos/livepatching
+    
+    Pull livepatch updates from Jiri Kosina:
+    
+     - a per-task consistency model is being added for architectures that
+       support reliable stack dumping (extending this, currently rather
+       trivial set, is currently in the works).
+    
+       This extends the nature of the types of patches that can be applied
+       by live patching infrastructure. The code stems from the design
+       proposal made [1] back in November 2014. It's a hybrid of SUSE's
+       kGraft and RH's kpatch, combining advantages of both: it uses
+       kGraft's per-task consistency and syscall barrier switching combined
+       with kpatch's stack trace switching. There are also a number of
+       fallback options which make it quite flexible.
+    
+       Most of the heavy lifting done by Josh Poimboeuf with help from
+       Miroslav Benes and Petr Mladek
+    
+       [1] https://lkml.kernel.org/r/20141107140458.GA21774@suse.cz
+    
+     - module load time patch optimization from Zhou Chengming
+    
+     - a few assorted small fixes
+    
+    * 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/jikos/livepatching:
+      livepatch: add missing printk newlines
+      livepatch: Cancel transition a safe way for immediate patches
+      livepatch: Reduce the time of finding module symbols
+      livepatch: make klp_mutex proper part of API
+      livepatch: allow removal of a disabled patch
+      livepatch: add /proc/<pid>/patch_state
+      livepatch: change to a per-task consistency model
+      livepatch: store function sizes
+      livepatch: use kstrtobool() in enabled_store()
+      livepatch: move patching functions into patch.c
+      livepatch: remove unnecessary object loaded check
+      livepatch: separate enabled and patched states
+      livepatch/s390: add TIF_PATCH_PENDING thread flag
+      livepatch/s390: reorganize TIF thread flag bits
+      livepatch/powerpc: add TIF_PATCH_PENDING thread flag
+      livepatch/x86: add TIF_PATCH_PENDING thread flag
+      livepatch: create temporary klp_update_patch_state() stub
+      x86/entry: define _TIF_ALLWORK_MASK flags explicitly
+      stacktrace/x86: add function for detecting reliable stack traces
+
+diff --cc arch/s390/include/asm/thread_info.h
+index f36e6e2b73f0,646845edf148..0b3ee083a665
+--- a/arch/s390/include/asm/thread_info.h
++++ b/arch/s390/include/asm/thread_info.h
+@@@ -55,11 -56,8 +56,9 @@@ int arch_dup_task_struct(struct task_st
+  #define TIF_SIGPENDING		1	/* signal pending */
+  #define TIF_NEED_RESCHED	2	/* rescheduling necessary */
+  #define TIF_UPROBE		3	/* breakpointed or single-stepping */
+ -#define TIF_PATCH_PENDING	4	/* pending live patching update */
+ +#define TIF_GUARDED_STORAGE	4	/* load guarded storage control block */
+- #define TIF_SYSCALL_TRACE	8	/* syscall trace active */
+- #define TIF_SYSCALL_AUDIT	9	/* syscall auditing active */
+- #define TIF_SECCOMP		10	/* secure computing */
+- #define TIF_SYSCALL_TRACEPOINT	11	/* syscall tracepoint instrumentation */
+++#define TIF_PATCH_PENDING	5	/* pending live patching update */
++ 
+  #define TIF_31BIT		16	/* 32bit process */
+  #define TIF_MEMDIE		17	/* is terminating due to OOM killer */
+  #define TIF_RESTORE_SIGMASK	18	/* restore signal mask in do_signal() */
+@@@ -70,6 -74,12 +75,13 @@@
+  #define _TIF_NOTIFY_RESUME	_BITUL(TIF_NOTIFY_RESUME)
+  #define _TIF_SIGPENDING		_BITUL(TIF_SIGPENDING)
+  #define _TIF_NEED_RESCHED	_BITUL(TIF_NEED_RESCHED)
++ #define _TIF_UPROBE		_BITUL(TIF_UPROBE)
+++#define _TIF_GUARDED_STORAGE	_BITUL(TIF_GUARDED_STORAGE)
++ #define _TIF_PATCH_PENDING	_BITUL(TIF_PATCH_PENDING)
++ 
++ #define _TIF_31BIT		_BITUL(TIF_31BIT)
++ #define _TIF_SINGLE_STEP	_BITUL(TIF_SINGLE_STEP)
++ 
+  #define _TIF_SYSCALL_TRACE	_BITUL(TIF_SYSCALL_TRACE)
+  #define _TIF_SYSCALL_AUDIT	_BITUL(TIF_SYSCALL_AUDIT)
+  #define _TIF_SECCOMP		_BITUL(TIF_SECCOMP)
+diff --cc arch/s390/kernel/entry.S
+index c6cf338c9327,a08b5eea5567..a5f5d3bb3dbc
+--- a/arch/s390/kernel/entry.S
++++ b/arch/s390/kernel/entry.S
+@@@ -47,7 -47,7 +47,7 @@@ STACK_SIZE  = 1 << STACK_SHIF
+  STACK_INIT = STACK_SIZE - STACK_FRAME_OVERHEAD - __PT_SIZE
+  
+  _TIF_WORK	= (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME | _TIF_NEED_RESCHED | \
+- 		   _TIF_UPROBE | _TIF_GUARDED_STORAGE)
+ -		   _TIF_UPROBE | _TIF_PATCH_PENDING)
+++		   _TIF_UPROBE | _TIF_GUARDED_STORAGE | _TIF_PATCH_PENDING)
+  _TIF_TRACE	= (_TIF_SYSCALL_TRACE | _TIF_SYSCALL_AUDIT | _TIF_SECCOMP | \
+  		   _TIF_SYSCALL_TRACEPOINT)
+  _CIF_WORK	= (_CIF_MCCK_PENDING | _CIF_ASCE_PRIMARY | \
+@@@ -330,10 -332,13 +330,15 @@@ ENTRY(system_call
+  	TSTMSK	__TI_flags(%r12),_TIF_UPROBE
+  	jo	.Lsysc_uprobe_notify
+  #endif
+ +	TSTMSK	__TI_flags(%r12),_TIF_GUARDED_STORAGE
+ +	jo	.Lsysc_guarded_storage
+  	TSTMSK	__PT_FLAGS(%r11),_PIF_PER_TRAP
+  	jo	.Lsysc_singlestep
++ #ifdef CONFIG_LIVEPATCH
++ 	TSTMSK	__TI_flags(%r12),_TIF_PATCH_PENDING
++ 	jo	.Lsysc_patch_pending	# handle live patching just before
++ 					# signals and possible syscall restart
++ #endif
+  	TSTMSK	__TI_flags(%r12),_TIF_SIGPENDING
+  	jo	.Lsysc_sigpending
+  	TSTMSK	__TI_flags(%r12),_TIF_NOTIFY_RESUME
+@@@ -408,13 -413,15 +413,22 @@@
+  	jg	uprobe_notify_resume
+  #endif
+  
+ +#
+ +# _TIF_GUARDED_STORAGE is set, call guarded_storage_load
+ +#
+ +.Lsysc_guarded_storage:
+ +	lgr	%r2,%r11		# pass pointer to pt_regs
+ +	larl	%r14,.Lsysc_return
+ +	jg	gs_load_bc_cb
++ #
++ # _TIF_PATCH_PENDING is set, call klp_update_patch_state
++ #
++ #ifdef CONFIG_LIVEPATCH
++ .Lsysc_patch_pending:
++ 	lg	%r2,__LC_CURRENT	# pass pointer to task struct
++ 	larl	%r14,.Lsysc_return
++ 	jg	klp_update_patch_state
++ #endif
+  
+  #
+  # _PIF_PER_TRAP is set, call do_per_trap
+diff --cc arch/x86/include/asm/thread_info.h
+index f765a49103fb,83372dc43943..e00e1bd6e7b3
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@@ -87,7 -84,7 +84,8 @@@ struct thread_info 
+  #define TIF_SECCOMP		8	/* secure computing */
+  #define TIF_USER_RETURN_NOTIFY	11	/* notify kernel of userspace return */
+  #define TIF_UPROBE		12	/* breakpointed or singlestepping */
++ #define TIF_PATCH_PENDING	13	/* pending live patching update */
+ +#define TIF_NOCPUID		15	/* CPUID is not accessible in userland */
+  #define TIF_NOTSC		16	/* TSC is not accessible in userland */
+  #define TIF_IA32		17	/* IA32 compatibility process */
+  #define TIF_NOHZ		19	/* in adaptive nohz mode */
+@@@ -111,7 -108,7 +109,8 @@@
+  #define _TIF_SECCOMP		(1 << TIF_SECCOMP)
+  #define _TIF_USER_RETURN_NOTIFY	(1 << TIF_USER_RETURN_NOTIFY)
+  #define _TIF_UPROBE		(1 << TIF_UPROBE)
++ #define _TIF_PATCH_PENDING	(1 << TIF_PATCH_PENDING)
+ +#define _TIF_NOCPUID		(1 << TIF_NOCPUID)
+  #define _TIF_NOTSC		(1 << TIF_NOTSC)
+  #define _TIF_IA32		(1 << TIF_IA32)
+  #define _TIF_NOHZ		(1 << TIF_NOHZ)
+diff --cc arch/x86/include/asm/unwind.h
+index 9b10dcd51716,137e9cce2ab4..e6676495b125
+--- a/arch/x86/include/asm/unwind.h
++++ b/arch/x86/include/asm/unwind.h
+@@@ -11,11 -11,10 +11,12 @@@ struct unwind_state 
+  	unsigned long stack_mask;
+  	struct task_struct *task;
+  	int graph_idx;
++ 	bool error;
+  #ifdef CONFIG_FRAME_POINTER
+ +	bool got_irq;
+  	unsigned long *bp, *orig_sp;
+  	struct pt_regs *regs;
+ +	unsigned long ip;
+  #else
+  	unsigned long *sp;
+  #endif

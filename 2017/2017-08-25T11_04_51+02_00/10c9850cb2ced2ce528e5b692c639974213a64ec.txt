@@ -1,0 +1,9 @@
+commit 10c9850cb2ced2ce528e5b692c639974213a64ec
+Merge: 0c2364791343 90a6cd503982
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Fri Aug 25 11:04:51 2017 +0200
+
+    Merge branch 'linus' into locking/core, to pick up fixes
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+

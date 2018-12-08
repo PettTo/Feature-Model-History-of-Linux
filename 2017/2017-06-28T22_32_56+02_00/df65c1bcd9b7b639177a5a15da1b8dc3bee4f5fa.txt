@@ -1,0 +1,48 @@
+commit df65c1bcd9b7b639177a5a15da1b8dc3bee4f5fa
+Author: Thomas Gleixner <tglx@linutronix.de>
+Date:   Thu Mar 16 22:50:07 2017 +0100
+
+    x86/PCI: Select CONFIG_PCI_LOCKLESS_CONFIG
+    
+    All x86 PCI configuration space accessors have either their own
+    serialization or can operate completely lockless (ECAM).
+    
+    Disable the global lock in the generic PCI configuration space accessors.
+    
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Acked-by: Bjorn Helgaas <helgaas@kernel.org>
+    Cc: Andi Kleen <ak@linux.intel.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Stephane Eranian <eranian@google.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: linux-pci@vger.kernel.org
+    Link: http://lkml.kernel.org/r/20170316215057.295079391@linutronix.de
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0efb4c9497bc..0652c9f8902e 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -166,6 +166,7 @@ config X86
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
+ 	select HAVE_USER_RETURN_NOTIFIER
+ 	select IRQ_FORCED_THREADING
++	select PCI_LOCKLESS_CONFIG
+ 	select PERF_EVENTS
+ 	select RTC_LIB
+ 	select RTC_MC146818_LIB
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 190e718694b1..cfd1a89fd04e 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -75,8 +75,8 @@ struct pci_ops pci_root_ops = {
+ };
+ 
+ /*
+- * This interrupt-safe spinlock protects all accesses to PCI
+- * configuration space.
++ * This interrupt-safe spinlock protects all accesses to PCI configuration
++ * space, except for the mmconfig (ECAM) based operations.
+  */
+ DEFINE_RAW_SPINLOCK(pci_config_lock);
+ 

@@ -1,0 +1,28 @@
+commit 75ec4eb3dc84ee78533bd59bbb71992187bd86fd
+Merge: 19c5787a5ff8 15670bfe1990
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Mon Nov 6 09:49:28 2017 +0100
+
+    Merge branch 'x86/mm' into x86/asm, to pick up pending changes
+    
+    Concentrate x86 MM and asm related changes into a single super-topic,
+    in preparation for larger changes.
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --cc arch/x86/kernel/Makefile
+index 5335d05b695e,a97a6b611531..d449c5a9db96
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@@ -24,8 -24,10 +24,9 @@@ endi
+  KASAN_SANITIZE_head$(BITS).o				:= n
+  KASAN_SANITIZE_dumpstack.o				:= n
+  KASAN_SANITIZE_dumpstack_$(BITS).o			:= n
+- KASAN_SANITIZE_stacktrace.o := n
++ KASAN_SANITIZE_stacktrace.o				:= n
++ KASAN_SANITIZE_paravirt.o				:= n
+  
+ -OBJECT_FILES_NON_STANDARD_head_$(BITS).o		:= y
+  OBJECT_FILES_NON_STANDARD_relocate_kernel_$(BITS).o	:= y
+  OBJECT_FILES_NON_STANDARD_ftrace_$(BITS).o		:= y
+  OBJECT_FILES_NON_STANDARD_test_nx.o			:= y

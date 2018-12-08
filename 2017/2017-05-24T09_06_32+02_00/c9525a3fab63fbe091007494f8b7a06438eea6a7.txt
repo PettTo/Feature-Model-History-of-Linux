@@ -1,0 +1,27 @@
+commit c9525a3fab63fbe091007494f8b7a06438eea6a7
+Author: Benjamin Peterson <bp@benjamin.pe>
+Date:   Sat May 20 17:20:16 2017 -0700
+
+    x86/watchdog: Fix Kconfig help text file path reference to lockup watchdog documentation
+    
+    Signed-off-by: Benjamin Peterson <bp@benjamin.pe>
+    Acked-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Fixes: 9919cba7ff71147803c988521cc1ceb80e7f0f6d ("watchdog: Update documentation")
+    Link: http://lkml.kernel.org/r/20170521002016.13258-1-bp@benjamin.pe
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index cd18994a9555..4ccfacc7232a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -360,7 +360,7 @@ config SMP
+ 	  Management" code will be disabled if you say Y here.
+ 
+ 	  See also <file:Documentation/x86/i386/IO-APIC.txt>,
+-	  <file:Documentation/nmi_watchdog.txt> and the SMP-HOWTO available at
++	  <file:Documentation/lockup-watchdogs.txt> and the SMP-HOWTO available at
+ 	  <http://www.tldp.org/docs.html#howto>.
+ 
+ 	  If you don't know what to do here, say N.

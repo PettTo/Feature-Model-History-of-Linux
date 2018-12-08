@@ -1,0 +1,26 @@
+commit c2ce3f5d89d57301e2756ac325fe2ebc33bfec30
+Author: Arnd Bergmann <arnd@arndb.de>
+Date:   Wed Jul 19 14:53:04 2017 +0200
+
+    x86: add MULTIUSER dependency for KVM
+    
+    KVM tries to select 'TASKSTATS', which had additional dependencies:
+    
+    warning: (KVM) selects TASKSTATS which has unmet direct dependencies (NET && MULTIUSER)
+    
+    Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+    Signed-off-by: Radim Krčmář <rkrcmar@redhat.com>
+
+diff --git a/arch/x86/kvm/Kconfig b/arch/x86/kvm/Kconfig
+index 760433b2574a..2688c7dc5323 100644
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@ -22,7 +22,7 @@ config KVM
+ 	depends on HAVE_KVM
+ 	depends on HIGH_RES_TIMERS
+ 	# for TASKSTATS/TASK_DELAY_ACCT:
+-	depends on NET
++	depends on NET && MULTIUSER
+ 	select PREEMPT_NOTIFIERS
+ 	select MMU_NOTIFIER
+ 	select ANON_INODES

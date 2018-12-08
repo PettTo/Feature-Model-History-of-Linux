@@ -1,0 +1,127 @@
+commit 5f82e71a001d14824a7728ad9e49f6aea420f161
+Merge: 6c51e67b64d1 edc2988c548d
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Sep 4 11:52:29 2017 -0700
+
+    Merge branch 'locking-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull locking updates from Ingo Molnar:
+    
+     - Add 'cross-release' support to lockdep, which allows APIs like
+       completions, where it's not the 'owner' who releases the lock, to be
+       tracked. It's all activated automatically under
+       CONFIG_PROVE_LOCKING=y.
+    
+     - Clean up (restructure) the x86 atomics op implementation to be more
+       readable, in preparation of KASAN annotations. (Dmitry Vyukov)
+    
+     - Fix static keys (Paolo Bonzini)
+    
+     - Add killable versions of down_read() et al (Kirill Tkhai)
+    
+     - Rework and fix jump_label locking (Marc Zyngier, Paolo Bonzini)
+    
+     - Rework (and fix) tlb_flush_pending() barriers (Peter Zijlstra)
+    
+     - Remove smp_mb__before_spinlock() and convert its usages, introduce
+       smp_mb__after_spinlock() (Peter Zijlstra)
+    
+    * 'locking-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (56 commits)
+      locking/lockdep/selftests: Fix mixed read-write ABBA tests
+      sched/completion: Avoid unnecessary stack allocation for COMPLETION_INITIALIZER_ONSTACK()
+      acpi/nfit: Fix COMPLETION_INITIALIZER_ONSTACK() abuse
+      locking/pvqspinlock: Relax cmpxchg's to improve performance on some architectures
+      smp: Avoid using two cache lines for struct call_single_data
+      locking/lockdep: Untangle xhlock history save/restore from task independence
+      locking/refcounts, x86/asm: Disable CONFIG_ARCH_HAS_REFCOUNT for the time being
+      futex: Remove duplicated code and fix undefined behaviour
+      Documentation/locking/atomic: Finish the document...
+      locking/lockdep: Fix workqueue crossrelease annotation
+      workqueue/lockdep: 'Fix' flush_work() annotation
+      locking/lockdep/selftests: Add mixed read-write ABBA tests
+      mm, locking/barriers: Clarify tlb_flush_pending() barriers
+      locking/lockdep: Make CONFIG_LOCKDEP_CROSSRELEASE and CONFIG_LOCKDEP_COMPLETIONS truly non-interactive
+      locking/lockdep: Explicitly initialize wq_barrier::done::map
+      locking/lockdep: Rename CONFIG_LOCKDEP_COMPLETE to CONFIG_LOCKDEP_COMPLETIONS
+      locking/lockdep: Reword title of LOCKDEP_CROSSRELEASE config
+      locking/lockdep: Make CONFIG_LOCKDEP_CROSSRELEASE part of CONFIG_PROVE_LOCKING
+      locking/refcounts, x86/asm: Implement fast refcount overflow protection
+      locking/lockdep: Fix the rollback and overwrite detection logic in crossrelease
+      ...
+
+diff --cc include/linux/spinlock.h
+index ef018a6e4985,4e8cce19b507..69e079c5ff98
+--- a/include/linux/spinlock.h
++++ b/include/linux/spinlock.h
+@@@ -118,18 -118,47 +118,41 @@@ do {								
+  #endif
+  
+  /*
+-  * Despite its name it doesn't necessarily has to be a full barrier.
+-  * It should only guarantee that a STORE before the critical section
+-  * can not be reordered with LOADs and STOREs inside this section.
+-  * spin_lock() is the one-way barrier, this LOAD can not escape out
+-  * of the region. So the default implementation simply ensures that
+-  * a STORE can not move into the critical section, smp_wmb() should
+-  * serialize it with another STORE done by spin_lock().
++  * This barrier must provide two things:
++  *
++  *   - it must guarantee a STORE before the spin_lock() is ordered against a
++  *     LOAD after it, see the comments at its two usage sites.
++  *
++  *   - it must ensure the critical section is RCsc.
++  *
++  * The latter is important for cases where we observe values written by other
++  * CPUs in spin-loops, without barriers, while being subject to scheduling.
++  *
++  * CPU0			CPU1			CPU2
++  *
++  *			for (;;) {
++  *			  if (READ_ONCE(X))
++  *			    break;
++  *			}
++  * X=1
++  *			<sched-out>
++  *						<sched-in>
++  *						r = X;
++  *
++  * without transitivity it could be that CPU1 observes X!=0 breaks the loop,
++  * we get migrated and CPU2 sees X==0.
++  *
++  * Since most load-store architectures implement ACQUIRE with an smp_mb() after
++  * the LL/SC loop, they need no further barriers. Similarly all our TSO
++  * architectures imply an smp_mb() for each atomic instruction and equally don't
++  * need more.
++  *
++  * Architectures that can implement ACQUIRE better need to take care.
+   */
+- #ifndef smp_mb__before_spinlock
+- #define smp_mb__before_spinlock()	smp_wmb()
++ #ifndef smp_mb__after_spinlock
++ #define smp_mb__after_spinlock()	do { } while (0)
+  #endif
+  
+ -/**
+ - * raw_spin_unlock_wait - wait until the spinlock gets unlocked
+ - * @lock: the spinlock in question.
+ - */
+ -#define raw_spin_unlock_wait(lock)	arch_spin_unlock_wait(&(lock)->raw_lock)
+ -
+  #ifdef CONFIG_DEBUG_SPINLOCK
+   extern void do_raw_spin_lock(raw_spinlock_t *lock) __acquires(lock);
+  #define do_raw_spin_lock_flags(lock, flags) do_raw_spin_lock(lock)
+diff --cc kernel/exit.c
+index f9ef3ecc78c1,fa72d57db747..a35d8a17e01f
+--- a/kernel/exit.c
++++ b/kernel/exit.c
+@@@ -916,8 -918,9 +916,9 @@@ void __noreturn do_exit(long code
+  	if (tsk->nr_dirtied)
+  		__this_cpu_add(dirty_throttle_leaks, tsk->nr_dirtied);
+  	exit_rcu();
+ -	TASKS_RCU(__srcu_read_unlock(&tasks_rcu_exit_srcu, tasks_rcu_i));
+ +	exit_tasks_rcu_finish();
+  
++ 	lockdep_free_task(tsk);
+  	do_task_dead();
+  }
+  EXPORT_SYMBOL_GPL(do_exit);

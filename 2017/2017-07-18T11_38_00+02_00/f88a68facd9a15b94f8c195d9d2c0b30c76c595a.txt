@@ -1,0 +1,205 @@
+commit f88a68facd9a15b94f8c195d9d2c0b30c76c595a
+Author: Tom Lendacky <thomas.lendacky@amd.com>
+Date:   Mon Jul 17 16:10:09 2017 -0500
+
+    x86/mm: Extend early_memremap() support with additional attrs
+    
+    Add early_memremap() support to be able to specify encrypted and
+    decrypted mappings with and without write-protection. The use of
+    write-protection is necessary when encrypting data "in place". The
+    write-protect attribute is considered cacheable for loads, but not
+    stores. This implies that the hardware will never give the core a
+    dirty line with this memtype.
+    
+    Signed-off-by: Tom Lendacky <thomas.lendacky@amd.com>
+    Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+    Reviewed-by: Borislav Petkov <bp@suse.de>
+    Cc: Alexander Potapenko <glider@google.com>
+    Cc: Andrey Ryabinin <aryabinin@virtuozzo.com>
+    Cc: Andy Lutomirski <luto@kernel.org>
+    Cc: Arnd Bergmann <arnd@arndb.de>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brijesh Singh <brijesh.singh@amd.com>
+    Cc: Dave Young <dyoung@redhat.com>
+    Cc: Dmitry Vyukov <dvyukov@google.com>
+    Cc: Jonathan Corbet <corbet@lwn.net>
+    Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+    Cc: Larry Woodman <lwoodman@redhat.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Matt Fleming <matt@codeblueprint.co.uk>
+    Cc: Michael S. Tsirkin <mst@redhat.com>
+    Cc: Paolo Bonzini <pbonzini@redhat.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Radim Krčmář <rkrcmar@redhat.com>
+    Cc: Rik van Riel <riel@redhat.com>
+    Cc: Toshimitsu Kani <toshi.kani@hpe.com>
+    Cc: kasan-dev@googlegroups.com
+    Cc: kvm@vger.kernel.org
+    Cc: linux-arch@vger.kernel.org
+    Cc: linux-doc@vger.kernel.org
+    Cc: linux-efi@vger.kernel.org
+    Cc: linux-mm@kvack.org
+    Link: http://lkml.kernel.org/r/479b5832c30fae3efa7932e48f81794e86397229.1500319216.git.thomas.lendacky@amd.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ba7b93d08d00..8328bcb9ce8b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1440,6 +1440,10 @@ config AMD_MEM_ENCRYPT_ACTIVE_BY_DEFAULT
+ 	  If set to N, then the encryption of system memory can be
+ 	  activated with the mem_encrypt=on command line option.
+ 
++config ARCH_USE_MEMREMAP_PROT
++	def_bool y
++	depends on AMD_MEM_ENCRYPT
++
+ # Common NUMA Features
+ config NUMA
+ 	bool "Numa Memory Allocation and Scheduler Support"
+diff --git a/arch/x86/include/asm/fixmap.h b/arch/x86/include/asm/fixmap.h
+index d9ff226cb489..dcd9fb55e679 100644
+--- a/arch/x86/include/asm/fixmap.h
++++ b/arch/x86/include/asm/fixmap.h
+@@ -164,6 +164,19 @@ static inline void __set_fixmap(enum fixed_addresses idx,
+  */
+ #define FIXMAP_PAGE_NOCACHE PAGE_KERNEL_IO_NOCACHE
+ 
++/*
++ * Early memremap routines used for in-place encryption. The mappings created
++ * by these routines are intended to be used as temporary mappings.
++ */
++void __init *early_memremap_encrypted(resource_size_t phys_addr,
++				      unsigned long size);
++void __init *early_memremap_encrypted_wp(resource_size_t phys_addr,
++					 unsigned long size);
++void __init *early_memremap_decrypted(resource_size_t phys_addr,
++				      unsigned long size);
++void __init *early_memremap_decrypted_wp(resource_size_t phys_addr,
++					 unsigned long size);
++
+ #include <asm-generic/fixmap.h>
+ 
+ #define __late_set_fixmap(idx, phys, flags) __set_fixmap(idx, phys, flags)
+diff --git a/arch/x86/include/asm/pgtable_types.h b/arch/x86/include/asm/pgtable_types.h
+index de32ca32928a..32095af0fefb 100644
+--- a/arch/x86/include/asm/pgtable_types.h
++++ b/arch/x86/include/asm/pgtable_types.h
+@@ -161,6 +161,7 @@ enum page_cache_mode {
+ 
+ #define _PAGE_CACHE_MASK	(_PAGE_PAT | _PAGE_PCD | _PAGE_PWT)
+ #define _PAGE_NOCACHE		(cachemode2protval(_PAGE_CACHE_MODE_UC))
++#define _PAGE_CACHE_WP		(cachemode2protval(_PAGE_CACHE_MODE_WP))
+ 
+ #define PAGE_NONE	__pgprot(_PAGE_PROTNONE | _PAGE_ACCESSED)
+ #define PAGE_SHARED	__pgprot(_PAGE_PRESENT | _PAGE_RW | _PAGE_USER | \
+@@ -189,6 +190,7 @@ enum page_cache_mode {
+ #define __PAGE_KERNEL_VVAR		(__PAGE_KERNEL_RO | _PAGE_USER)
+ #define __PAGE_KERNEL_LARGE		(__PAGE_KERNEL | _PAGE_PSE)
+ #define __PAGE_KERNEL_LARGE_EXEC	(__PAGE_KERNEL_EXEC | _PAGE_PSE)
++#define __PAGE_KERNEL_WP		(__PAGE_KERNEL | _PAGE_CACHE_WP)
+ 
+ #define __PAGE_KERNEL_IO		(__PAGE_KERNEL)
+ #define __PAGE_KERNEL_IO_NOCACHE	(__PAGE_KERNEL_NOCACHE)
+@@ -202,6 +204,12 @@ enum page_cache_mode {
+ #define _KERNPG_TABLE	(_PAGE_PRESENT | _PAGE_RW | _PAGE_ACCESSED |	\
+ 			 _PAGE_DIRTY | _PAGE_ENC)
+ 
++#define __PAGE_KERNEL_ENC	(__PAGE_KERNEL | _PAGE_ENC)
++#define __PAGE_KERNEL_ENC_WP	(__PAGE_KERNEL_WP | _PAGE_ENC)
++
++#define __PAGE_KERNEL_NOENC	(__PAGE_KERNEL)
++#define __PAGE_KERNEL_NOENC_WP	(__PAGE_KERNEL_WP)
++
+ #define PAGE_KERNEL		__pgprot(__PAGE_KERNEL | _PAGE_ENC)
+ #define PAGE_KERNEL_RO		__pgprot(__PAGE_KERNEL_RO | _PAGE_ENC)
+ #define PAGE_KERNEL_EXEC	__pgprot(__PAGE_KERNEL_EXEC | _PAGE_ENC)
+diff --git a/arch/x86/mm/ioremap.c b/arch/x86/mm/ioremap.c
+index 66ddf5e8ffc8..570201bbf442 100644
+--- a/arch/x86/mm/ioremap.c
++++ b/arch/x86/mm/ioremap.c
+@@ -417,6 +417,50 @@ void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr)
+ 	iounmap((void __iomem *)((unsigned long)addr & PAGE_MASK));
+ }
+ 
++#ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
++/* Remap memory with encryption */
++void __init *early_memremap_encrypted(resource_size_t phys_addr,
++				      unsigned long size)
++{
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_ENC);
++}
++
++/*
++ * Remap memory with encryption and write-protected - cannot be called
++ * before pat_init() is called
++ */
++void __init *early_memremap_encrypted_wp(resource_size_t phys_addr,
++					 unsigned long size)
++{
++	/* Be sure the write-protect PAT entry is set for write-protect */
++	if (__pte2cachemode_tbl[_PAGE_CACHE_MODE_WP] != _PAGE_CACHE_MODE_WP)
++		return NULL;
++
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_ENC_WP);
++}
++
++/* Remap memory without encryption */
++void __init *early_memremap_decrypted(resource_size_t phys_addr,
++				      unsigned long size)
++{
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_NOENC);
++}
++
++/*
++ * Remap memory without encryption and write-protected - cannot be called
++ * before pat_init() is called
++ */
++void __init *early_memremap_decrypted_wp(resource_size_t phys_addr,
++					 unsigned long size)
++{
++	/* Be sure the write-protect PAT entry is set for write-protect */
++	if (__pte2cachemode_tbl[_PAGE_CACHE_MODE_WP] != _PAGE_CACHE_MODE_WP)
++		return NULL;
++
++	return early_memremap_prot(phys_addr, size, __PAGE_KERNEL_NOENC_WP);
++}
++#endif	/* CONFIG_ARCH_USE_MEMREMAP_PROT */
++
+ static pte_t bm_pte[PAGE_SIZE/sizeof(pte_t)] __page_aligned_bss;
+ 
+ static inline pmd_t * __init early_ioremap_pmd(unsigned long addr)
+diff --git a/include/asm-generic/early_ioremap.h b/include/asm-generic/early_ioremap.h
+index 734ad4db388c..2edef8d7fa6b 100644
+--- a/include/asm-generic/early_ioremap.h
++++ b/include/asm-generic/early_ioremap.h
+@@ -13,6 +13,8 @@ extern void *early_memremap(resource_size_t phys_addr,
+ 			    unsigned long size);
+ extern void *early_memremap_ro(resource_size_t phys_addr,
+ 			       unsigned long size);
++extern void *early_memremap_prot(resource_size_t phys_addr,
++				 unsigned long size, unsigned long prot_val);
+ extern void early_iounmap(void __iomem *addr, unsigned long size);
+ extern void early_memunmap(void *addr, unsigned long size);
+ 
+diff --git a/mm/early_ioremap.c b/mm/early_ioremap.c
+index 6d5717bd7197..d7d30da754ba 100644
+--- a/mm/early_ioremap.c
++++ b/mm/early_ioremap.c
+@@ -226,6 +226,16 @@ early_memremap_ro(resource_size_t phys_addr, unsigned long size)
+ }
+ #endif
+ 
++#ifdef CONFIG_ARCH_USE_MEMREMAP_PROT
++void __init *
++early_memremap_prot(resource_size_t phys_addr, unsigned long size,
++		    unsigned long prot_val)
++{
++	return (__force void *)__early_ioremap(phys_addr, size,
++					       __pgprot(prot_val));
++}
++#endif
++
+ #define MAX_MAP_CHUNK	(NR_FIX_BTMAPS << PAGE_SHIFT)
+ 
+ void __init copy_from_early_mem(void *dest, phys_addr_t src, unsigned long size)

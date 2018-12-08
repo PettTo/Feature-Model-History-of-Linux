@@ -1,0 +1,47 @@
+commit 92e5aae457787d0bc6b255200d2fb116edf69794
+Author: Nicholas Piggin <npiggin@gmail.com>
+Date:   Fri Aug 18 15:15:51 2017 -0700
+
+    kernel/watchdog: fix Kconfig constraints for perf hardlockup watchdog
+    
+    Commit 05a4a9527931 ("kernel/watchdog: split up config options") lost
+    the perf-based hardlockup detector's dependency on PERF_EVENTS, which
+    can result in broken builds with some powerpc configurations.
+    
+    Restore the dependency.  Add it in for x86 too, despite x86 always
+    selecting PERF_EVENTS it seems reasonable to make the dependency
+    explicit.
+    
+    Link: http://lkml.kernel.org/r/20170810114452.6673-1-npiggin@gmail.com
+    Fixes: 05a4a9527931 ("kernel/watchdog: split up config options")
+    Signed-off-by: Nicholas Piggin <npiggin@gmail.com>
+    Acked-by: Don Zickus <dzickus@redhat.com>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 36f858c37ca7..81b0031f909f 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -199,7 +199,7 @@ config PPC
+ 	select HAVE_OPTPROBES			if PPC64
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_PERF_EVENTS_NMI		if PPC64
+-	select HAVE_HARDLOCKUP_DETECTOR_PERF	if HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
++	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI && !HAVE_HARDLOCKUP_DETECTOR_ARCH
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_RCU_TABLE_FREE		if SMP
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 781521b7cf9e..29a1bf85e507 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -163,7 +163,7 @@ config X86
+ 	select HAVE_PCSPKR_PLATFORM
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_PERF_EVENTS_NMI
+-	select HAVE_HARDLOCKUP_DETECTOR_PERF	if HAVE_PERF_EVENTS_NMI
++	select HAVE_HARDLOCKUP_DETECTOR_PERF	if PERF_EVENTS && HAVE_PERF_EVENTS_NMI
+ 	select HAVE_PERF_REGS
+ 	select HAVE_PERF_USER_STACK_DUMP
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
