@@ -1,0 +1,97 @@
+commit 40548c6b6c134275c750eb372dc2cf8ee1bbc3d4
+Merge: 2c1cfa499018 99a9dc98ba52
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Jan 14 09:51:25 2018 -0800
+
+    Merge branch 'x86-pti-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 pti updates from Thomas Gleixner:
+     "This contains:
+    
+       - a PTI bugfix to avoid setting reserved CR3 bits when PCID is
+         disabled. This seems to cause issues on a virtual machine at least
+         and is incorrect according to the AMD manual.
+    
+       - a PTI bugfix which disables the perf BTS facility if PTI is
+         enabled. The BTS AUX buffer is not globally visible and causes the
+         CPU to fault when the mapping disappears on switching CR3 to user
+         space. A full fix which restores BTS on PTI is non trivial and will
+         be worked on.
+    
+       - PTI bugfixes for EFI and trusted boot which make sure that the user
+         space visible page table entries have the NX bit cleared
+    
+       - removal of dead code in the PTI pagetable setup functions
+    
+       - add PTI documentation
+    
+       - add a selftest for vsyscall to verify that the kernel actually
+         implements what it advertises.
+    
+       - a sysfs interface to expose vulnerability and mitigation
+         information so there is a coherent way for users to retrieve the
+         status.
+    
+       - the initial spectre_v2 mitigations, aka retpoline:
+    
+          + The necessary ASM thunk and compiler support
+    
+          + The ASM variants of retpoline and the conversion of affected ASM
+            code
+    
+          + Make LFENCE serializing on AMD so it can be used as speculation
+            trap
+    
+          + The RSB fill after vmexit
+    
+       - initial objtool support for retpoline
+    
+      As I said in the status mail this is the most of the set of patches
+      which should go into 4.15 except two straight forward patches still on
+      hold:
+    
+       - the retpoline add on of LFENCE which waits for ACKs
+    
+       - the RSB fill after context switch
+    
+      Both should be ready to go early next week and with that we'll have
+      covered the major holes of spectre_v2 and go back to normality"
+    
+    * 'x86-pti-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (28 commits)
+      x86,perf: Disable intel_bts when PTI
+      security/Kconfig: Correct the Documentation reference for PTI
+      x86/pti: Fix !PCID and sanitize defines
+      selftests/x86: Add test_vsyscall
+      x86/retpoline: Fill return stack buffer on vmexit
+      x86/retpoline/irq32: Convert assembler indirect jumps
+      x86/retpoline/checksum32: Convert assembler indirect jumps
+      x86/retpoline/xen: Convert Xen hypercall indirect jumps
+      x86/retpoline/hyperv: Convert assembler indirect jumps
+      x86/retpoline/ftrace: Convert ftrace assembler indirect jumps
+      x86/retpoline/entry: Convert entry assembler indirect jumps
+      x86/retpoline/crypto: Convert crypto assembler indirect jumps
+      x86/spectre: Add boot time option to select Spectre v2 mitigation
+      x86/retpoline: Add initial retpoline support
+      objtool: Allow alternatives to be ignored
+      objtool: Detect jumps to retpoline thunks
+      x86/pti: Make unpoison of pgd for trusted boot work for real
+      x86/alternatives: Fix optimize_nops() checking
+      sysfs/cpu: Fix typos in vulnerability documentation
+      x86/cpu/AMD: Use LFENCE_RDTSC in preference to MFENCE_RDTSC
+      ...
+
+diff --cc arch/x86/lib/Makefile
+index 7b181b61170e,d435c89875c1..f23934bbaf4e
+--- a/arch/x86/lib/Makefile
++++ b/arch/x86/lib/Makefile
+@@@ -24,8 -24,9 +24,9 @@@ lib-y := delay.o misc.o cmdline.o cpu.
+  lib-y += usercopy_$(BITS).o usercopy.o getuser.o putuser.o
+  lib-y += memcpy_$(BITS).o
+  lib-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += rwsem.o
+ -lib-$(CONFIG_INSTRUCTION_DECODER) += insn.o inat.o
+ +lib-$(CONFIG_INSTRUCTION_DECODER) += insn.o inat.o insn-eval.o
+  lib-$(CONFIG_RANDOMIZE_BASE) += kaslr.o
++ lib-$(CONFIG_RETPOLINE) += retpoline.o
+  
+  obj-y += msr.o msr-reg.o msr-reg-export.o hweight.o
+  
