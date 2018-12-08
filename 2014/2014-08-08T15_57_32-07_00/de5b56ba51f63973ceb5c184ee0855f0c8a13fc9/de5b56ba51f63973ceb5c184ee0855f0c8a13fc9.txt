@@ -1,0 +1,68 @@
+commit de5b56ba51f63973ceb5c184ee0855f0c8a13fc9
+Author: Vivek Goyal <vgoyal@redhat.com>
+Date:   Fri Aug 8 14:25:41 2014 -0700
+
+    kernel: build bin2c based on config option CONFIG_BUILD_BIN2C
+    
+    currently bin2c builds only if CONFIG_IKCONFIG=y. But bin2c will now be
+    used by kexec too.  So make it compilation dependent on CONFIG_BUILD_BIN2C
+    and this config option can be selected by CONFIG_KEXEC and CONFIG_IKCONFIG.
+    
+    Signed-off-by: Vivek Goyal <vgoyal@redhat.com>
+    Cc: Borislav Petkov <bp@suse.de>
+    Cc: Michael Kerrisk <mtk.manpages@gmail.com>
+    Cc: Yinghai Lu <yinghai@kernel.org>
+    Cc: Eric Biederman <ebiederm@xmission.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Matthew Garrett <mjg59@srcf.ucam.org>
+    Cc: Greg Kroah-Hartman <greg@kroah.com>
+    Cc: Dave Young <dyoung@redhat.com>
+    Cc: WANG Chao <chaowang@redhat.com>
+    Cc: Baoquan He <bhe@redhat.com>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c915cc6e40be..98fe3df6df82 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1582,6 +1582,7 @@ source kernel/Kconfig.hz
+ 
+ config KEXEC
+ 	bool "kexec system call"
++	select BUILD_BIN2C
+ 	---help---
+ 	  kexec is a system call that implements the ability to shutdown your
+ 	  current kernel, and to start another kernel.  It is like a reboot
+diff --git a/init/Kconfig b/init/Kconfig
+index a291b7ef4738..44f9ed3dae22 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -783,8 +783,13 @@ endchoice
+ 
+ endmenu # "RCU Subsystem"
+ 
++config BUILD_BIN2C
++	bool
++	default n
++
+ config IKCONFIG
+ 	tristate "Kernel .config support"
++	select BUILD_BIN2C
+ 	---help---
+ 	  This option enables the complete Linux kernel ".config" file
+ 	  contents to be saved in the kernel. It provides documentation
+diff --git a/scripts/basic/Makefile b/scripts/basic/Makefile
+index afbc1cd69ac5..ec10d9345bc2 100644
+--- a/scripts/basic/Makefile
++++ b/scripts/basic/Makefile
+@@ -9,7 +9,7 @@
+ # fixdep: 	 Used to generate dependency information during build process
+ 
+ hostprogs-y	:= fixdep
+-hostprogs-$(CONFIG_IKCONFIG)     += bin2c
++hostprogs-$(CONFIG_BUILD_BIN2C)     += bin2c
+ always		:= $(hostprogs-y)
+ 
+ # fixdep is needed to compile other host programs

@@ -1,0 +1,105 @@
+commit bad5fa631fca5466401cd4a48e30cc1f1cb6101e
+Author: Borislav Petkov <bp@suse.de>
+Date:   Sun Dec 1 18:09:58 2013 +0100
+
+    x86, microcode: Move to a proper location
+    
+    We've grown a bunch of microcode loader files all prefixed with
+    "microcode_". They should be under cpu/ because this is strictly
+    CPU-related functionality so do that and drop the prefix since they're
+    in their own directory now which gives that prefix. :)
+    
+    While at it, drop MICROCODE_INTEL_LIB config item and stash the
+    functionality under CONFIG_MICROCODE_INTEL as it was its only user.
+    
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Tested-by: Aravind Gopalakrishnan <Aravind.Gopalakrishnan@amd.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0952ecd60eca..01bfb9e6ba55 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1080,10 +1080,6 @@ config MICROCODE_OLD_INTERFACE
+ 	def_bool y
+ 	depends on MICROCODE
+ 
+-config MICROCODE_INTEL_LIB
+-	def_bool y
+-	depends on MICROCODE_INTEL
+-
+ config MICROCODE_INTEL_EARLY
+ 	def_bool n
+ 
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index 9b0a34e2cd79..4d0094dbb6c9 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -91,15 +91,6 @@ obj-$(CONFIG_PARAVIRT_CLOCK)	+= pvclock.o
+ 
+ obj-$(CONFIG_PCSPKR_PLATFORM)	+= pcspeaker.o
+ 
+-obj-$(CONFIG_MICROCODE_EARLY)		+= microcode_core_early.o
+-obj-$(CONFIG_MICROCODE_INTEL_EARLY)	+= microcode_intel_early.o
+-obj-$(CONFIG_MICROCODE_INTEL_LIB)	+= microcode_intel_lib.o
+-microcode-y				:= microcode_core.o
+-microcode-$(CONFIG_MICROCODE_INTEL)	+= microcode_intel.o
+-microcode-$(CONFIG_MICROCODE_AMD)	+= microcode_amd.o
+-obj-$(CONFIG_MICROCODE_AMD_EARLY)	+= microcode_amd_early.o
+-obj-$(CONFIG_MICROCODE)			+= microcode.o
+-
+ obj-$(CONFIG_X86_CHECK_BIOS_CORRUPTION) += check.o
+ 
+ obj-$(CONFIG_SWIOTLB)			+= pci-swiotlb.o
+diff --git a/arch/x86/kernel/cpu/Makefile b/arch/x86/kernel/cpu/Makefile
+index 47b56a7e99cb..0710eeffcf51 100644
+--- a/arch/x86/kernel/cpu/Makefile
++++ b/arch/x86/kernel/cpu/Makefile
+@@ -42,6 +42,7 @@ endif
+ 
+ obj-$(CONFIG_X86_MCE)			+= mcheck/
+ obj-$(CONFIG_MTRR)			+= mtrr/
++obj-$(CONFIG_MICROCODE)			+= microcode/
+ 
+ obj-$(CONFIG_X86_LOCAL_APIC)		+= perfctr-watchdog.o perf_event_amd_ibs.o
+ 
+diff --git a/arch/x86/kernel/cpu/microcode/Makefile b/arch/x86/kernel/cpu/microcode/Makefile
+new file mode 100644
+index 000000000000..285c85427c32
+--- /dev/null
++++ b/arch/x86/kernel/cpu/microcode/Makefile
+@@ -0,0 +1,7 @@
++microcode-y				:= core.o
++obj-$(CONFIG_MICROCODE)			+= microcode.o
++microcode-$(CONFIG_MICROCODE_INTEL)	+= intel.o intel_lib.o
++microcode-$(CONFIG_MICROCODE_AMD)	+= amd.o
++obj-$(CONFIG_MICROCODE_EARLY)		+= core_early.o
++obj-$(CONFIG_MICROCODE_INTEL_EARLY)	+= intel_early.o
++obj-$(CONFIG_MICROCODE_AMD_EARLY)	+= amd_early.o
+diff --git a/arch/x86/kernel/microcode_amd.c b/arch/x86/kernel/cpu/microcode/amd.c
+similarity index 100%
+rename from arch/x86/kernel/microcode_amd.c
+rename to arch/x86/kernel/cpu/microcode/amd.c
+diff --git a/arch/x86/kernel/microcode_amd_early.c b/arch/x86/kernel/cpu/microcode/amd_early.c
+similarity index 100%
+rename from arch/x86/kernel/microcode_amd_early.c
+rename to arch/x86/kernel/cpu/microcode/amd_early.c
+diff --git a/arch/x86/kernel/microcode_core.c b/arch/x86/kernel/cpu/microcode/core.c
+similarity index 100%
+rename from arch/x86/kernel/microcode_core.c
+rename to arch/x86/kernel/cpu/microcode/core.c
+diff --git a/arch/x86/kernel/microcode_core_early.c b/arch/x86/kernel/cpu/microcode/core_early.c
+similarity index 100%
+rename from arch/x86/kernel/microcode_core_early.c
+rename to arch/x86/kernel/cpu/microcode/core_early.c
+diff --git a/arch/x86/kernel/microcode_intel.c b/arch/x86/kernel/cpu/microcode/intel.c
+similarity index 100%
+rename from arch/x86/kernel/microcode_intel.c
+rename to arch/x86/kernel/cpu/microcode/intel.c
+diff --git a/arch/x86/kernel/microcode_intel_early.c b/arch/x86/kernel/cpu/microcode/intel_early.c
+similarity index 100%
+rename from arch/x86/kernel/microcode_intel_early.c
+rename to arch/x86/kernel/cpu/microcode/intel_early.c
+diff --git a/arch/x86/kernel/microcode_intel_lib.c b/arch/x86/kernel/cpu/microcode/intel_lib.c
+similarity index 100%
+rename from arch/x86/kernel/microcode_intel_lib.c
+rename to arch/x86/kernel/cpu/microcode/intel_lib.c

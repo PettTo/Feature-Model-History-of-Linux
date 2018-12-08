@@ -1,0 +1,40 @@
+commit 4468dd76f51f8be75d4f04f1d721e379596e7262
+Author: Mel Gorman <mgorman@suse.de>
+Date:   Wed Jun 4 16:06:29 2014 -0700
+
+    x86: require x86-64 for automatic NUMA balancing
+    
+    32-bit support for NUMA is an oddity on its own but with automatic NUMA
+    balancing on top there is a reasonable risk that the CPUPID information
+    cannot be stored in the page flags.  This patch removes support for
+    automatic NUMA support on 32-bit x86.
+    
+    Signed-off-by: Mel Gorman <mgorman@suse.de>
+    Cc: David Vrabel <david.vrabel@citrix.com>
+    Cc: Ingo Molnar <mingo@kernel.org>
+    Cc: Peter Anvin <hpa@zytor.com>
+    Cc: Fengguang Wu <fengguang.wu@intel.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Steven Noonan <steven@uplinklabs.net>
+    Cc: Rik van Riel <riel@redhat.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Andrea Arcangeli <aarcange@redhat.com>
+    Cc: Dave Hansen <dave.hansen@intel.com>
+    Cc: Srikar Dronamraju <srikar@linux.vnet.ibm.com>
+    Cc: Cyrill Gorcunov <gorcunov@gmail.com>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index e41b258ad040..896a411a4584 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -26,7 +26,7 @@ config X86
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select HAVE_AOUT if X86_32
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
+-	select ARCH_SUPPORTS_NUMA_BALANCING
++	select ARCH_SUPPORTS_NUMA_BALANCING if X86_64
+ 	select ARCH_SUPPORTS_INT128 if X86_64
+ 	select ARCH_WANTS_PROT_NUMA_PROT_NONE
+ 	select HAVE_IDE

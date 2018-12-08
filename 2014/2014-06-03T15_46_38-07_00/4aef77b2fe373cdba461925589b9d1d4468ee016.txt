@@ -1,0 +1,23 @@
+commit 4aef77b2fe373cdba461925589b9d1d4468ee016
+Merge: e0d23cdc626f 04725ad59474
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Jun 3 15:46:38 2014 -0700
+
+    Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip into next
+    
+    Pull x86 IOSF platform updates from Ingo Molnar:
+     "IOSF (Intel OnChip System Fabric) updates:
+    
+       - generalize the IOSF interface to allow mixed mode drivers: non-IOSF
+         drivers to utilize of IOSF features on IOSF platforms.
+    
+       - add 'Quark X1000' IOSF/MBI support
+    
+       - clean up BayTrail and Quark PCI ID enumeration"
+    
+    * 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, iosf: Add PCI ID macros for better readability
+      x86, iosf: Add Quark X1000 PCI ID
+      x86, iosf: Added Quark MBI identifiers
+      x86, iosf: Make IOSF driver modular and usable by more drivers
+

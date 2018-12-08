@@ -1,0 +1,26 @@
+commit f4bcd8ccddb02833340652e9f46f5127828eb79d
+Merge: 7fe67a1180db da2b6fb990cf
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jan 20 14:45:50 2014 -0800
+
+    Merge branch 'x86-kaslr-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 kernel address space randomization support from Peter Anvin:
+     "This enables kernel address space randomization for x86"
+    
+    * 'x86-kaslr-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, kaslr: Clarify RANDOMIZE_BASE_MAX_OFFSET
+      x86, kaslr: Remove unused including <linux/version.h>
+      x86, kaslr: Use char array to gain sizeof sanity
+      x86, kaslr: Add a circular multiply for better bit diffusion
+      x86, kaslr: Mix entropy sources together as needed
+      x86/relocs: Add percpu fixup for GNU ld 2.23
+      x86, boot: Rename get_flags() and check_flags() to *_cpuflags()
+      x86, kaslr: Raise the maximum virtual address to -1 GiB on x86_64
+      x86, kaslr: Report kernel offset on panic
+      x86, kaslr: Select random position from e820 maps
+      x86, kaslr: Provide randomness functions
+      x86, kaslr: Return location from decompress_kernel
+      x86, boot: Move CPU flags out of cpucheck
+      x86, relocs: Add more per-cpu gold special cases
+

@@ -1,0 +1,53 @@
+commit 76f09aa464a1913efd596dd0edbf88f932fde08c
+Merge: e9c9eecabaa8 99a5603e2a1f
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Aug 4 17:13:50 2014 -0700
+
+    Merge branch 'x86-efi-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull EFI changes from Ingo Molnar:
+     "Main changes in this cycle are:
+    
+       - arm64 efi stub fixes, preservation of FP/SIMD registers across
+         firmware calls, and conversion of the EFI stub code into a static
+         library - Ard Biesheuvel
+    
+       - Xen EFI support - Daniel Kiper
+    
+       - Support for autoloading the efivars driver - Lee, Chun-Yi
+    
+       - Use the PE/COFF headers in the x86 EFI boot stub to request that
+         the stub be loaded with CONFIG_PHYSICAL_ALIGN alignment - Michael
+         Brown
+    
+       - Consolidate all the x86 EFI quirks into one file - Saurabh Tangri
+    
+       - Additional error logging in x86 EFI boot stub - Ulf Winkelvos
+    
+       - Support loading initrd above 4G in EFI boot stub - Yinghai Lu
+    
+       - EFI reboot patches for ACPI hardware reduced platforms"
+    
+    * 'x86-efi-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (31 commits)
+      efi/arm64: Handle missing virtual mapping for UEFI System Table
+      arch/x86/xen: Silence compiler warnings
+      xen: Silence compiler warnings
+      x86/efi: Request desired alignment via the PE/COFF headers
+      x86/efi: Add better error logging to EFI boot stub
+      efi: Autoload efivars
+      efi: Update stale locking comment for struct efivars
+      arch/x86: Remove efi_set_rtc_mmss()
+      arch/x86: Replace plain strings with constants
+      xen: Put EFI machinery in place
+      xen: Define EFI related stuff
+      arch/x86: Remove redundant set_bit(EFI_MEMMAP) call
+      arch/x86: Remove redundant set_bit(EFI_SYSTEM_TABLES) call
+      efi: Introduce EFI_PARAVIRT flag
+      arch/x86: Do not access EFI memory map if it is not available
+      efi: Use early_mem*() instead of early_io*()
+      arch/ia64: Define early_memunmap()
+      x86/reboot: Add EFI reboot quirk for ACPI Hardware Reduced flag
+      efi/reboot: Allow powering off machines using EFI
+      efi/reboot: Add generic wrapper around EfiResetSystem()
+      ...
+

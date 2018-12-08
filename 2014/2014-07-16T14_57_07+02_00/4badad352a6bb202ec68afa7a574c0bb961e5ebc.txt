@@ -1,0 +1,119 @@
+commit 4badad352a6bb202ec68afa7a574c0bb961e5ebc
+Author: Peter Zijlstra <peterz@infradead.org>
+Date:   Fri Jun 6 19:53:16 2014 +0200
+
+    locking/mutex: Disable optimistic spinning on some architectures
+    
+    The optimistic spin code assumes regular stores and cmpxchg() play nice;
+    this is found to not be true for at least: parisc, sparc32, tile32,
+    metag-lock1, arc-!llsc and hexagon.
+    
+    There is further wreckage, but this in particular seemed easy to
+    trigger, so blacklist this.
+    
+    Opt in for known good archs.
+    
+    Signed-off-by: Peter Zijlstra <peterz@infradead.org>
+    Reported-by: Mikulas Patocka <mpatocka@redhat.com>
+    Cc: David Miller <davem@davemloft.net>
+    Cc: Chris Metcalf <cmetcalf@tilera.com>
+    Cc: James Bottomley <James.Bottomley@hansenpartnership.com>
+    Cc: Vineet Gupta <vgupta@synopsys.com>
+    Cc: Jason Low <jason.low2@hp.com>
+    Cc: Waiman Long <waiman.long@hp.com>
+    Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+    Cc: Paul McKenney <paulmck@linux.vnet.ibm.com>
+    Cc: John David Anglin <dave.anglin@bell.net>
+    Cc: James Hogan <james.hogan@imgtec.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Davidlohr Bueso <davidlohr@hp.com>
+    Cc: stable@vger.kernel.org
+    Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+    Cc: Catalin Marinas <catalin.marinas@arm.com>
+    Cc: Russell King <linux@arm.linux.org.uk>
+    Cc: Will Deacon <will.deacon@arm.com>
+    Cc: linux-arm-kernel@lists.infradead.org
+    Cc: linux-kernel@vger.kernel.org
+    Cc: linuxppc-dev@lists.ozlabs.org
+    Cc: sparclinux@vger.kernel.org
+    Link: http://lkml.kernel.org/r/20140606175316.GV13930@laptop.programming.kicks-ass.net
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 245058b3b0ef..88acf8bc1490 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -6,6 +6,7 @@ config ARM
+ 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
++	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_USE_BUILTIN_BSWAP
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a474de346be6..839f48c26ef0 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -4,6 +4,7 @@ config ARM64
+ 	select ARCH_HAS_OPP
+ 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+ 	select ARCH_USE_CMPXCHG_LOCKREF
++	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
+ 	select ARCH_WANT_FRAME_POINTERS
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index fefe7c8bf05f..80b94b0add1f 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -145,6 +145,7 @@ config PPC
+ 	select HAVE_IRQ_EXIT_ON_IRQ_STACK
+ 	select ARCH_USE_CMPXCHG_LOCKREF if PPC64
+ 	select HAVE_ARCH_AUDITSYSCALL
++	select ARCH_SUPPORTS_ATOMIC_RMW
+ 
+ config GENERIC_CSUM
+ 	def_bool CPU_LITTLE_ENDIAN
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 29f2e988c56a..407c87d9879a 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -78,6 +78,7 @@ config SPARC64
+ 	select HAVE_C_RECORDMCOUNT
+ 	select NO_BOOTMEM
+ 	select HAVE_ARCH_AUDITSYSCALL
++	select ARCH_SUPPORTS_ATOMIC_RMW
+ 
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index a8f749ef0fdc..d24887b645dc 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -131,6 +131,7 @@ config X86
+ 	select HAVE_CC_STACKPROTECTOR
+ 	select GENERIC_CPU_AUTOPROBE
+ 	select HAVE_ARCH_AUDITSYSCALL
++	select ARCH_SUPPORTS_ATOMIC_RMW
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
+index 35536d9c0964..81907941d921 100644
+--- a/kernel/Kconfig.locks
++++ b/kernel/Kconfig.locks
+@@ -220,9 +220,12 @@ config INLINE_WRITE_UNLOCK_IRQRESTORE
+ 
+ endif
+ 
++config ARCH_SUPPORTS_ATOMIC_RMW
++	bool
++
+ config MUTEX_SPIN_ON_OWNER
+ 	def_bool y
+-	depends on SMP && !DEBUG_MUTEXES
++	depends on SMP && !DEBUG_MUTEXES && ARCH_SUPPORTS_ATOMIC_RMW
+ 
+ config ARCH_USE_QUEUE_RWLOCK
+ 	bool

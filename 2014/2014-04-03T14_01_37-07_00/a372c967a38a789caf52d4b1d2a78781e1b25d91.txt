@@ -1,0 +1,47 @@
+commit a372c967a38a789caf52d4b1d2a78781e1b25d91
+Merge: 32d01dc7be4e cd979883b9ed
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Apr 3 14:01:37 2014 -0700
+
+    Merge tag 'stable/for-linus-3.15-tag' of git://git.kernel.org/pub/scm/linux/kernel/git/xen/tip
+    
+    Pull Xen features and fixes from David Vrabel:
+     "Support PCI devices with multiple MSIs, performance improvement for
+      kernel-based backends (by not populated m2p overrides when mapping),
+      and assorted minor bug fixes and cleanups"
+    
+    * tag 'stable/for-linus-3.15-tag' of git://git.kernel.org/pub/scm/linux/kernel/git/xen/tip:
+      xen/acpi-processor: fix enabling interrupts on syscore_resume
+      xen/grant-table: Refactor gnttab_[un]map_refs to avoid m2p_override
+      xen: remove XEN_PRIVILEGED_GUEST
+      xen: add support for MSI message groups
+      xen-pciback: Use pci_enable_msix_exact() instead of pci_enable_msix()
+      xen/xenbus: remove unused xenbus_bind_evtchn()
+      xen/events: remove unnecessary call to bind_evtchn_to_cpu()
+      xen/events: remove the unused resend_irq_on_evtchn()
+      drivers:xen-selfballoon:reset 'frontswap_inertia_counter' after frontswap_shrink
+      drivers: xen: Include appropriate header file in pcpu.c
+      drivers: xen: Mark function as static in platform-pci.c
+
+diff --cc drivers/xen/events/events_base.c
+index c3458f58de90,793053065629..d5a3de88ac59
+--- a/drivers/xen/events/events_base.c
++++ b/drivers/xen/events/events_base.c
+@@@ -767,7 -788,16 +776,12 @@@ int xen_destroy_irq(int irq
+  
+  	mutex_lock(&irq_mapping_update_lock);
+  
+- 	if (xen_initial_domain()) {
+ -	desc = irq_to_desc(irq);
+ -	if (!desc)
+ -		goto out;
+ -
++ 	/*
++ 	 * If trying to remove a vector in a MSI group different
++ 	 * than the first one skip the PIRQ unmap unless this vector
++ 	 * is the first one in the group.
++ 	 */
++ 	if (xen_initial_domain() && !(info->u.pirq.flags & PIRQ_MSI_GROUP)) {
+  		unmap_irq.pirq = info->u.pirq.pirq;
+  		unmap_irq.domid = info->u.pirq.domid;
+  		rc = HYPERVISOR_physdev_op(PHYSDEVOP_unmap_pirq, &unmap_irq);

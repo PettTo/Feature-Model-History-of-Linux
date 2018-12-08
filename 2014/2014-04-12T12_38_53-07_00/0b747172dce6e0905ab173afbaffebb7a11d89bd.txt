@@ -1,0 +1,268 @@
+commit 0b747172dce6e0905ab173afbaffebb7a11d89bd
+Merge: b7e70ca9c7d7 312103d64d0f
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat Apr 12 12:38:53 2014 -0700
+
+    Merge git://git.infradead.org/users/eparis/audit
+    
+    Pull audit updates from Eric Paris.
+    
+    * git://git.infradead.org/users/eparis/audit: (28 commits)
+      AUDIT: make audit_is_compat depend on CONFIG_AUDIT_COMPAT_GENERIC
+      audit: renumber AUDIT_FEATURE_CHANGE into the 1300 range
+      audit: do not cast audit_rule_data pointers pointlesly
+      AUDIT: Allow login in non-init namespaces
+      audit: define audit_is_compat in kernel internal header
+      kernel: Use RCU_INIT_POINTER(x, NULL) in audit.c
+      sched: declare pid_alive as inline
+      audit: use uapi/linux/audit.h for AUDIT_ARCH declarations
+      syscall_get_arch: remove useless function arguments
+      audit: remove stray newline from audit_log_execve_info() audit_panic() call
+      audit: remove stray newlines from audit_log_lost messages
+      audit: include subject in login records
+      audit: remove superfluous new- prefix in AUDIT_LOGIN messages
+      audit: allow user processes to log from another PID namespace
+      audit: anchor all pid references in the initial pid namespace
+      audit: convert PPIDs to the inital PID namespace.
+      pid: get pid_t ppid of task in init_pid_ns
+      audit: rename the misleading audit_get_context() to audit_take_context()
+      audit: Add generic compat syscall support
+      audit: Add CONFIG_HAVE_ARCH_AUDITSYSCALL
+      ...
+
+diff --cc arch/mips/include/asm/syscall.h
+index 6c488c85d791,fc556d8052c9..c6e9cd2bca8d
+--- a/arch/mips/include/asm/syscall.h
++++ b/arch/mips/include/asm/syscall.h
+@@@ -13,8 -13,7 +13,8 @@@
+  #ifndef __ASM_MIPS_SYSCALL_H
+  #define __ASM_MIPS_SYSCALL_H
+  
+ +#include <linux/compiler.h>
+- #include <linux/audit.h>
++ #include <uapi/linux/audit.h>
+  #include <linux/elf-em.h>
+  #include <linux/kernel.h>
+  #include <linux/sched.h>
+@@@ -132,8 -105,7 +131,8 @@@ static inline int syscall_get_arch(void
+  {
+  	int arch = EM_MIPS;
+  #ifdef CONFIG_64BIT
+- 	if (!test_tsk_thread_flag(task, TIF_32BIT_REGS))
+ -	arch |=  __AUDIT_ARCH_64BIT;
+++	if (!test_thread_flag(TIF_32BIT_REGS))
+ +		arch |= __AUDIT_ARCH_64BIT;
+  #endif
+  #if defined(__LITTLE_ENDIAN)
+  	arch |=  __AUDIT_ARCH_LE;
+diff --cc arch/mips/kernel/ptrace.c
+index 7271e5a83081,65ba622baf3e..71f85f427034
+--- a/arch/mips/kernel/ptrace.c
++++ b/arch/mips/kernel/ptrace.c
+@@@ -649,11 -671,10 +649,11 @@@ asmlinkage long syscall_trace_enter(str
+  	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
+  		trace_sys_enter(regs, regs->regs[2]);
+  
+- 	audit_syscall_entry(syscall_get_arch(current, regs),
++ 	audit_syscall_entry(syscall_get_arch(),
+ -			    regs->regs[2],
+ +			    syscall,
+  			    regs->regs[4], regs->regs[5],
+  			    regs->regs[6], regs->regs[7]);
+ +	return syscall;
+  }
+  
+  /*
+diff --cc arch/powerpc/Kconfig
+index 6c03a94991ad,96627d67bd67..e0998997943b
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@@ -143,7 -139,7 +143,8 @@@ config PP
+  	select OLD_SIGACTION if PPC32
+  	select HAVE_DEBUG_STACKOVERFLOW
+  	select HAVE_IRQ_EXIT_ON_IRQ_STACK
+ +	select ARCH_USE_CMPXCHG_LOCKREF if PPC64
++ 	select HAVE_ARCH_AUDITSYSCALL
+  
+  config GENERIC_CSUM
+  	def_bool CPU_LITTLE_ENDIAN
+diff --cc arch/x86/Kconfig
+index 5b8ec0f53b57,56f47caf6fa0..25d2c6f7325e
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -127,8 -125,7 +127,9 @@@ config X8
+  	select RTC_LIB
+  	select HAVE_DEBUG_STACKOVERFLOW
+  	select HAVE_IRQ_EXIT_ON_IRQ_STACK if X86_64
+ +	select HAVE_CC_STACKPROTECTOR
+ +	select GENERIC_CPU_AUTOPROBE
++ 	select HAVE_ARCH_AUDITSYSCALL
+  
+  config INSTRUCTION_DECODER
+  	def_bool y
+diff --cc kernel/audit.c
+index 95a20f3f52f1,873b965fdc58..7c2893602d06
+--- a/kernel/audit.c
++++ b/kernel/audit.c
+@@@ -618,8 -618,7 +618,7 @@@ static int audit_netlink_ok(struct sk_b
+  	 * userspace will reject all logins.  This should be removed when we
+  	 * support non init namespaces!!
+  	 */
+- 	if ((current_user_ns() != &init_user_ns) ||
+- 	    (task_active_pid_ns(current) != &init_pid_ns))
+ -	if ((current_user_ns() != &init_user_ns))
+++	if (current_user_ns() != &init_user_ns)
+  		return -ECONNREFUSED;
+  
+  	switch (msg_type) {
+diff --cc kernel/auditsc.c
+index 7aef2f4b6c64,254ce2063d1d..f251a5e8d17a
+--- a/kernel/auditsc.c
++++ b/kernel/auditsc.c
+@@@ -1719,9 -1789,9 +1789,9 @@@ void audit_putname(struct filename *nam
+  	struct audit_context *context = current->audit_context;
+  
+  	BUG_ON(!context);
+ -	if (!context->in_syscall) {
+ +	if (!name->aname || !context->in_syscall) {
+  #if AUDIT_DEBUG == 2
+- 		printk(KERN_ERR "%s:%d(:%d): final_putname(%p)\n",
++ 		pr_err("%s:%d(:%d): final_putname(%p)\n",
+  		       __FILE__, __LINE__, context->serial, name);
+  		if (context->name_count) {
+  			struct audit_names *n;
+diff --cc kernel/seccomp.c
+index fd609bd9d6dd,eda2da3df822..d8d046c0726a
+--- a/kernel/seccomp.c
++++ b/kernel/seccomp.c
+@@@ -65,23 -74,41 +65,23 @@@ struct seccomp_filter 
+   * Endianness is explicitly ignored and left for BPF program authors to manage
+   * as per the specific architecture.
+   */
+ -static inline u32 get_u32(u64 data, int index)
+ +static void populate_seccomp_data(struct seccomp_data *sd)
+  {
+ -	return ((u32 *)&data)[index];
+ -}
+ +	struct task_struct *task = current;
+ +	struct pt_regs *regs = task_pt_regs(task);
+  
+ -/* Helper for bpf_load below. */
+ -#define BPF_DATA(_name) offsetof(struct seccomp_data, _name)
+ -/**
+ - * bpf_load: checks and returns a pointer to the requested offset
+ - * @off: offset into struct seccomp_data to load from
+ - *
+ - * Returns the requested 32-bits of data.
+ - * seccomp_check_filter() should assure that @off is 32-bit aligned
+ - * and not out of bounds.  Failure to do so is a BUG.
+ - */
+ -u32 seccomp_bpf_load(int off)
+ -{
+ -	struct pt_regs *regs = task_pt_regs(current);
+ -	if (off == BPF_DATA(nr))
+ -		return syscall_get_nr(current, regs);
+ -	if (off == BPF_DATA(arch))
+ -		return syscall_get_arch();
+ -	if (off >= BPF_DATA(args[0]) && off < BPF_DATA(args[6])) {
+ -		unsigned long value;
+ -		int arg = (off - BPF_DATA(args[0])) / sizeof(u64);
+ -		int index = !!(off % sizeof(u64));
+ -		syscall_get_arguments(current, regs, arg, 1, &value);
+ -		return get_u32(value, index);
+ -	}
+ -	if (off == BPF_DATA(instruction_pointer))
+ -		return get_u32(KSTK_EIP(current), 0);
+ -	if (off == BPF_DATA(instruction_pointer) + sizeof(u32))
+ -		return get_u32(KSTK_EIP(current), 1);
+ -	/* seccomp_check_filter should make this impossible. */
+ -	BUG();
+ +	sd->nr = syscall_get_nr(task, regs);
+- 	sd->arch = syscall_get_arch(task, regs);
+++	sd->arch = syscall_get_arch();
+ +
+ +	/* Unroll syscall_get_args to help gcc on arm. */
+ +	syscall_get_arguments(task, regs, 0, 1, (unsigned long *) &sd->args[0]);
+ +	syscall_get_arguments(task, regs, 1, 1, (unsigned long *) &sd->args[1]);
+ +	syscall_get_arguments(task, regs, 2, 1, (unsigned long *) &sd->args[2]);
+ +	syscall_get_arguments(task, regs, 3, 1, (unsigned long *) &sd->args[3]);
+ +	syscall_get_arguments(task, regs, 4, 1, (unsigned long *) &sd->args[4]);
+ +	syscall_get_arguments(task, regs, 5, 1, (unsigned long *) &sd->args[5]);
+ +
+ +	sd->instruction_pointer = KSTK_EIP(task);
+  }
+  
+  /**
+diff --cc mm/util.c
+index d7813e6d4cc7,43b44199c5e3..f380af7ea779
+--- a/mm/util.c
++++ b/mm/util.c
+@@@ -434,18 -409,58 +434,66 @@@ int overcommit_kbytes_handler(struct ct
+   */
+  unsigned long vm_commit_limit(void)
+  {
+ -	return ((totalram_pages - hugetlb_total_pages())
+ -		* sysctl_overcommit_ratio / 100) + total_swap_pages;
+ +	unsigned long allowed;
+ +
+ +	if (sysctl_overcommit_kbytes)
+ +		allowed = sysctl_overcommit_kbytes >> (PAGE_SHIFT - 10);
+ +	else
+ +		allowed = ((totalram_pages - hugetlb_total_pages())
+ +			   * sysctl_overcommit_ratio / 100);
+ +	allowed += total_swap_pages;
+ +
+ +	return allowed;
+  }
+  
++ /**
++  * get_cmdline() - copy the cmdline value to a buffer.
++  * @task:     the task whose cmdline value to copy.
++  * @buffer:   the buffer to copy to.
++  * @buflen:   the length of the buffer. Larger cmdline values are truncated
++  *            to this length.
++  * Returns the size of the cmdline field copied. Note that the copy does
++  * not guarantee an ending NULL byte.
++  */
++ int get_cmdline(struct task_struct *task, char *buffer, int buflen)
++ {
++ 	int res = 0;
++ 	unsigned int len;
++ 	struct mm_struct *mm = get_task_mm(task);
++ 	if (!mm)
++ 		goto out;
++ 	if (!mm->arg_end)
++ 		goto out_mm;	/* Shh! No looking before we're done */
++ 
++ 	len = mm->arg_end - mm->arg_start;
++ 
++ 	if (len > buflen)
++ 		len = buflen;
++ 
++ 	res = access_process_vm(task, mm->arg_start, buffer, len, 0);
++ 
++ 	/*
++ 	 * If the nul at the end of args has been overwritten, then
++ 	 * assume application is using setproctitle(3).
++ 	 */
++ 	if (res > 0 && buffer[res-1] != '\0' && len < buflen) {
++ 		len = strnlen(buffer, res);
++ 		if (len < res) {
++ 			res = len;
++ 		} else {
++ 			len = mm->env_end - mm->env_start;
++ 			if (len > buflen - res)
++ 				len = buflen - res;
++ 			res += access_process_vm(task, mm->env_start,
++ 						 buffer+res, len, 0);
++ 			res = strnlen(buffer, res);
++ 		}
++ 	}
++ out_mm:
++ 	mmput(mm);
++ out:
++ 	return res;
++ }
+  
+  /* Tracepoints definitions. */
+  EXPORT_TRACEPOINT_SYMBOL(kmalloc);

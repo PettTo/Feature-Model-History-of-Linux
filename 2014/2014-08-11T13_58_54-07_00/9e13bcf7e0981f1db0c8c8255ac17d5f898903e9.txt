@@ -1,0 +1,30 @@
+commit 9e13bcf7e0981f1db0c8c8255ac17d5f898903e9
+Merge: b16d8c231e4d 7b2a583afb4a
+Author: H. Peter Anvin <hpa@linux.intel.com>
+Date:   Mon Aug 11 13:58:54 2014 -0700
+
+    Merge tag 'efi-urgent' into x86/efi
+    
+     * Enforce CONFIG_RELOCATABLE for the x86 EFI boot stub, otherwise
+       it's possible to overwrite random pieces of unallocated memory during
+       kernel decompression, leading to machine resets.
+    
+    Resolved Conflicts:
+            arch/x86/Kconfig
+    
+    Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
+
+diff --cc arch/x86/Kconfig
+index 7ea8aaaab7fc,a24097768463..842a5abf3aed
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -1536,7 -1535,8 +1536,8 @@@ config EF
+  
+  config EFI_STUB
+         bool "EFI stub support"
+ -       depends on EFI
+ +       depends on EFI && !X86_USE_3DNOW
++        select RELOCATABLE
+         ---help---
+            This kernel feature allows a bzImage to be loaded directly
+  	  by EFI firmware without the use of a bootloader.

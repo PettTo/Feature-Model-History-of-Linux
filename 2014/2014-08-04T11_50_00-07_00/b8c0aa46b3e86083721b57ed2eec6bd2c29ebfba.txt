@@ -1,0 +1,66 @@
+commit b8c0aa46b3e86083721b57ed2eec6bd2c29ebfba
+Merge: c7ed326fa7ca dc6f03f26f57
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Aug 4 11:50:00 2014 -0700
+
+    Merge tag 'trace-3.17' of git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace
+    
+    Pull tracing updates from Steven Rostedt:
+     "This pull request has a lot of work done.  The main thing is the
+      changes to the ftrace function callback infrastructure.  It's
+      introducing a way to allow different functions to call directly
+      different trampolines instead of all calling the same "mcount" one.
+    
+      The only user of this for now is the function graph tracer, which
+      always had a different trampoline, but the function tracer trampoline
+      was called and did basically nothing, and then the function graph
+      tracer trampoline was called.  The difference now, is that the
+      function graph tracer trampoline can be called directly if a function
+      is only being traced by the function graph trampoline.  If function
+      tracing is also happening on the same function, the old way is still
+      done.
+    
+      The accounting for this takes up more memory when function graph
+      tracing is activated, as it needs to keep track of which functions it
+      uses.  I have a new way that wont take as much memory, but it's not
+      ready yet for this merge window, and will have to wait for the next
+      one.
+    
+      Another big change was the removal of the ftrace_start/stop() calls
+      that were used by the suspend/resume code that stopped function
+      tracing when entering into suspend and resume paths.  The stop of
+      ftrace was done because there was some function that would crash the
+      system if one called smp_processor_id()! The stop/start was a big
+      hammer to solve the issue at the time, which was when ftrace was first
+      introduced into Linux.  Now ftrace has better infrastructure to debug
+      such issues, and I found the problem function and labeled it with
+      "notrace" and function tracing can now safely be activated all the way
+      down into the guts of suspend and resume
+    
+      Other changes include clean ups of uprobe code, clean up of the
+      trace_seq() code, and other various small fixes and clean ups to
+      ftrace and tracing"
+    
+    * tag 'trace-3.17' of git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/linux-trace: (57 commits)
+      ftrace: Add warning if tramp hash does not match nr_trampolines
+      ftrace: Fix trampoline hash update check on rec->flags
+      ring-buffer: Use rb_page_size() instead of open coded head_page size
+      ftrace: Rename ftrace_ops field from trampolines to nr_trampolines
+      tracing: Convert local function_graph functions to static
+      ftrace: Do not copy old hash when resetting
+      tracing: let user specify tracing_thresh after selecting function_graph
+      ring-buffer: Always run per-cpu ring buffer resize with schedule_work_on()
+      tracing: Remove function_trace_stop and HAVE_FUNCTION_TRACE_MCOUNT_TEST
+      s390/ftrace: remove check of obsolete variable function_trace_stop
+      arm64, ftrace: Remove check of obsolete variable function_trace_stop
+      Blackfin: ftrace: Remove check of obsolete variable function_trace_stop
+      metag: ftrace: Remove check of obsolete variable function_trace_stop
+      microblaze: ftrace: Remove check of obsolete variable function_trace_stop
+      MIPS: ftrace: Remove check of obsolete variable function_trace_stop
+      parisc: ftrace: Remove check of obsolete variable function_trace_stop
+      sh: ftrace: Remove check of obsolete variable function_trace_stop
+      sparc64,ftrace: Remove check of obsolete variable function_trace_stop
+      tile: ftrace: Remove check of obsolete variable function_trace_stop
+      ftrace: x86: Remove check of obsolete variable function_trace_stop
+      ...
+

@@ -1,0 +1,122 @@
+commit 957e3facd147510f2cf8780e38606f1d707f0e33
+Author: Riku Voipio <riku.voipio@linaro.org>
+Date:   Fri Dec 12 16:57:44 2014 -0800
+
+    gcov: enable GCOV_PROFILE_ALL from ARCH Kconfigs
+    
+    Following the suggestions from Andrew Morton and Stephen Rothwell,
+    Dont expand the ARCH list in kernel/gcov/Kconfig. Instead,
+    define a ARCH_HAS_GCOV_PROFILE_ALL bool which architectures
+    can enable.
+    
+    set ARCH_HAS_GCOV_PROFILE_ALL on Architectures where it was
+    previously allowed + ARM64 which I tested.
+    
+    Signed-off-by: Riku Voipio <riku.voipio@linaro.org>
+    Cc: Peter Oberparleiter <oberpar@linux.vnet.ibm.com>
+    Cc: Stephen Rothwell <sfr@canb.auug.org.au>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index c8424a85bc04..2160091d9c15 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -5,6 +5,7 @@ config ARM
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
++	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
+ 	select ARCH_USE_BUILTIN_BSWAP
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 6b1ebd964c10..688db03ef5b8 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -2,6 +2,7 @@ config ARM64
+ 	def_bool y
+ 	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
++	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index a7736fa0580c..0bce820428fc 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -1,5 +1,6 @@
+ config MICROBLAZE
+ 	def_bool y
++	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_WANT_IPC_PARSE_VERSION
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index af696874248b..a2a168e2dfe7 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -129,6 +129,7 @@ config PPC
+ 	select HAVE_BPF_JIT if PPC64
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
++	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select GENERIC_CMOS_UPDATE
+ 	select GENERIC_TIME_VSYSCALL_OLD
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index f2cf1f90295b..68b68d755fdf 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -65,6 +65,7 @@ config S390
+ 	def_bool y
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select ARCH_INLINE_READ_LOCK
+ 	select ARCH_INLINE_READ_LOCK_BH
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index a1403470f80e..c6b6ee5f38b2 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -16,6 +16,7 @@ config SUPERH
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if (GUSA_RB || CPU_SH4A)
++	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select PERF_USE_VMALLOC
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_KERNEL_GZIP
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index bea3a0159496..d69f1cd87fd9 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -24,6 +24,7 @@ config X86
+ 	select ARCH_MIGHT_HAVE_ACPI_PDC if ACPI
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_HAS_FAST_MULTIPLIER
++	select ARCH_HAS_GCOV_PROFILE_ALL
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select HAVE_AOUT if X86_32
+diff --git a/kernel/gcov/Kconfig b/kernel/gcov/Kconfig
+index 3b7408759bdf..c92e44855ddd 100644
+--- a/kernel/gcov/Kconfig
++++ b/kernel/gcov/Kconfig
+@@ -32,10 +32,13 @@ config GCOV_KERNEL
+ 	Note that the debugfs filesystem has to be mounted to access
+ 	profiling data.
+ 
++config ARCH_HAS_GCOV_PROFILE_ALL
++	def_bool n
++
+ config GCOV_PROFILE_ALL
+ 	bool "Profile entire Kernel"
+ 	depends on GCOV_KERNEL
+-	depends on SUPERH || S390 || X86 || PPC || MICROBLAZE || ARM || ARM64
++	depends on ARCH_HAS_GCOV_PROFILE_ALL
+ 	default n
+ 	---help---
+ 	This options activates profiling for the entire kernel.

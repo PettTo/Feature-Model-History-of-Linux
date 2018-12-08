@@ -1,0 +1,243 @@
+commit 4a474157747ab7c4432ac269247e0e0e15f85584
+Author: Robert Graffham <psquid@psquid.net>
+Date:   Thu Jan 23 15:55:29 2014 -0800
+
+    Kconfig: update flightly outdated CONFIG_SMP documentation
+    
+    Remove an outdated reference to "most personal computers" having only one
+    CPU, and change the use of "singleprocessor" and "single processor" in
+    CONFIG_SMP's documentation to "uniprocessor" across all arches where that
+    documentation is present.
+    
+    Signed-off-by: Robert Graffham <psquid@psquid.net>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/alpha/Kconfig b/arch/alpha/Kconfig
+index d39dc9b95a2c..3ba48fe1c0a5 100644
+--- a/arch/alpha/Kconfig
++++ b/arch/alpha/Kconfig
+@@ -539,13 +539,13 @@ config SMP
+ 	depends on ALPHA_SABLE || ALPHA_LYNX || ALPHA_RAWHIDE || ALPHA_DP264 || ALPHA_WILDFIRE || ALPHA_TITAN || ALPHA_GENERIC || ALPHA_SHARK || ALPHA_MARVEL
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  See also the SMP-HOWTO available at
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 9063ae6553cc..5438cabbc45d 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -128,8 +128,8 @@ config SMP
+ 	default n
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+ if SMP
+ 
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index ab1689c96a71..4797b244eeee 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1435,14 +1435,14 @@ config SMP
+ 	depends on MMU || ARM_MPU
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+-	  you say Y here, the kernel will run on many, but not all, single
+-	  processor machines. On a single processor machine, the kernel will
+-	  run faster if you say N here.
++	  you say Y here, the kernel will run on many, but not all,
++	  uniprocessor machines. On a uniprocessor machine, the kernel
++	  will run faster if you say N here.
+ 
+ 	  See also <file:Documentation/x86/i386/IO-APIC.txt>,
+ 	  <file:Documentation/nmi_watchdog.txt> and the SMP-HOWTO available at
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index 09ef94a8a7c3..ca4504424dae 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -277,13 +277,13 @@ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  People using multiprocessor machines who say Y here should also say
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index c93d92beb3d6..92c8e0b2bb4f 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2129,13 +2129,13 @@ config SMP
+ 	depends on SYS_SUPPORTS_SMP
+ 	help
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  People using multiprocessor machines who say Y here should also say
+diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
+index 8bde9237d13b..a648de1b1096 100644
+--- a/arch/mn10300/Kconfig
++++ b/arch/mn10300/Kconfig
+@@ -184,13 +184,13 @@ config SMP
+ 	depends on MN10300_PROC_MN2WS0038 || MN10300_PROC_MN2WS0050
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  See also <file:Documentation/x86/i386/IO-APIC.txt>,
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index b5f1858baf33..bb2a8ec440e7 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -229,13 +229,13 @@ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  See also <file:Documentation/nmi_watchdog.txt> and the SMP-HOWTO
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index e9f312532526..4f858f77d870 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -334,10 +334,10 @@ config SMP
+ 	  a system with only one CPU, like most personal computers, say N. If
+ 	  you have a system with more than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  See also the SMP-HOWTO available at
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index ce298317a73e..6357710753d5 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -701,13 +701,13 @@ config SMP
+ 	depends on SYS_SUPPORTS_SMP
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  People using multiprocessor machines who say Y here should also say
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index d4f7a6a163dc..63dfe68f4af8 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -152,10 +152,10 @@ config SMP
+ 	  a system with only one CPU, say N. If you have a system with more
+ 	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  People using multiprocessor machines who say Y here should also say
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5aadc49a7621..3e97a3dd4129 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -279,13 +279,13 @@ config SMP
+ 	bool "Symmetric multi-processing support"
+ 	---help---
+ 	  This enables support for systems with more than one CPU. If you have
+-	  a system with only one CPU, like most personal computers, say N. If
+-	  you have a system with more than one CPU, say Y.
++	  a system with only one CPU, say N. If you have a system with more
++	  than one CPU, say Y.
+ 
+-	  If you say N here, the kernel will run on single and multiprocessor
++	  If you say N here, the kernel will run on uni- and multiprocessor
+ 	  machines, but will use only one CPU of a multiprocessor machine. If
+ 	  you say Y here, the kernel will run on many, but not all,
+-	  singleprocessor machines. On a singleprocessor machine, the kernel
++	  uniprocessor machines. On a uniprocessor machine, the kernel
+ 	  will run faster if you say N here.
+ 
+ 	  Note that if you say Y here and choose architecture "586" or

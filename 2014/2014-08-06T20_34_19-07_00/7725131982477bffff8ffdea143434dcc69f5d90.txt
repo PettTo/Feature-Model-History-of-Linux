@@ -1,0 +1,223 @@
+commit 7725131982477bffff8ffdea143434dcc69f5d90
+Merge: 6b22df74f7af 7ef97e0e3a0f
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Aug 6 20:34:19 2014 -0700
+
+    Merge tag 'pm+acpi-3.17-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm
+    
+    Pull ACPI and power management updates from Rafael Wysocki:
+     "Again, ACPICA leads the pack (47 commits), followed by cpufreq (18
+      commits) and system suspend/hibernation (9 commits).
+    
+      From the new code perspective, the ACPICA update brings ACPI 5.1 to
+      the table, including a new device configuration object called _DSD
+      (Device Specific Data) that will hopefully help us to operate device
+      properties like Device Trees do (at least to some extent) and changes
+      related to supporting ACPI on ARM.
+    
+      Apart from that we have hibernation changes making it use radix trees
+      to store memory bitmaps which should speed up some operations carried
+      out by it quite significantly.  We also have some power management
+      changes related to suspend-to-idle (the "freeze" sleep state) support
+      and more preliminary changes needed to support ACPI on ARM (outside of
+      ACPICA).
+    
+      The rest is fixes and cleanups pretty much everywhere.
+    
+      Specifics:
+    
+       - ACPICA update to upstream version 20140724.  That includes ACPI 5.1
+         material (support for the _CCA and _DSD predefined names, changes
+         related to the DMAR and PCCT tables and ARM support among other
+         things) and cleanups related to using ACPICA's header files.  A
+         major part of it is related to acpidump and the core code used by
+         that utility.  Changes from Bob Moore, David E Box, Lv Zheng,
+         Sascha Wildner, Tomasz Nowicki, Hanjun Guo.
+    
+       - Radix trees for memory bitmaps used by the hibernation core from
+         Joerg Roedel.
+    
+       - Support for waking up the system from suspend-to-idle (also known
+         as the "freeze" sleep state) using ACPI-based PCI wakeup signaling
+         (Rafael J Wysocki).
+    
+       - Fixes for issues related to ACPI button events (Rafael J Wysocki).
+    
+       - New device ID for an ACPI-enumerated device included into the
+         Wildcat Point PCH from Jie Yang.
+    
+       - ACPI video updates related to backlight handling from Hans de Goede
+         and Linus Torvalds.
+    
+       - Preliminary changes needed to support ACPI on ARM from Hanjun Guo
+         and Graeme Gregory.
+    
+       - ACPI PNP core cleanups from Arjun Sreedharan and Zhang Rui.
+    
+       - Cleanups related to ACPI_COMPANION() and ACPI_HANDLE() macros
+         (Rafael J Wysocki).
+    
+       - ACPI-based device hotplug cleanups from Wei Yongjun and Rafael J
+         Wysocki.
+    
+       - Cleanups and improvements related to system suspend from Lan
+         Tianyu, Randy Dunlap and Rafael J Wysocki.
+    
+       - ACPI battery cleanup from Wei Yongjun.
+    
+       - cpufreq core fixes from Viresh Kumar.
+    
+       - Elimination of a deadband effect from the cpufreq ondemand governor
+         and intel_pstate driver cleanups from Stratos Karafotis.
+    
+       - 350MHz CPU support for the powernow-k6 cpufreq driver from Mikulas
+         Patocka.
+    
+       - Fix for the imx6 cpufreq driver from Anson Huang.
+    
+       - cpuidle core and governor cleanups from Daniel Lezcano, Sandeep
+         Tripathy and Mohammad Merajul Islam Molla.
+    
+       - Build fix for the big_little cpuidle driver from Sachin Kamat.
+    
+       - Configuration fix for the Operation Performance Points (OPP)
+         framework from Mark Brown.
+    
+       - APM cleanup from Jean Delvare.
+    
+       - cpupower utility fixes and cleanups from Peter Senna Tschudin,
+         Andrey Utkin, Himangi Saraogi, Rickard Strandqvist, Thomas
+         Renninger"
+    
+    * tag 'pm+acpi-3.17-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm: (118 commits)
+      ACPI / LPSS: add LPSS device for Wildcat Point PCH
+      ACPI / PNP: Replace faulty is_hex_digit() by isxdigit()
+      ACPICA: Update version to 20140724.
+      ACPICA: ACPI 5.1: Update for PCCT table changes.
+      ACPICA/ARM: ACPI 5.1: Update for GTDT table changes.
+      ACPICA/ARM: ACPI 5.1: Update for MADT changes.
+      ACPICA/ARM: ACPI 5.1: Update for FADT changes.
+      ACPICA: ACPI 5.1: Support for the _CCA predifined name.
+      ACPICA: ACPI 5.1: New notify value for System Affinity Update.
+      ACPICA: ACPI 5.1: Support for the _DSD predefined name.
+      ACPICA: Debug object: Add current value of Timer() to debug line prefix.
+      ACPICA: acpihelp: Add UUID support, restructure some existing files.
+      ACPICA: Utilities: Fix local printf issue.
+      ACPICA: Tables: Update for DMAR table changes.
+      ACPICA: Remove some extraneous printf arguments.
+      ACPICA: Update for comments/formatting. No functional changes.
+      ACPICA: Disassembler: Add support for the ToUUID opererator (macro).
+      ACPICA: Remove a redundant cast to acpi_size for ACPI_OFFSET() macro.
+      ACPICA: Work around an ancient GCC bug.
+      ACPI / processor: Make it possible to get local x2apic id via _MAT
+      ...
+
+diff --cc MAINTAINERS
+index e33ca844f352,a221b427630b..05e545096100
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@@ -7060,14 -7026,16 +7060,16 @@@ POSIX CLOCKS and TIMER
+  M:	Thomas Gleixner <tglx@linutronix.de>
+  L:	linux-kernel@vger.kernel.org
+  T:	git git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git timers/core
+ -S:	Supported
+ +S:	Maintained
+  F:	fs/timerfd.c
+  F:	include/linux/timer*
+ -F:	kernel/*timer*
+ +F:	kernel/time/*timer*
+  
+  POWER SUPPLY CLASS/SUBSYSTEM and DRIVERS
++ M:	Sebastian Reichel <sre@kernel.org>
+  M:	Dmitry Eremin-Solenikov <dbaryshkov@gmail.com>
+  M:	David Woodhouse <dwmw2@infradead.org>
++ L:	linux-pm@vger.kernel.org
+  T:	git git://git.infradead.org/battery-2.6.git
+  S:	Maintained
+  F:	include/linux/power_supply.h
+diff --cc arch/x86/Kconfig
+index 6cfeb082a422,70c43b5371bb..bf2405053af5
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -131,8 -133,7 +132,9 @@@ config X8
+  	select GENERIC_CPU_AUTOPROBE
+  	select HAVE_ARCH_AUDITSYSCALL
+  	select ARCH_SUPPORTS_ATOMIC_RMW
+ +	select HAVE_ACPI_APEI if ACPI
+ +	select HAVE_ACPI_APEI_NMI if ACPI
++ 	select ACPI_LEGACY_TABLES_LOOKUP if ACPI
+  
+  config INSTRUCTION_DECODER
+  	def_bool y
+diff --cc drivers/acpi/acpi_extlog.c
+index 0ad6f389d922,340d09518f8e..b3842ffc19ba
+--- a/drivers/acpi/acpi_extlog.c
++++ b/drivers/acpi/acpi_extlog.c
+@@@ -139,12 -137,8 +139,12 @@@ static int extlog_print(struct notifier
+  	struct mce *mce = (struct mce *)data;
+  	int	bank = mce->bank;
+  	int	cpu = mce->extcpu;
+- 	struct acpi_generic_status *estatus, *tmp;
+- 	struct acpi_generic_data *gdata;
+ -	struct acpi_hest_generic_status *estatus;
+ -	int rc;
+++	struct acpi_hest_generic_status *estatus, *tmp;
+++	struct acpi_hest_generic_data *gdata;
+ +	const uuid_le *fru_id = &NULL_UUID_LE;
+ +	char *fru_text = "";
+ +	uuid_le *sec_type;
+ +	static u32 err_seq;
+  
+  	estatus = extlog_elog_entry_check(cpu, bank);
+  	if (estatus == NULL)
+@@@ -154,29 -148,8 +154,29 @@@
+  	/* clear record status to enable BIOS to update it again */
+  	estatus->block_status = 0;
+  
+- 	tmp = (struct acpi_generic_status *)elog_buf;
+ -	rc = print_extlog_rcd(NULL, (struct acpi_hest_generic_status *)elog_buf, cpu);
+++	tmp = (struct acpi_hest_generic_status *)elog_buf;
+ +
+ +	if (!ras_userspace_consumers()) {
+ +		print_extlog_rcd(NULL, tmp, cpu);
+ +		goto out;
+ +	}
+ +
+ +	/* log event via trace */
+ +	err_seq++;
+- 	gdata = (struct acpi_generic_data *)(tmp + 1);
+++	gdata = (struct acpi_hest_generic_data *)(tmp + 1);
+ +	if (gdata->validation_bits & CPER_SEC_VALID_FRU_ID)
+ +		fru_id = (uuid_le *)gdata->fru_id;
+ +	if (gdata->validation_bits & CPER_SEC_VALID_FRU_TEXT)
+ +		fru_text = gdata->fru_text;
+ +	sec_type = (uuid_le *)gdata->section_type;
+ +	if (!uuid_le_cmp(*sec_type, CPER_SEC_PLATFORM_MEM)) {
+ +		struct cper_sec_mem_err *mem = (void *)(gdata + 1);
+ +		if (gdata->error_data_length >= sizeof(*mem))
+ +			trace_extlog_mem_event(mem, err_seq, fru_id, fru_text,
+ +					       (u8)gdata->error_severity);
+ +	}
+  
+ +out:
+  	return NOTIFY_STOP;
+  }
+  
+diff --cc kernel/power/suspend.c
+index 4b736b4dfa96,9a071bea80eb..6dadb25cb0d8
+--- a/kernel/power/suspend.c
++++ b/kernel/power/suspend.c
+@@@ -274,11 -317,10 +316,9 @@@ static int suspend_enter(suspend_state_
+  
+   Enable_cpus:
+  	enable_nonboot_cpus();
+ -	ftrace_start();
+  
+   Platform_wake:
+- 	if (need_suspend_ops(state) && suspend_ops->wake)
+- 		suspend_ops->wake();
+- 
++ 	platform_suspend_wake(state);
+  	dpm_resume_start(PMSG_RESUME);
+  
+   Platform_finish:

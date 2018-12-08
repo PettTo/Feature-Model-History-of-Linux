@@ -1,0 +1,125 @@
+commit 09ec54429c6d10f87d1f084de53ae2c1c3a81108
+Author: Thomas Gleixner <tglx@linutronix.de>
+Date:   Wed Jul 16 21:05:12 2014 +0000
+
+    clocksource: Move cycle_last validation to core code
+    
+    The only user of the cycle_last validation is the x86 TSC. In order to
+    provide NMI safe accessor functions for clock monotonic and
+    monotonic_raw we need to do that in the core.
+    
+    We can't do the TSC specific
+    
+        if (now < cycle_last)
+                now = cycle_last;
+    
+    for the other wrapping around clocksources, but TSC has
+    CLOCKSOURCE_MASK(64) which actually does not mask out anything so if
+    now is less than cycle_last the subtraction will give a negative
+    result. So we can check for that in clocksource_delta() and return 0
+    for that case.
+    
+    Implement and enable it for x86
+    
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Signed-off-by: John Stultz <john.stultz@linaro.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 7fa17b5ce668..d08e061c187a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -109,6 +109,7 @@ config X86
+ 	select CLOCKSOURCE_WATCHDOG
+ 	select GENERIC_CLOCKEVENTS
+ 	select ARCH_CLOCKSOURCE_DATA
++	select CLOCKSOURCE_VALIDATE_LAST_CYCLE
+ 	select GENERIC_CLOCKEVENTS_BROADCAST if X86_64 || (X86_32 && X86_LOCAL_APIC)
+ 	select GENERIC_TIME_VSYSCALL
+ 	select GENERIC_STRNCPY_FROM_USER
+diff --git a/arch/x86/kernel/tsc.c b/arch/x86/kernel/tsc.c
+index 57e5ce126d5a..456c0e660c43 100644
+--- a/arch/x86/kernel/tsc.c
++++ b/arch/x86/kernel/tsc.c
+@@ -951,7 +951,7 @@ core_initcall(cpufreq_tsc);
+ static struct clocksource clocksource_tsc;
+ 
+ /*
+- * We compare the TSC to the cycle_last value in the clocksource
++ * We used to compare the TSC to the cycle_last value in the clocksource
+  * structure to avoid a nasty time-warp. This can be observed in a
+  * very small window right after one CPU updated cycle_last under
+  * xtime/vsyscall_gtod lock and the other CPU reads a TSC value which
+@@ -961,26 +961,23 @@ static struct clocksource clocksource_tsc;
+  * due to the unsigned delta calculation of the time keeping core
+  * code, which is necessary to support wrapping clocksources like pm
+  * timer.
++ *
++ * This sanity check is now done in the core timekeeping code.
++ * checking the result of read_tsc() - cycle_last for being negative.
++ * That works because CLOCKSOURCE_MASK(64) does not mask out any bit.
+  */
+ static cycle_t read_tsc(struct clocksource *cs)
+ {
+-	cycle_t ret = (cycle_t)get_cycles();
+-
+-	return ret >= clocksource_tsc.cycle_last ?
+-		ret : clocksource_tsc.cycle_last;
+-}
+-
+-static void resume_tsc(struct clocksource *cs)
+-{
+-	if (!boot_cpu_has(X86_FEATURE_NONSTOP_TSC_S3))
+-		clocksource_tsc.cycle_last = 0;
++	return (cycle_t)get_cycles();
+ }
+ 
++/*
++ * .mask MUST be CLOCKSOURCE_MASK(64). See comment above read_tsc()
++ */
+ static struct clocksource clocksource_tsc = {
+ 	.name                   = "tsc",
+ 	.rating                 = 300,
+ 	.read                   = read_tsc,
+-	.resume			= resume_tsc,
+ 	.mask                   = CLOCKSOURCE_MASK(64),
+ 	.flags                  = CLOCK_SOURCE_IS_CONTINUOUS |
+ 				  CLOCK_SOURCE_MUST_VERIFY,
+diff --git a/kernel/time/Kconfig b/kernel/time/Kconfig
+index feccfd888732..d626dc98e8df 100644
+--- a/kernel/time/Kconfig
++++ b/kernel/time/Kconfig
+@@ -12,6 +12,11 @@ config CLOCKSOURCE_WATCHDOG
+ config ARCH_CLOCKSOURCE_DATA
+ 	bool
+ 
++# Clocksources require validation of the clocksource against the last
++# cycle update - x86/TSC misfeature
++config CLOCKSOURCE_VALIDATE_LAST_CYCLE
++	bool
++
+ # Timekeeping vsyscall support
+ config GENERIC_TIME_VSYSCALL
+ 	bool
+diff --git a/kernel/time/timekeeping_internal.h b/kernel/time/timekeeping_internal.h
+index 05dfa6b25dc4..4ea005a7f9da 100644
+--- a/kernel/time/timekeeping_internal.h
++++ b/kernel/time/timekeeping_internal.h
+@@ -12,9 +12,18 @@ extern void tk_debug_account_sleep_time(struct timespec64 *t);
+ #define tk_debug_account_sleep_time(x)
+ #endif
+ 
++#ifdef CONFIG_CLOCKSOURCE_VALIDATE_LAST_CYCLE
++static inline cycle_t clocksource_delta(cycle_t now, cycle_t last, cycle_t mask)
++{
++	cycle_t ret = (now - last) & mask;
++
++	return (s64) ret > 0 ? ret : 0;
++}
++#else
+ static inline cycle_t clocksource_delta(cycle_t now, cycle_t last, cycle_t mask)
+ {
+ 	return (now - last) & mask;
+ }
++#endif
+ 
+ #endif /* _TIMEKEEPING_INTERNAL_H */

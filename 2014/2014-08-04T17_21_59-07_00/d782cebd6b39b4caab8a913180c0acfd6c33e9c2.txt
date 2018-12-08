@@ -1,0 +1,30 @@
+commit d782cebd6b39b4caab8a913180c0acfd6c33e9c2
+Merge: 8556d44fee6d c3107e3c504d
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Aug 4 17:21:59 2014 -0700
+
+    Merge branch 'x86-ras-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull RAS updates from Ingo Molnar:
+     "The main changes in this cycle are:
+    
+       - RAS tracing/events infrastructure, by Gong Chen.
+    
+       - Various generalizations of the APEI code to make it available to
+         non-x86 architectures, by Tomasz Nowicki"
+    
+    * 'x86-ras-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/ras: Fix build warnings in <linux/aer.h>
+      acpi, apei, ghes: Factor out ioremap virtual memory for IRQ and NMI context.
+      acpi, apei, ghes: Make NMI error notification to be GHES architecture extension.
+      apei, mce: Factor out APEI architecture specific MCE calls.
+      RAS, extlog: Adjust init flow
+      trace, eMCA: Add a knob to adjust where to save event log
+      trace, RAS: Add eMCA trace event interface
+      RAS, debugfs: Add debugfs interface for RAS subsystem
+      CPER: Adjust code flow of some functions
+      x86, MCE: Robustify mcheck_init_device
+      trace, AER: Move trace into unified interface
+      trace, RAS: Add basic RAS trace event
+      x86, MCE: Kill CPU_POST_DEAD
+

@@ -1,0 +1,80 @@
+commit 49eb7b0750d9483c74e9c14ae6ea1e9d62481c3c
+Merge: 5142c33ed86a 9ce4f8f3f454
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Jun 3 09:01:02 2014 -0700
+
+    Merge tag 'tty-3.16-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/tty into next
+    
+    Pull tty/serial driver updates from Greg KH:
+     "Here is the big tty / serial driver pull request for 3.16-rc1.
+    
+      A variety of different serial driver fixes and updates and additions,
+      nothing huge, and no real major core tty changes at all.
+    
+      All have been in linux-next for a while"
+    
+    * tag 'tty-3.16-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/tty: (84 commits)
+      Revert "serial: imx: remove the DMA wait queue"
+      serial: kgdb_nmi: Improve console integration with KDB I/O
+      serial: kgdb_nmi: Switch from tasklets to real timers
+      serial: kgdb_nmi: Use container_of() to locate private data
+      serial: cpm_uart: No LF conversion in put_poll_char()
+      serial: sirf: Fix compilation failure
+      console: Remove superfluous readonly check
+      console: Use explicit pointer type for vc_uni_pagedir* fields
+      vgacon: Fix & cleanup refcounting
+      ARM: tty: Move HVC DCC assembly to arch/arm
+      tty/hvc/hvc_console: Fix wakeup of HVC thread on hvc_kick()
+      drivers/tty/n_hdlc.c: replace kmalloc/memset by kzalloc
+      vt: emulate 8- and 24-bit colour codes.
+      printk/of_serial: fix serial console cessation part way through boot.
+      serial: 8250_dma: check the result of TX buffer mapping
+      serial: uart: add hw flow control support configuration
+      tty/serial: at91: add interrupts for modem control lines
+      tty/serial: at91: use mctrl_gpio helpers
+      tty/serial: Add GPIOLIB helpers for controlling modem lines
+      ARM: at91: gpio: implement get_direction
+      ...
+
+diff --cc Documentation/kernel-parameters.txt
+index 7da289ee0589,4946d8e58d53..4ddcbf949699
+--- a/Documentation/kernel-parameters.txt
++++ b/Documentation/kernel-parameters.txt
+@@@ -892,7 -893,15 +893,15 @@@ bytes respectively. Such letter suffixe
+  			(mmio) or 32-bit (mmio32).
+  			The options are the same as for ttyS, above.
+  
++ 		pl011,<addr>
++ 			Start an early, polled-mode console on a pl011 serial
++ 			port at the specified address. The pl011 serial port
++ 			must already be setup and configured. Options are not
++ 			yet supported.
++ 
++ 		smh	Use ARM semihosting calls for early console.
++ 
+ -	earlyprintk=	[X86,SH,BLACKFIN,ARM]
+ +	earlyprintk=	[X86,SH,BLACKFIN,ARM,M68k]
+  			earlyprintk=vga
+  			earlyprintk=efi
+  			earlyprintk=xen
+diff --cc include/linux/platform_data/atmel.h
+index 1466443797d7,cea9f70133c5..4b452c6a2f7b
+--- a/include/linux/platform_data/atmel.h
++++ b/include/linux/platform_data/atmel.h
+@@@ -84,9 -84,15 +84,8 @@@ struct atmel_uart_data 
+  	short			use_dma_rx;	/* use receive DMA? */
+  	void __iomem		*regs;		/* virt. base address, if any */
+  	struct serial_rs485	rs485;		/* rs485 settings */
+- 	int			rts_gpio;	/* optional RTS GPIO */
+  };
+  
+ - /* Touchscreen Controller */
+ -struct at91_tsadcc_data {
+ -	unsigned int    adc_clock;
+ -	u8		pendet_debounce;
+ -	u8		ts_sample_hold_time;
+ -};
+ -
+  /* CAN */
+  struct at91_can_data {
+  	void (*transceiver_switch)(int on);

@@ -1,0 +1,47 @@
+commit d20642f0a32575605f152a1cb7753bdfca5fc94b
+Author: Rob Herring <robh@kernel.org>
+Date:   Fri Apr 18 17:19:54 2014 -0500
+
+    x86: move FIX_EARLYCON_MEM kconfig into x86
+    
+    In preparation to support FIX_EARLYCON_MEM on other arches, make the
+    option per arch.
+    
+    Signed-off-by: Rob Herring <robh@kernel.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Ingo Molnar <mingo@redhat.com>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: x86@kernel.org
+    Cc: Jiri Slaby <jslaby@suse.cz>
+    Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 25d2c6f7325e..0fb6cfd50e75 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -261,6 +261,9 @@ config ARCH_HWEIGHT_CFLAGS
+ config ARCH_SUPPORTS_UPROBES
+ 	def_bool y
+ 
++config FIX_EARLYCON_MEM
++	def_bool y
++
+ source "init/Kconfig"
+ source "kernel/Kconfig.freezer"
+ 
+diff --git a/drivers/tty/serial/8250/Kconfig b/drivers/tty/serial/8250/Kconfig
+index 23329918f229..91f1d8332b86 100644
+--- a/drivers/tty/serial/8250/Kconfig
++++ b/drivers/tty/serial/8250/Kconfig
+@@ -90,11 +90,6 @@ config SERIAL_8250_CONSOLE
+ 
+ 	  If unsure, say N.
+ 
+-config FIX_EARLYCON_MEM
+-	bool
+-	depends on X86
+-	default y
+-
+ config SERIAL_8250_GSC
+ 	tristate
+ 	depends on SERIAL_8250 && GSC

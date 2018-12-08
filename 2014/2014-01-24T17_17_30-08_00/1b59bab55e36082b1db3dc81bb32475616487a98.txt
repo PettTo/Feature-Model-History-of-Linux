@@ -1,0 +1,51 @@
+commit 1b59bab55e36082b1db3dc81bb32475616487a98
+Merge: b788769e0641 55df811f2066
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Jan 24 17:17:30 2014 -0800
+
+    Merge branch 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/dtor/input
+    
+    Pull input subsystem updates from Dmitry Torokhov:
+     "Just a swath of driver fixes and cleanups, no new drivers this time
+      (although ALPS now supports one of the newer protocols, more to come)"
+    
+    * 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/dtor/input: (57 commits)
+      Input: wacom - add support for DTU-1031
+      Input: wacom - fix wacom->shared guards for dual input devices
+      Input: edt_ft5x06 - use devm_* functions where appropriate
+      Input: hyperv-keyboard - pass through 0xE1 prefix
+      Input: logips2pp - fix spelling s/reciver/receiver/
+      Input: delete non-required instances of include <linux/init.h>
+      Input: twl4030-keypad - convert to using managed resources
+      Input: twl6040-vibra - remove unneeded check for CONFIG_OF
+      Input: twl4030-keypad - add device tree support
+      Input: twl6040-vibra - add missing of_node_put
+      Input: twl4030-vibra - add missing of_node_put
+      Input: i8042 - cleanup SERIO_I8042 dependencies
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on x86
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on unicore32
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on sparc
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO for SH_CAYMAN
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on powerpc
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on mips
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on IA64
+      Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on ARM/Footbridge
+      ...
+
+diff --cc drivers/input/misc/atlas_btns.c
+index d781b5e52065,c0c5b63af90a..638165c78e75
+--- a/drivers/input/misc/atlas_btns.c
++++ b/drivers/input/misc/atlas_btns.c
+@@@ -25,11 -25,10 +25,10 @@@
+  
+  #include <linux/kernel.h>
+  #include <linux/module.h>
+- #include <linux/init.h>
+  #include <linux/input.h>
+  #include <linux/types.h>
+ +#include <linux/acpi.h>
+  #include <asm/uaccess.h>
+ -#include <acpi/acpi_drivers.h>
+  
+  #define ACPI_ATLAS_NAME		"Atlas ACPI"
+  #define ACPI_ATLAS_CLASS	"Atlas"

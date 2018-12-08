@@ -1,0 +1,25 @@
+commit 5e2c18c0ed708e2a53f3e0673a786b6df2fb56fb
+Author: Mark Salter <msalter@redhat.com>
+Date:   Wed Jan 1 11:34:16 2014 -0800
+
+    Input: i8042 - select ARCH_MIGHT_HAVE_PC_SERIO on x86
+    
+    Architectures which might use an i8042 for serial IO to keyboard,
+    mouse, etc should select ARCH_MIGHT_HAVE_PC_SERIO.
+    
+    Signed-off-by: Mark Salter <msalter@redhat.com>
+    Acked-by: "H. Peter Anvin" <hpa@zytor.com>
+    Signed-off-by: Dmitry Torokhov <dmitry.torokhov@gmail.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index e903c71f7e69..b7f090377586 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -23,6 +23,7 @@ config X86
+ 	def_bool y
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
++	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select HAVE_AOUT if X86_32
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
+ 	select ARCH_SUPPORTS_NUMA_BALANCING

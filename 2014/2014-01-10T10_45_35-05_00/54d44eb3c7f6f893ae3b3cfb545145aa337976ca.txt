@@ -1,0 +1,31 @@
+commit 54d44eb3c7f6f893ae3b3cfb545145aa337976ca
+Author: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Date:   Fri Jan 10 10:45:35 2014 -0500
+
+    xen/pvh: Use 'depend' instead of 'select'.
+    
+    The usage of 'select' means it will enable the CONFIG
+    options without checking their dependencies. That meant
+    we would inadvertently turn on CONFIG_XEN_PVHM while its
+    core dependency (CONFIG_PCI) was turned off.
+    
+    This patch fixes the warnings and compile failures:
+    
+    warning: (XEN_PVH) selects XEN_PVHVM which has unmet direct
+    dependencies (HYPERVISOR_GUEST && XEN && PCI && X86_LOCAL_APIC)
+    
+    Reported-by: Jim Davis <jim.epost@gmail.com>
+    Signed-off-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index d88bfd66aaab..01b90261fa38 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -53,6 +53,5 @@ config XEN_DEBUG_FS
+ 
+ config XEN_PVH
+ 	bool "Support for running as a PVH guest"
+-	depends on X86_64 && XEN
+-	select XEN_PVHVM
++	depends on X86_64 && XEN && XEN_PVHVM
+ 	def_bool n

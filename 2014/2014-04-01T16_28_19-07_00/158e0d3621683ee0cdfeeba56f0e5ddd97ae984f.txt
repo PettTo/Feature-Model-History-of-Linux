@@ -1,0 +1,38 @@
+commit 158e0d3621683ee0cdfeeba56f0e5ddd97ae984f
+Merge: 675c354a95d5 72099304eeb3
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Apr 1 16:28:19 2014 -0700
+
+    Merge tag 'driver-core-3.15-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/driver-core
+    
+    Pull driver core and sysfs updates from Greg KH:
+     "Here's the big driver core / sysfs update for 3.15-rc1.
+    
+      Lots of kernfs updates to make it useful for other subsystems, and a
+      few other tiny driver core patches.
+    
+      All have been in linux-next for a while"
+    
+    * tag 'driver-core-3.15-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/driver-core: (42 commits)
+      Revert "sysfs, driver-core: remove unused {sysfs|device}_schedule_callback_owner()"
+      kernfs: cache atomic_write_len in kernfs_open_file
+      numa: fix NULL pointer access and memory leak in unregister_one_node()
+      Revert "driver core: synchronize device shutdown"
+      kernfs: fix off by one error.
+      kernfs: remove duplicate dir.c at the top dir
+      x86: align x86 arch with generic CPU modalias handling
+      cpu: add generic support for CPU feature based module autoloading
+      sysfs: create bin_attributes under the requested group
+      driver core: unexport static function create_syslog_header
+      firmware: use power efficient workqueue for unloading and aborting fw load
+      firmware: give a protection when map page failed
+      firmware: google memconsole driver fixes
+      firmware: fix google/gsmi duplicate efivars_sysfs_init()
+      drivers/base: delete non-required instances of include <linux/init.h>
+      kernfs: fix kernfs_node_from_dentry()
+      ACPI / platform: drop redundant ACPI_HANDLE check
+      kernfs: fix hash calculation in kernfs_rename_ns()
+      kernfs: add CONFIG_KERNFS
+      sysfs, kobject: add sysfs wrapper for kernfs_enable_ns()
+      ...
+

@@ -1,0 +1,11 @@
+commit 2b45e0f9f34f718725e093f4e335600811d7105a
+Merge: a85eba881463 15c81026204d
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Sat Jan 25 09:16:14 2014 +0100
+
+    Merge branch 'linus' into x86/urgent
+    
+    Merge in the x86 changes to apply a fix.
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+

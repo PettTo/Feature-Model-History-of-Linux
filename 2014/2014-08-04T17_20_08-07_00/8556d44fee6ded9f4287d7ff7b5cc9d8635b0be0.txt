@@ -1,0 +1,23 @@
+commit 8556d44fee6ded9f4287d7ff7b5cc9d8635b0be0
+Merge: ce4747963252 4c51cb005b29
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Aug 4 17:20:08 2014 -0700
+
+    Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 platform updates from Ingo Molnar:
+     "The main changes in this cycle are:
+    
+       - Intel SOC driver updates, by Aubrey Li.
+    
+       - TS5500 platform updates, by Vivien Didelot"
+    
+    * 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/pmc_atom: Silence shift wrapping warnings in pmc_sleep_tmr_show()
+      x86/pmc_atom: Expose PMC device state and platform sleep state
+      x86/pmc_atom: Eisable a few S0ix wake up events for S0ix residency
+      x86/platform: New Intel Atom SOC power management controller driver
+      x86/platform/ts5500: Add support for TS-5400 boards
+      x86/platform/ts5500: Add a 'name' sysfs attribute
+      x86/platform/ts5500: Use the DEVICE_ATTR_RO() macro
+

@@ -1,0 +1,29 @@
+commit f1bfbd984b4e2177886507b6a0ec5faeb6d7c217
+Merge: df133e8fa8e1 aece118e487a
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Oct 14 02:23:55 2014 +0200
+
+    Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 platform updates from Ingo Molnar:
+     "The main changes in this tree are:
+    
+       - fix and update Intel Quark [Galileo] SoC platform support
+    
+       - update IOSF chipset side band interface and make it available via
+         debugfs
+    
+       - enable HPETs on Soekris net6501 and other e6xx based systems"
+    
+    * 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86: Add cpu_detect_cache_sizes to init_intel() add Quark legacy_cache()
+      x86: Quark: Comment setup_arch() to document TLB/PGE bug
+      x86/intel/quark: Switch off CR4.PGE so TLB flush uses CR3 instead
+      x86/platform/intel/iosf: Add debugfs config option for IOSF
+      x86/platform/intel/iosf: Add better description of IOSF driver in config
+      x86/platform/intel/iosf: Add Braswell PCI ID
+      x86/platform/pmc_atom: Fix warning when CONFIG_DEBUG_FS=n
+      x86: HPET force enable for e6xx based systems
+      x86/iosf: Add debugfs support
+      x86/iosf: Add Kconfig prompt for IOSF_MBI selection
+

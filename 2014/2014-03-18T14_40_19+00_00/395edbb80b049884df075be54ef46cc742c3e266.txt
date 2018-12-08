@@ -1,0 +1,44 @@
+commit 395edbb80b049884df075be54ef46cc742c3e266
+Author: Michael Opdenacker <michael.opdenacker@free-electrons.com>
+Date:   Tue Feb 18 14:07:41 2014 +0100
+
+    xen: remove XEN_PRIVILEGED_GUEST
+    
+    This patch removes the Kconfig symbol XEN_PRIVILEGED_GUEST which is
+    used nowhere in the tree.
+    
+    We do know grub2 has a script that greps kernel configuration files for
+    its macro. It shouldn't do that. As Linus summarized:
+        This is a grub bug. It really is that simple. Treat it as one.
+    
+    Besides, grub2's grepping for that macro is actually superfluous. See,
+    that script currently contains this test (simplified):
+        grep -x CONFIG_XEN_DOM0=y $config || grep -x CONFIG_XEN_PRIVILEGED_GUEST=y $config
+    
+    But since XEN_DOM0 and XEN_PRIVILEGED_GUEST are by definition equal,
+    removing XEN_PRIVILEGED_GUEST cannot influence this test.
+    
+    So there's no reason to not remove this symbol, like we do with all
+    unused Kconfig symbols.
+    
+    [pebolle@tiscali.nl: rewrote commit explanation.]
+    Signed-off-by: Michael Opdenacker <michael.opdenacker@free-electrons.com>
+    Signed-off-by: Paul Bolle <pebolle@tiscali.nl>
+    Signed-off-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index 01b90261fa38..512219d89560 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -19,11 +19,6 @@ config XEN_DOM0
+ 	depends on XEN && PCI_XEN && SWIOTLB_XEN
+ 	depends on X86_LOCAL_APIC && X86_IO_APIC && ACPI && PCI
+ 
+-# Dummy symbol since people have come to rely on the PRIVILEGED_GUEST
+-# name in tools.
+-config XEN_PRIVILEGED_GUEST
+-	def_bool XEN_DOM0
+-
+ config XEN_PVHVM
+ 	def_bool y
+ 	depends on XEN && PCI && X86_LOCAL_APIC

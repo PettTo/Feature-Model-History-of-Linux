@@ -1,0 +1,25 @@
+commit 4500cf60dbe4b7f514d11b24c3e1edfda2a6d69d
+Merge: 972d5e7e5b66 ee87c751d88f
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jan 20 12:06:50 2014 -0800
+
+    Merge branch 'x86-intel-mid-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull Intel MID updates from Ingo Molnar:
+     "This tree improves Intel MID (Mobile Internet Device) platform
+      support:
+    
+       - Merrifield platform support (David Cohen)
+       - Clovertrail platform support (Kuppuswamy Sathyanarayanan)
+       - Various cleanups and fixes (David Cohen)"
+    
+    * 'x86-intel-mid-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, intel_mid: Replace memcpy with struct assignment
+      x86, intel-mid: Return proper error code from get_gpio_by_name()
+      x86, intel-mid: Check get_gpio_by_name() error code on platform code
+      x86, intel-mid: sfi_handle_*_dev() should check for pdata error code
+      x86, intel-mid: Remove deprecated X86_MDFLD and X86_WANT_INTEL_MID configs
+      x86, intel-mid: Add Merrifield platform support
+      x86, intel-mid: Add Clovertrail platform support
+      x86, intel-mid: Move Medfield code out of intel-mid.c core file
+

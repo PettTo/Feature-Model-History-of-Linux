@@ -1,0 +1,26 @@
+commit 94491620e1362f6065ab821c13eb54b716ada19f
+Author: Randy Dunlap <rdunlap@infradead.org>
+Date:   Fri Jan 17 18:02:38 2014 -0800
+
+    kvm: make KVM_MMU_AUDIT help text more readable
+    
+    Make KVM_MMU_AUDIT kconfig help text readable and collapse
+    two spaces between words down to one space.
+    
+    Signed-off-by: Randy Dunlap <rdunlap@infradead.org>
+    Reviewed-by: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
+    Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+
+diff --git a/arch/x86/kvm/Kconfig b/arch/x86/kvm/Kconfig
+index b89c5db2b832..287e4c85fff9 100644
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@ -80,7 +80,7 @@ config KVM_MMU_AUDIT
+ 	depends on KVM && TRACEPOINTS
+ 	---help---
+ 	 This option adds a R/W kVM module parameter 'mmu_audit', which allows
+-	 audit  KVM MMU at runtime.
++	 auditing of KVM MMU events at runtime.
+ 
+ config KVM_DEVICE_ASSIGNMENT
+ 	bool "KVM legacy PCI device assignment support"

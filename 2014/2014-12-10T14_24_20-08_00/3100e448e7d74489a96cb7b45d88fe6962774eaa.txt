@@ -1,0 +1,28 @@
+commit 3100e448e7d74489a96cb7b45d88fe6962774eaa
+Merge: c9f861c77269 26893107aa71
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Dec 10 14:24:20 2014 -0800
+
+    Merge branch 'x86-vdso-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 vdso updates from Ingo Molnar:
+     "Various vDSO updates from Andy Lutomirski, mostly cleanups and
+      reorganization to improve maintainability, but also some
+      micro-optimizations and robustization changes"
+    
+    * 'x86-vdso-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86_64/vsyscall: Restore orig_ax after vsyscall seccomp
+      x86_64: Add a comment explaining the TASK_SIZE_MAX guard page
+      x86_64,vsyscall: Make vsyscall emulation configurable
+      x86_64, vsyscall: Rewrite comment and clean up headers in vsyscall code
+      x86_64, vsyscall: Turn vsyscalls all the way off when vsyscall==none
+      x86,vdso: Use LSL unconditionally for vgetcpu
+      x86: vdso: Fix build with older gcc
+      x86_64/vdso: Clean up vgetcpu init and merge the vdso initcalls
+      x86_64/vdso: Remove jiffies from the vvar page
+      x86/vdso: Make the PER_CPU segment 32 bits
+      x86/vdso: Make the PER_CPU segment start out accessed
+      x86/vdso: Change the PER_CPU segment to use struct desc_struct
+      x86_64/vdso: Move getcpu code from vsyscall_64.c to vdso/vma.c
+      x86_64/vsyscall: Move all of the gate_area code to vsyscall_64.c
+

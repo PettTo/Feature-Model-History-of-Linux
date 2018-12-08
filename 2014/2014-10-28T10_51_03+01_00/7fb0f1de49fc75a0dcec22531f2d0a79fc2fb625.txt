@@ -1,0 +1,53 @@
+commit 7fb0f1de49fc75a0dcec22531f2d0a79fc2fb625
+Author: Peter Zijlstra <peterz@infradead.org>
+Date:   Fri Oct 24 09:12:35 2014 +0200
+
+    perf/x86: Fix compile warnings for intel_uncore
+    
+    The uncore drivers require PCI and generate compile time warnings when
+    !CONFIG_PCI.
+    
+    Reported-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+    Cc: Stephane Eranian <eranian@google.com>
+    Cc: Andi Kleen <ak@linux.intel.com>
+    Cc: Borislav Petkov <bp@suse.de>
+    Cc: Josh Triplett <josh@joshtriplett.org>
+    Cc: Stephane Eranian <eranian@google.com>
+    Cc: Yan, Zheng <zheng.z.yan@intel.com>
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index f2327e88e07c..ded8a6774ac9 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -142,6 +142,10 @@ config INSTRUCTION_DECODER
+ 	def_bool y
+ 	depends on KPROBES || PERF_EVENTS || UPROBES
+ 
++config PERF_EVENTS_INTEL_UNCORE
++	def_bool y
++	depends on PERF_EVENTS && SUP_SUP_INTEL && PCI
++
+ config OUTPUT_FORMAT
+ 	string
+ 	default "elf32-i386" if X86_32
+diff --git a/arch/x86/kernel/cpu/Makefile b/arch/x86/kernel/cpu/Makefile
+index 01d5453b5502..e27b49d7c922 100644
+--- a/arch/x86/kernel/cpu/Makefile
++++ b/arch/x86/kernel/cpu/Makefile
+@@ -39,9 +39,12 @@ obj-$(CONFIG_CPU_SUP_AMD)		+= perf_event_amd_iommu.o
+ endif
+ obj-$(CONFIG_CPU_SUP_INTEL)		+= perf_event_p6.o perf_event_knc.o perf_event_p4.o
+ obj-$(CONFIG_CPU_SUP_INTEL)		+= perf_event_intel_lbr.o perf_event_intel_ds.o perf_event_intel.o
+-obj-$(CONFIG_CPU_SUP_INTEL)		+= perf_event_intel_uncore.o perf_event_intel_uncore_snb.o
+-obj-$(CONFIG_CPU_SUP_INTEL)		+= perf_event_intel_uncore_snbep.o perf_event_intel_uncore_nhmex.o
+ obj-$(CONFIG_CPU_SUP_INTEL)		+= perf_event_intel_rapl.o
++
++obj-$(CONFIG_PERF_EVENTS_INTEL_UNCORE)	+= perf_event_intel_uncore.o \
++					   perf_event_intel_uncore_snb.o \
++					   perf_event_intel_uncore_snbep.o \
++					   perf_event_intel_uncore_nhmex.o
+ endif
+ 
+ 

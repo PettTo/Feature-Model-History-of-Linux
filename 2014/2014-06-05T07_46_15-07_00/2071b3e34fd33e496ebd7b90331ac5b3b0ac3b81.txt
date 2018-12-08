@@ -1,0 +1,86 @@
+commit 2071b3e34fd33e496ebd7b90331ac5b3b0ac3b81
+Merge: 9df0fe64ebbd e6ab9a20e73e
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Jun 5 07:46:15 2014 -0700
+
+    Merge branch 'x86/espfix' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip into next
+    
+    Pull x86-64 espfix changes from Peter Anvin:
+     "This is the espfix64 code, which fixes the IRET information leak as
+      well as the associated functionality problem.  With this code applied,
+      16-bit stack segments finally work as intended even on a 64-bit
+      kernel.
+    
+      Consequently, this patchset also removes the runtime option that we
+      added as an interim measure.
+    
+      To help the people working on Linux kernels for very small systems,
+      this patchset also makes these compile-time configurable features"
+    
+    * 'x86/espfix' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      Revert "x86-64, modify_ldt: Make support for 16-bit segments a runtime option"
+      x86, espfix: Make it possible to disable 16-bit support
+      x86, espfix: Make espfix64 a Kconfig option, fix UML
+      x86, espfix: Fix broken header guard
+      x86, espfix: Move espfix definitions into a separate header file
+      x86-32, espfix: Remove filter for espfix32 due to race
+      x86-64, espfix: Don't leak bits 31:16 of %esp returning to 16-bit stack
+
+diff --cc arch/x86/kernel/entry_64.S
+index be846d2468f7,da0b9bdcc32e..96987987c5de
+--- a/arch/x86/kernel/entry_64.S
++++ b/arch/x86/kernel/entry_64.S
+@@@ -1284,19 -1362,39 +1357,19 @@@ idtentry \sym \do_sym has_error_code=\h
+  .endm
+  #endif
+  
+ -	/* error code is on the stack already */
+ -.macro paranoiderrorentry sym do_sym
+ -ENTRY(\sym)
+ -	XCPT_FRAME
+ -	ASM_CLAC
+ -	PARAVIRT_ADJUST_EXCEPTION_FRAME
+ -	subq $ORIG_RAX-R15, %rsp
+ -	CFI_ADJUST_CFA_OFFSET ORIG_RAX-R15
+ -	call save_paranoid
+ -	DEFAULT_FRAME 0
+ -	TRACE_IRQS_OFF
+ -	movq %rsp,%rdi			/* pt_regs pointer */
+ -	movq ORIG_RAX(%rsp),%rsi	/* get error code */
+ -	movq $-1,ORIG_RAX(%rsp)		/* no syscall to restart */
+ -	call \do_sym
+ -	jmp paranoid_exit		/* %ebx: no swapgs flag */
+ -	CFI_ENDPROC
+ -END(\sym)
+ -.endm
+ -
+ -zeroentry divide_error do_divide_error
+ -zeroentry overflow do_overflow
+ -zeroentry bounds do_bounds
+ -zeroentry invalid_op do_invalid_op
+ -zeroentry device_not_available do_device_not_available
+ -paranoiderrorentry double_fault __do_double_fault
+ -zeroentry coprocessor_segment_overrun do_coprocessor_segment_overrun
+ -errorentry invalid_TSS do_invalid_TSS
+ -errorentry segment_not_present do_segment_not_present
+ -zeroentry spurious_interrupt_bug do_spurious_interrupt_bug
+ -zeroentry coprocessor_error do_coprocessor_error
+ -errorentry alignment_check do_alignment_check
+ -zeroentry simd_coprocessor_error do_simd_coprocessor_error
+ +idtentry divide_error do_divide_error has_error_code=0
+ +idtentry overflow do_overflow has_error_code=0
+ +idtentry bounds do_bounds has_error_code=0
+ +idtentry invalid_op do_invalid_op has_error_code=0
+ +idtentry device_not_available do_device_not_available has_error_code=0
+- idtentry double_fault do_double_fault has_error_code=1 paranoid=1
+++idtentry double_fault __do_double_fault has_error_code=1 paranoid=1
+ +idtentry coprocessor_segment_overrun do_coprocessor_segment_overrun has_error_code=0
+ +idtentry invalid_TSS do_invalid_TSS has_error_code=1
+ +idtentry segment_not_present do_segment_not_present has_error_code=1
+ +idtentry spurious_interrupt_bug do_spurious_interrupt_bug has_error_code=0
+ +idtentry coprocessor_error do_coprocessor_error has_error_code=0
+ +idtentry alignment_check do_alignment_check has_error_code=1
+ +idtentry simd_coprocessor_error do_simd_coprocessor_error has_error_code=0
+  
+  
+  	/* Reload gs selector with exception handling */

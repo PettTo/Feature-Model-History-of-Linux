@@ -1,0 +1,45 @@
+commit d09cc3659db494aca4b3bb2393c533fb4946b794
+Merge: 82e627eb5e07 c0ffa793994a
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Jun 4 15:59:13 2014 -0700
+
+    Merge branch 'irq-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip into next
+    
+    Pull core irq updates from Thomas Gleixner:
+     "The irq department delivers:
+    
+       - Another tree wide update to get rid of the horrible create_irq
+         interface along with its even more horrible variants.  That also
+         gets rid of the last leftovers of the initial sparse irq hackery.
+         arch/driver specific changes have been either acked or ignored.
+    
+       - A fix for the spurious interrupt detection logic with threaded
+         interrupts.
+    
+       - A new ARM SoC interrupt controller
+    
+       - The usual pile of fixes and improvements all over the place"
+    
+    * 'irq-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (40 commits)
+      Documentation: brcmstb-l2: Add Broadcom STB Level-2 interrupt controller binding
+      irqchip: brcmstb-l2: Add Broadcom Set Top Box Level-2 interrupt controller
+      genirq: Improve documentation to match current implementation
+      ARM: iop13xx: fix msi support with sparse IRQ
+      genirq: Provide !SMP stub for irq_set_affinity_notifier()
+      irqchip: armada-370-xp: Move the devicetree binding documentation
+      irqchip: gic: Use mask field in GICC_IAR
+      genirq: Remove dynamic_irq mess
+      ia64: Use irq_init_desc
+      genirq: Replace dynamic_irq_init/cleanup
+      genirq: Remove irq_reserve_irq[s]
+      genirq: Replace reserve_irqs in core code
+      s390: Avoid call to irq_reserve_irqs()
+      s390: Remove pointless arch_show_interrupts()
+      s390: pci: Check return value of alloc_irq_desc() proper
+      sh: intc: Remove pointless irq_reserve_irqs() invocation
+      x86, irq: Remove pointless irq_reserve_irqs() call
+      genirq: Make create/destroy_irq() ia64 private
+      tile: Use SPARSE_IRQ
+      tile: pci: Use irq_alloc/free_hwirq()
+      ...
+

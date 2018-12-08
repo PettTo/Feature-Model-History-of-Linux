@@ -1,0 +1,102 @@
+commit 72d931046030beb2d13dad6d205be0e228618432
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat Sep 13 11:14:53 2014 -0700
+
+    Make ARCH_HAS_FAST_MULTIPLIER a real config variable
+    
+    It used to be an ad-hoc hack defined by the x86 version of
+    <asm/bitops.h> that enabled a couple of library routines to know whether
+    an integer multiply is faster than repeated shifts and additions.
+    
+    This just makes it use the real Kconfig system instead, and makes x86
+    (which was the only architecture that did this) select the option.
+    
+    NOTE! Even for x86, this really is kind of wrong.  If we cared, we would
+    probably not enable this for builds optimized for netburst (P4), where
+    shifts-and-adds are generally faster than multiplies.  This patch does
+    *not* change that kind of logic, though, it is purely a syntactic change
+    with no code changes.
+    
+    This was triggered by the fact that we have other places that really
+    want to know "do I want to expand multiples by constants by hand or
+    not", particularly the hash generation code.
+    
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 778178f4c7d1..36327438caf0 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -23,6 +23,7 @@ config X86
+ 	def_bool y
+ 	select ARCH_MIGHT_HAVE_ACPI_PDC if ACPI
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
++	select ARCH_HAS_FAST_MULTIPLIER
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select HAVE_AOUT if X86_32
+diff --git a/arch/x86/include/asm/bitops.h b/arch/x86/include/asm/bitops.h
+index afcd35d331de..cfe3b954d5e4 100644
+--- a/arch/x86/include/asm/bitops.h
++++ b/arch/x86/include/asm/bitops.h
+@@ -497,8 +497,6 @@ static __always_inline int fls64(__u64 x)
+ 
+ #include <asm-generic/bitops/sched.h>
+ 
+-#define ARCH_HAS_FAST_MULTIPLIER 1
+-
+ #include <asm/arch_hweight.h>
+ 
+ #include <asm-generic/bitops/const_hweight.h>
+diff --git a/lib/Kconfig b/lib/Kconfig
+index a5ce0c7f6c30..54cf309a92a5 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -51,6 +51,9 @@ config PERCPU_RWSEM
+ config ARCH_USE_CMPXCHG_LOCKREF
+ 	bool
+ 
++config ARCH_HAS_FAST_MULTIPLIER
++	bool
++
+ config CRC_CCITT
+ 	tristate "CRC-CCITT functions"
+ 	help
+diff --git a/lib/hweight.c b/lib/hweight.c
+index b7d81ba143d1..9a5c1f221558 100644
+--- a/lib/hweight.c
++++ b/lib/hweight.c
+@@ -11,7 +11,7 @@
+ 
+ unsigned int __sw_hweight32(unsigned int w)
+ {
+-#ifdef ARCH_HAS_FAST_MULTIPLIER
++#ifdef CONFIG_ARCH_HAS_FAST_MULTIPLIER
+ 	w -= (w >> 1) & 0x55555555;
+ 	w =  (w & 0x33333333) + ((w >> 2) & 0x33333333);
+ 	w =  (w + (w >> 4)) & 0x0f0f0f0f;
+@@ -49,7 +49,7 @@ unsigned long __sw_hweight64(__u64 w)
+ 	return __sw_hweight32((unsigned int)(w >> 32)) +
+ 	       __sw_hweight32((unsigned int)w);
+ #elif BITS_PER_LONG == 64
+-#ifdef ARCH_HAS_FAST_MULTIPLIER
++#ifdef CONFIG_ARCH_HAS_FAST_MULTIPLIER
+ 	w -= (w >> 1) & 0x5555555555555555ul;
+ 	w =  (w & 0x3333333333333333ul) + ((w >> 2) & 0x3333333333333333ul);
+ 	w =  (w + (w >> 4)) & 0x0f0f0f0f0f0f0f0ful;
+diff --git a/lib/string.c b/lib/string.c
+index 992bf30af759..f3c6ff596414 100644
+--- a/lib/string.c
++++ b/lib/string.c
+@@ -807,9 +807,9 @@ void *memchr_inv(const void *start, int c, size_t bytes)
+ 		return check_bytes8(start, value, bytes);
+ 
+ 	value64 = value;
+-#if defined(ARCH_HAS_FAST_MULTIPLIER) && BITS_PER_LONG == 64
++#if defined(CONFIG_ARCH_HAS_FAST_MULTIPLIER) && BITS_PER_LONG == 64
+ 	value64 *= 0x0101010101010101;
+-#elif defined(ARCH_HAS_FAST_MULTIPLIER)
++#elif defined(CONFIG_ARCH_HAS_FAST_MULTIPLIER)
+ 	value64 *= 0x01010101;
+ 	value64 |= value64 << 32;
+ #else

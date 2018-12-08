@@ -1,0 +1,11 @@
+commit a3b072cd180c12e8fe0ece9487b9065808327640
+Merge: 75a1ba5b2c52 081cd62a010f
+Author: H. Peter Anvin <hpa@linux.intel.com>
+Date:   Fri Feb 7 11:27:30 2014 -0800
+
+    Merge tag 'efi-urgent' into x86/urgent
+    
+     * Avoid WARN_ON() when mapping BGRT on Baytrail (EFI 32-bit).
+    
+    Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
+

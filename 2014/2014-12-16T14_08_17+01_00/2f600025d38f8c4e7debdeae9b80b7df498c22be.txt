@@ -1,0 +1,52 @@
+commit 2f600025d38f8c4e7debdeae9b80b7df498c22be
+Author: Jiang Liu <jiang.liu@linux.intel.com>
+Date:   Mon Oct 27 16:12:06 2014 +0800
+
+    x86, irq: Make MSI and HT_IRQ indepenent of X86_IO_APIC
+    
+    Now we have splitted functions to support MSI and HT_IRQ into vector.c,
+    and they have no dependency on IOAPIC any more. So change Kconfig files
+    to make MSI and HT_IRQ independent of X86_IO_APIC.
+    
+    Signed-off-by: Jiang Liu <jiang.liu@linux.intel.com>
+    Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Cc: Joerg Roedel <joro@8bytes.org>
+    Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+    Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+    Cc: Rafael J. Wysocki <rjw@rjwysocki.net>
+    Cc: Bjorn Helgaas <bhelgaas@google.com>
+    Cc: Randy Dunlap <rdunlap@infradead.org>
+    Cc: Yinghai Lu <yinghai@kernel.org>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Link: http://lkml.kernel.org/r/1414397531-28254-16-git-send-email-jiang.liu@linux.intel.com
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 1e851b1ff61b..a39b7e5e95b3 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -889,8 +889,8 @@ config X86_LOCAL_APIC
+ 	select GENERIC_IRQ_LEGACY_ALLOC_HWIRQ
+ 
+ config X86_IO_APIC
+-	def_bool y
+-	depends on X86_64 || SMP || X86_32_NON_STANDARD || X86_UP_IOAPIC || PCI_MSI
++	def_bool X86_64 || SMP || X86_32_NON_STANDARD || X86_UP_IOAPIC
++	depends on X86_LOCAL_APIC
+ 	select IRQ_DOMAIN
+ 
+ config X86_REROUTE_FOR_BROKEN_BOOT_IRQS
+diff --git a/drivers/pci/Kconfig b/drivers/pci/Kconfig
+index 91a64d359d50..7a8f1c5e65af 100644
+--- a/drivers/pci/Kconfig
++++ b/drivers/pci/Kconfig
+@@ -67,7 +67,7 @@ config XEN_PCIDEV_FRONTEND
+ config HT_IRQ
+ 	bool "Interrupts on hypertransport devices"
+ 	default y
+-	depends on PCI && X86_LOCAL_APIC && X86_IO_APIC
++	depends on PCI && X86_LOCAL_APIC
+ 	help
+ 	   This allows native hypertransport devices to use interrupts.
+ 

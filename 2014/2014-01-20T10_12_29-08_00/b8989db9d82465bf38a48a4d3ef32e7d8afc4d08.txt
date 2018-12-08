@@ -1,0 +1,31 @@
+commit b8989db9d82465bf38a48a4d3ef32e7d8afc4d08
+Author: Alan <gnomes@lxorguk.ukuu.org.uk>
+Date:   Mon Jan 20 18:01:56 2014 +0000
+
+    x86, doc, kconfig: Fix dud URL for Microcode data
+    
+    The actual data lives in the Intel download center, and that ought to also
+    be a reliable way to continue to find it. Unfortunately the actual URL
+    needed for doing it directly is about a foot long so give instructions.
+    
+    Signed-off-by: Alan Cox <alan@linux.intel.com>
+    Link: http://lkml.kernel.org/r/20140120180056.7173.62222.stgit@alan.etchedpixels.co.uk
+    Signed-off-by: H. Peter Anvin <hpa@zytor.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0952ecd60eca..64199bc08d66 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1064,9 +1064,9 @@ config MICROCODE_INTEL
+ 	  This options enables microcode patch loading support for Intel
+ 	  processors.
+ 
+-	  For latest news and information on obtaining all the required
+-	  Intel ingredients for this driver, check:
+-	  <http://www.urbanmyth.org/microcode/>.
++	  For the current Intel microcode data package go to
++	  <https://downloadcenter.intel.com> and search for
++	  'Linux Processor Microcode Data File'.
+ 
+ config MICROCODE_AMD
+ 	bool "AMD microcode loading support"

@@ -1,0 +1,79 @@
+commit ddc416cbc4e34f52bebca027de1c099bd30795f8
+Author: Mukesh Rathor <mukesh.rathor@oracle.com>
+Date:   Fri Dec 13 12:39:56 2013 -0500
+
+    xen/pvh/x86: Define what an PVH guest is (v3).
+    
+    Which is a PV guest with auto page translation enabled
+    and with vector callback. It is a cross between PVHVM and PV.
+    
+    The Xen side defines PVH as (from docs/misc/pvh-readme.txt,
+    with modifications):
+    
+    "* the guest uses auto translate:
+     - p2m is managed by Xen
+     - pagetables are owned by the guest
+     - mmu_update hypercall not available
+    * it uses event callback and not vlapic emulation,
+    * IDT is native, so set_trap_table hcall is also N/A for a PVH guest.
+    
+    For a full list of hcalls supported for PVH, see pvh_hypercall64_table
+    in arch/x86/hvm/hvm.c in xen.  From the ABI prespective, it's mostly a
+    PV guest with auto translate, although it does use hvm_op for setting
+    callback vector."
+    
+    Also we use the PV cpuid, albeit we can use the HVM (native) cpuid.
+    However, we do have a fair bit of filtering in the xen_cpuid and
+    we can piggyback on that until the hypervisor/toolstack filters
+    the appropiate cpuids. Once that is done we can swap over to
+    use the native one.
+    
+    We setup a Kconfig entry that is disabled by default and
+    cannot be enabled.
+    
+    Note that on ARM the concept of PVH is non-existent. As Ian
+    put it: "an ARM guest is neither PV nor HVM nor PVHVM.
+    It's a bit like PVH but is different also (it's further towards
+    the H end of the spectrum than even PVH).". As such these
+    options (PVHVM, PVH) are never enabled nor seen on ARM
+    compilations.
+    
+    Signed-off-by: Mukesh Rathor <mukesh.rathor@oracle.com>
+    Signed-off-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index 1a3c76505649..e7d05900efac 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -51,3 +51,8 @@ config XEN_DEBUG_FS
+ 	  Enable statistics output and various tuning options in debugfs.
+ 	  Enabling this option may incur a significant performance overhead.
+ 
++config XEN_PVH
++	bool "Support for running as a PVH guest"
++	depends on X86_64 && XEN && BROKEN
++	select XEN_PVHVM
++	def_bool n
+diff --git a/include/xen/xen.h b/include/xen/xen.h
+index a74d4362c4f8..0c0e3ef4c45d 100644
+--- a/include/xen/xen.h
++++ b/include/xen/xen.h
+@@ -29,4 +29,18 @@ extern enum xen_domain_type xen_domain_type;
+ #define xen_initial_domain()	(0)
+ #endif	/* CONFIG_XEN_DOM0 */
+ 
++#ifdef CONFIG_XEN_PVH
++/* This functionality exists only for x86. The XEN_PVHVM support exists
++ * only in x86 world - hence on ARM it will be always disabled.
++ * N.B. ARM guests are neither PV nor HVM nor PVHVM.
++ * It's a bit like PVH but is different also (it's further towards the H
++ * end of the spectrum than even PVH).
++ */
++#include <xen/features.h>
++#define xen_pvh_domain() (xen_pv_domain() && \
++			  xen_feature(XENFEAT_auto_translated_physmap) && \
++			  xen_have_vector_callback)
++#else
++#define xen_pvh_domain()	(0)
++#endif
+ #endif	/* _XEN_XEN_H */

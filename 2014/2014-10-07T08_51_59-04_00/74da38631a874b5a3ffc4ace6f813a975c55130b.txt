@@ -1,0 +1,61 @@
+commit 74da38631a874b5a3ffc4ace6f813a975c55130b
+Merge: bfe01a5ba249 3cf6b0151ba5
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Oct 7 08:51:59 2014 -0400
+
+    Merge tag 'tiny/for-3.18' of git://git.kernel.org/pub/scm/linux/kernel/git/josh/linux
+    
+    Pull "tinification" patches from Josh Triplett.
+    
+    Work on making smaller kernels.
+    
+    * tag 'tiny/for-3.18' of git://git.kernel.org/pub/scm/linux/kernel/git/josh/linux:
+      bloat-o-meter: Ignore syscall aliases SyS_ and compat_SyS_
+      mm: Support compiling out madvise and fadvise
+      x86: Support compiling out human-friendly processor feature names
+      x86: Drop support for /proc files when !CONFIG_PROC_FS
+      x86, boot: Don't compile early_serial_console.c when !CONFIG_EARLY_PRINTK
+      x86, boot: Don't compile aslr.c when !CONFIG_RANDOMIZE_BASE
+      x86, boot: Use the usual -y -n mechanism for objects in vmlinux
+      x86: Add "make tinyconfig" to configure the tiniest possible kernel
+      x86, platform, kconfig: move kvmconfig functionality to a helper
+
+diff --cc arch/x86/Makefile
+index 60087ca37679,7705b6f921ac..5692d6ac0f18
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@@ -251,14 -254,7 +251,8 @@@ archclean
+  	$(Q)rm -rf $(objtree)/arch/x86_64
+  	$(Q)$(MAKE) $(clean)=$(boot)
+  	$(Q)$(MAKE) $(clean)=arch/x86/tools
+ +	$(Q)$(MAKE) $(clean)=arch/x86/purgatory
+  
+- PHONY += kvmconfig
+- kvmconfig:
+- 	$(if $(wildcard $(objtree)/.config),, $(error You need an existing .config for this target))
+- 	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/kconfig/merge_config.sh -m -O $(objtree) $(objtree)/.config $(srctree)/arch/x86/configs/kvm_guest.config
+- 	$(Q)yes "" | $(MAKE) -f $(srctree)/Makefile oldconfig
+- 
+  define archhelp
+    echo  '* bzImage      - Compressed kernel image (arch/x86/boot/bzImage)'
+    echo  '  install      - Install kernel using'
+diff --cc arch/x86/boot/compressed/Makefile
+index 0fcd9133790c,20db5b3609de..704f58aa79cd
+--- a/arch/x86/boot/compressed/Makefile
++++ b/arch/x86/boot/compressed/Makefile
+@@@ -32,11 -35,10 +35,9 @@@ vmlinux-objs-$(CONFIG_RANDOMIZE_BASE) +
+  
+  $(obj)/eboot.o: KBUILD_CFLAGS += -fshort-wchar -mno-red-zone
+  
+- ifeq ($(CONFIG_EFI_STUB), y)
+- 	VMLINUX_OBJS += $(obj)/eboot.o $(obj)/efi_stub_$(BITS).o
+- endif
+ -vmlinux-objs-$(CONFIG_EFI_STUB) += $(obj)/eboot.o $(obj)/efi_stub_$(BITS).o \
+ -	$(objtree)/drivers/firmware/efi/libstub/lib.a
+++vmlinux-objs-$(CONFIG_EFI_STUB) += $(obj)/eboot.o $(obj)/efi_stub_$(BITS).o
+  
+- $(obj)/vmlinux: $(VMLINUX_OBJS) FORCE
++ $(obj)/vmlinux: $(vmlinux-objs-y) FORCE
+  	$(call if_changed,ld)
+  	@:
+  

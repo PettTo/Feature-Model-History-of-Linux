@@ -1,0 +1,51 @@
+commit 00170fdd0846df7cdb5ad421d3a340440f930b8f
+Merge: d09cc3659db4 3ff6db3287e8
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Jun 4 16:55:13 2014 -0700
+
+    Merge branch 'akpm' (patchbomb from Andrew) into next
+    
+    Merge misc updates from Andrew Morton:
+    
+     - a few fixes for 3.16.  Cc'ed to stable so they'll get there somehow.
+    
+     - various misc fixes and cleanups
+    
+     - most of the ocfs2 queue.  Review is slow...
+    
+     - most of MM.  The MM queue is pretty huge this time, but not much in
+       the way of feature work.
+    
+     - some tweaks under kernel/
+    
+     - printk maintenance work
+    
+     - updates to lib/
+    
+     - checkpatch updates
+    
+     - tweaks to init/
+    
+    * emailed patches from Andrew Morton <akpm@linux-foundation.org>: (276 commits)
+      fs/autofs4/dev-ioctl.c: add __init to autofs_dev_ioctl_init
+      fs/ncpfs/getopt.c: replace simple_strtoul by kstrtoul
+      init/main.c: remove an ifdef
+      kthreads: kill CLONE_KERNEL, change kernel_thread(kernel_init) to avoid CLONE_SIGHAND
+      init/main.c: add initcall_blacklist kernel parameter
+      init/main.c: don't use pr_debug()
+      fs/binfmt_flat.c: make old_reloc() static
+      fs/binfmt_elf.c: fix bool assignements
+      fs/efs: convert printk(KERN_DEBUG to pr_debug
+      fs/efs: add pr_fmt / use __func__
+      fs/efs: convert printk to pr_foo()
+      scripts/checkpatch.pl: device_initcall is not the only __initcall substitute
+      checkpatch: check stable email address
+      checkpatch: warn on unnecessary void function return statements
+      checkpatch: prefer kstrto<foo> to sscanf(buf, "%<lhuidx>", &bar);
+      checkpatch: add warning for kmalloc/kzalloc with multiply
+      checkpatch: warn on #defines ending in semicolon
+      checkpatch: make --strict a default for files in drivers/net and net/
+      checkpatch: always warn on missing blank line after variable declaration block
+      checkpatch: fix wildcard DT compatible string checking
+      ...
+

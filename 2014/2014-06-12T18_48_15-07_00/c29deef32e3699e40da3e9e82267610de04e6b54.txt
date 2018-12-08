@@ -1,0 +1,23 @@
+commit c29deef32e3699e40da3e9e82267610de04e6b54
+Merge: f9da455b93f6 bd01ec1a13f9
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Jun 12 18:48:15 2014 -0700
+
+    Merge branch 'locking-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull more locking changes from Ingo Molnar:
+     "This is the second round of locking tree updates for v3.16, offering
+      large system scalability improvements:
+    
+     - optimistic spinning for rwsems, from Davidlohr Bueso.
+    
+     - 'qrwlocks' core code and x86 enablement, from Waiman Long and PeterZ"
+    
+    * 'locking-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, locking/rwlocks: Enable qrwlocks on x86
+      locking/rwlocks: Introduce 'qrwlocks' - fair, queued rwlocks
+      locking/mutexes: Documentation update/rewrite
+      locking/rwsem: Fix checkpatch.pl warnings
+      locking/rwsem: Fix warnings for CONFIG_RWSEM_GENERIC_SPINLOCK
+      locking/rwsem: Support optimistic spinning
+

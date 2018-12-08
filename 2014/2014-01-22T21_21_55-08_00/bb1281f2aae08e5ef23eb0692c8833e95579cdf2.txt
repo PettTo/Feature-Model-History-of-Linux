@@ -1,0 +1,52 @@
+commit bb1281f2aae08e5ef23eb0692c8833e95579cdf2
+Merge: 4988abf17492 c04e7da0133f
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Jan 22 21:21:55 2014 -0800
+
+    Merge branch 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/jikos/trivial
+    
+    Pull trivial tree updates from Jiri Kosina:
+     "Usual rocket science stuff from trivial.git"
+    
+    * 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/jikos/trivial: (39 commits)
+      neighbour.h: fix comment
+      sched: Fix warning on make htmldocs caused by wait.h
+      slab: struct kmem_cache is protected by slab_mutex
+      doc: Fix typo in USB Gadget Documentation
+      of/Kconfig: Spelling s/one/once/
+      mkregtable: Fix sscanf handling
+      lp5523, lp8501: comment improvements
+      thermal: rcar: comment spelling
+      treewide: fix comments and printk msgs
+      IXP4xx: remove '1 &&' from a condition check in ixp4xx_restart()
+      Documentation: update /proc/uptime field description
+      Documentation: Fix size parameter for snprintf
+      arm: fix comment header and macro name
+      asm-generic: uaccess: Spelling s/a ny/any/
+      mtd: onenand: fix comment header
+      doc: driver-model/platform.txt: fix a typo
+      drivers: fix typo in DEVTMPFS_MOUNT Kconfig help text
+      doc: Fix typo (acces_process_vm -> access_process_vm)
+      treewide: Fix typos in printk
+      drivers/gpu/drm/qxl/Kconfig: reformat the help text
+      ...
+
+diff --cc drivers/gpu/drm/qxl/Kconfig
+index 66ac0ff95f5a,b5be757062b2..38c2bb72e456
+--- a/drivers/gpu/drm/qxl/Kconfig
++++ b/drivers/gpu/drm/qxl/Kconfig
+@@@ -5,9 -5,10 +5,11 @@@ config DRM_QX
+  	select FB_SYS_COPYAREA
+  	select FB_SYS_IMAGEBLIT
+  	select FB_DEFERRED_IO
+-         select DRM_KMS_HELPER
++ 	select DRM_KMS_HELPER
+  	select DRM_KMS_FB_HELPER
+-         select DRM_TTM
++ 	select DRM_TTM
+ +	select CRC32
+  	help
+- 		QXL virtual GPU for Spice virtualization desktop integration. Do not enable this driver unless your distro ships a corresponding X.org QXL driver that can handle kernel modesetting.
++ 	  QXL virtual GPU for Spice virtualization desktop integration.
++ 	  Do not enable this driver unless your distro ships a corresponding
++ 	  X.org QXL driver that can handle kernel modesetting.

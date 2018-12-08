@@ -1,0 +1,83 @@
+commit e589c9e13aeb0c5539bf1314b3a78442ea8fc0c2
+Merge: 4bb9374e0bd4 719b530cdc70
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Dec 19 14:02:02 2014 -0800
+
+    Merge branch 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 apic updates from Thomas Gleixner:
+     "After stopping the full x86/apic branch, I took some time to go
+      through the first block of patches again, which are mostly cleanups
+      and preparatory work for the irqdomain conversion and ioapic hotplug
+      support.
+    
+      Unfortunaly one of the real problematic commits was right at the
+      beginning, so I rebased this portion of the pending patches without
+      the offenders.
+    
+      It would be great to get this into 3.19.  That makes reworking the
+      problematic parts simpler.  The usual tip testing did not unearth any
+      issues and it is fully bisectible now.
+    
+      I'm pretty confident that this wont affect the calmness of the xmas
+      season.
+    
+      Changes:
+       - Split the convoluted io_apic.c code into domain specific parts
+         (vector, ioapic, msi, htirq)
+       - Introduce proper helper functions to retrieve irq specific data
+         instead of open coded dereferencing of pointers
+       - Preparatory work for ioapic hotplug and irqdomain conversion
+       - Removal of the non functional pci-ioapic driver
+       - Removal of unused irq entry stubs
+       - Make native_smp_prepare_cpus() preemtible to avoid GFP_ATOMIC
+         allocations for everything which is called from there.
+       - Small cleanups and fixes"
+    
+    * 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (36 commits)
+      iommu/amd: Use helpers to access irq_cfg data structure associated with IRQ
+      iommu/vt-d: Use helpers to access irq_cfg data structure associated with IRQ
+      x86: irq_remapping: Use helpers to access irq_cfg data structure associated with IRQ
+      x86, irq: Use helpers to access irq_cfg data structure associated with IRQ
+      x86, irq: Make MSI and HT_IRQ indepenent of X86_IO_APIC
+      x86, irq: Move IRQ initialization routines from io_apic.c into vector.c
+      x86, irq: Move IOAPIC related declarations from hw_irq.h into io_apic.h
+      x86, irq: Move HT IRQ related code from io_apic.c into htirq.c
+      x86, irq: Move PCI MSI related code from io_apic.c into msi.c
+      x86, irq: Replace printk(KERN_LVL) with pr_lvl() utilities
+      x86, irq: Make UP version of irq_complete_move() an inline stub
+      x86, irq: Move local APIC related code from io_apic.c into vector.c
+      x86, irq: Introduce helpers to access struct irq_cfg
+      x86, irq: Protect __clear_irq_vector() with vector_lock
+      x86, irq: Rename local APIC related functions in io_apic.c as apic_xxx()
+      x86, irq: Refine hw_irq.h to prepare for irqdomain support
+      x86, irq: Convert irq_2_pin list to generic list
+      x86, irq: Kill useless parameter 'irq_attr' of IO_APIC_get_PCI_irq_vector()
+      x86, irq, acpi: Get rid of special handling of GSI for ACPI SCI
+      x86, irq: Introduce helper to check whether an IOAPIC has been registered
+      ...
+
+diff --cc arch/x86/pci/irq.c
+index eb500c2592ad,77148eccdf23..5dc6ca5e1741
+--- a/arch/x86/pci/irq.c
++++ b/arch/x86/pci/irq.c
+@@@ -1254,6 -1256,18 +1256,18 @@@ static int pirq_enable_irq(struct pci_d
+  	return 0;
+  }
+  
++ bool mp_should_keep_irq(struct device *dev)
++ {
++ 	if (dev->power.is_prepared)
++ 		return true;
+ -#ifdef CONFIG_PM_RUNTIME
+++#ifdef CONFIG_PM
++ 	if (dev->power.runtime_status == RPM_SUSPENDING)
++ 		return true;
++ #endif
++ 
++ 	return false;
++ }
++ 
+  static void pirq_disable_irq(struct pci_dev *dev)
+  {
+  	if (io_apic_assign_pci_irqs && !mp_should_keep_irq(&dev->dev) &&

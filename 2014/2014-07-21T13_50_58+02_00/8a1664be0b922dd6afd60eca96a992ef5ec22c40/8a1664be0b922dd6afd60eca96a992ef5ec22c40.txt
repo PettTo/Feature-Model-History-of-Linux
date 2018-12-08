@@ -1,0 +1,61 @@
+commit 8a1664be0b922dd6afd60eca96a992ef5ec22c40
+Author: Graeme Gregory <graeme.gregory@linaro.org>
+Date:   Fri Jul 18 18:02:52 2014 +0800
+
+    ACPI: add config for BIOS table scan
+    
+    With the addition of ARM64 that does not have a traditional BIOS to
+    scan, add a config option which is selected on x86 (ia64 doesn't need
+    it either, it is EFI/UEFI based system) to do the traditional BIOS
+    scanning for tables.
+    
+    Signed-off-by: Graeme Gregory <graeme.gregory@linaro.org>
+    Signed-off-by: Hanjun Guo <hanjun.guo@linaro.org>
+    Signed-off-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d24887b645dc..5617750262db 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -132,6 +132,7 @@ config X86
+ 	select GENERIC_CPU_AUTOPROBE
+ 	select HAVE_ARCH_AUDITSYSCALL
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
++	select ACPI_LEGACY_TABLES_LOOKUP if ACPI
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+index a34a22841002..970524c54bfa 100644
+--- a/drivers/acpi/Kconfig
++++ b/drivers/acpi/Kconfig
+@@ -42,6 +42,9 @@ menuconfig ACPI
+ 
+ if ACPI
+ 
++config ACPI_LEGACY_TABLES_LOOKUP
++	bool
++
+ config ACPI_SLEEP
+ 	bool
+ 	depends on SUSPEND || HIBERNATION
+diff --git a/drivers/acpi/osl.c b/drivers/acpi/osl.c
+index bad25b070fe0..3abe9b223ba7 100644
+--- a/drivers/acpi/osl.c
++++ b/drivers/acpi/osl.c
+@@ -259,12 +259,14 @@ acpi_physical_address __init acpi_os_get_root_pointer(void)
+ 			       "System description tables not found\n");
+ 			return 0;
+ 		}
+-	} else {
++	} else if (IS_ENABLED(CONFIG_ACPI_LEGACY_TABLES_LOOKUP)) {
+ 		acpi_physical_address pa = 0;
+ 
+ 		acpi_find_root_pointer(&pa);
+ 		return pa;
+ 	}
++
++	return 0;
+ }
+ 
+ /* Must be called with 'acpi_ioremap_lock' or RCU read lock held. */

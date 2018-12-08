@@ -1,0 +1,127 @@
+commit e7fda6c4c3c1a7d6996dd75fd84670fa0b5d448f
+Merge: 08d69a257144 953dec21aed4
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Aug 5 17:46:42 2014 -0700
+
+    Merge branch 'timers-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull timer and time updates from Thomas Gleixner:
+     "A rather large update of timers, timekeeping & co
+    
+       - Core timekeeping code is year-2038 safe now for 32bit machines.
+         Now we just need to fix all in kernel users and the gazillion of
+         user space interfaces which rely on timespec/timeval :)
+    
+       - Better cache layout for the timekeeping internal data structures.
+    
+       - Proper nanosecond based interfaces for in kernel users.
+    
+       - Tree wide cleanup of code which wants nanoseconds but does hoops
+         and loops to convert back and forth from timespecs.  Some of it
+         definitely belongs into the ugly code museum.
+    
+       - Consolidation of the timekeeping interface zoo.
+    
+       - A fast NMI safe accessor to clock monotonic for tracing.  This is a
+         long standing request to support correlated user/kernel space
+         traces.  With proper NTP frequency correction it's also suitable
+         for correlation of traces accross separate machines.
+    
+       - Checkpoint/restart support for timerfd.
+    
+       - A few NOHZ[_FULL] improvements in the [hr]timer code.
+    
+       - Code move from kernel to kernel/time of all time* related code.
+    
+       - New clocksource/event drivers from the ARM universe.  I'm really
+         impressed that despite an architected timer in the newer chips SoC
+         manufacturers insist on inventing new and differently broken SoC
+         specific timers.
+    
+    [ Ed. "Impressed"? I don't think that word means what you think it means ]
+    
+       - Another round of code move from arch to drivers.  Looks like most
+         of the legacy mess in ARM regarding timers is sorted out except for
+         a few obnoxious strongholds.
+    
+       - The usual updates and fixlets all over the place"
+    
+    * 'timers-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (114 commits)
+      timekeeping: Fixup typo in update_vsyscall_old definition
+      clocksource: document some basic timekeeping concepts
+      timekeeping: Use cached ntp_tick_length when accumulating error
+      timekeeping: Rework frequency adjustments to work better w/ nohz
+      timekeeping: Minor fixup for timespec64->timespec assignment
+      ftrace: Provide trace clocks monotonic
+      timekeeping: Provide fast and NMI safe access to CLOCK_MONOTONIC
+      seqcount: Add raw_write_seqcount_latch()
+      seqcount: Provide raw_read_seqcount()
+      timekeeping: Use tk_read_base as argument for timekeeping_get_ns()
+      timekeeping: Create struct tk_read_base and use it in struct timekeeper
+      timekeeping: Restructure the timekeeper some more
+      clocksource: Get rid of cycle_last
+      clocksource: Move cycle_last validation to core code
+      clocksource: Make delta calculation a function
+      wireless: ath9k: Get rid of timespec conversions
+      drm: vmwgfx: Use nsec based interfaces
+      drm: i915: Use nsec based interfaces
+      timekeeping: Provide ktime_get_raw()
+      hangcheck-timer: Use ktime_get_ns()
+      ...
+
+diff --cc kernel/trace/trace.c
+index 8bb80fe08767,84e2b45c0934..8a528392b1f4
+--- a/kernel/trace/trace.c
++++ b/kernel/trace/trace.c
+@@@ -820,11 -806,12 +820,12 @@@ static struct 
+  	const char *name;
+  	int in_ns;		/* is this clock in nanoseconds? */
+  } trace_clocks[] = {
+- 	{ trace_clock_local,	"local",	1 },
+- 	{ trace_clock_global,	"global",	1 },
+- 	{ trace_clock_counter,	"counter",	0 },
+- 	{ trace_clock_jiffies,	"uptime",	0 },
+- 	{ trace_clock,		"perf",		1 },
++ 	{ trace_clock_local,		"local",	1 },
++ 	{ trace_clock_global,		"global",	1 },
++ 	{ trace_clock_counter,		"counter",	0 },
+ -	{ trace_clock_jiffies,		"uptime",	1 },
+++	{ trace_clock_jiffies,		"uptime",	0 },
++ 	{ trace_clock,			"perf",		1 },
++ 	{ ktime_get_mono_fast_ns,	"mono",		1 },
+  	ARCH_TRACE_CLOCKS
+  };
+  
+diff --cc lib/Kconfig.debug
+index f8f45ec0ed46,24a26ad5c99d..1f630ad31fc2
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@@ -1635,19 -1649,15 +1635,28 @@@ config TEST_BP
+  
+  	  If unsure, say N.
+  
+ +config TEST_FIRMWARE
+ +	tristate "Test firmware loading via userspace interface"
+ +	default n
+ +	depends on FW_LOADER
+ +	help
+ +	  This builds the "test_firmware" module that creates a userspace
+ +	  interface for testing firmware loading. This can be used to
+ +	  control the triggering of firmware loading without needing an
+ +	  actual firmware-using device. The contents can be rechecked by
+ +	  userspace.
+ +
+ +	  If unsure, say N.
+ +
++ config TEST_UDELAY
++ 	tristate "udelay test driver"
++ 	default n
++ 	help
++ 	  This builds the "udelay_test" module that helps to make sure
++ 	  that udelay() is working properly.
++ 
++ 	  If unsure, say N.
++ 
+  source "samples/Kconfig"
+  
+  source "lib/Kconfig.kgdb"

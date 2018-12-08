@@ -1,0 +1,15 @@
+commit 74e8ee8262c3f93bbc41804037b43f07b95897bb
+Merge: 8bd6964cbd17 ca1e631c3acf
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jan 20 12:09:31 2014 -0800
+
+    Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull Intel SoC changes from Ingo Molnar:
+     "Improved Intel SoC platform support"
+    
+    * 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, tsc, apic: Unbreak static (MSR) calibration when CONFIG_X86_LOCAL_APIC=n
+      x86, tsc: Add static (MSR) TSC calibration on Intel Atom SoCs
+      arch: x86: New MailBox support driver for Intel SOC's
+

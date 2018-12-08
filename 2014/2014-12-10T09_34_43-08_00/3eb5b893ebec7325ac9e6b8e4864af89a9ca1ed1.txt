@@ -1,0 +1,34 @@
+commit 3eb5b893ebec7325ac9e6b8e4864af89a9ca1ed1
+Merge: 9e66645d72d3 9f7789f845cc
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Dec 10 09:34:43 2014 -0800
+
+    Merge branch 'x86-mpx-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 MPX support from Thomas Gleixner:
+     "This enables support for x86 MPX.
+    
+      MPX is a new debug feature for bound checking in user space.  It
+      requires kernel support to handle the bound tables and decode the
+      bound violating instruction in the trap handler"
+    
+    * 'x86-mpx-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      asm-generic: Remove asm-generic arch_bprm_mm_init()
+      mm: Make arch_unmap()/bprm_mm_init() available to all architectures
+      x86: Cleanly separate use of asm-generic/mm_hooks.h
+      x86 mpx: Change return type of get_reg_offset()
+      fs: Do not include mpx.h in exec.c
+      x86, mpx: Add documentation on Intel MPX
+      x86, mpx: Cleanup unused bound tables
+      x86, mpx: On-demand kernel allocation of bounds tables
+      x86, mpx: Decode MPX instruction to get bound violation information
+      x86, mpx: Add MPX-specific mmap interface
+      x86, mpx: Introduce VM_MPX to indicate that a VMA is MPX specific
+      x86, mpx: Add MPX to disabled features
+      ia64: Sync struct siginfo with general version
+      mips: Sync struct siginfo with general version
+      mpx: Extend siginfo structure to include bound violation information
+      x86, mpx: Rename cfg_reg_u and status_reg
+      x86: mpx: Give bndX registers actual names
+      x86: Remove arbitrary instruction size limit in instruction decoder
+

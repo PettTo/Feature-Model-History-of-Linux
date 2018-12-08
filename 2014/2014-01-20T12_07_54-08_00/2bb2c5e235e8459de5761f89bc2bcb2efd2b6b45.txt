@@ -1,0 +1,19 @@
+commit 2bb2c5e235e8459de5761f89bc2bcb2efd2b6b45
+Merge: 4500cf60dbe4 9c079129d7bf
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jan 20 12:07:54 2014 -0800
+
+    Merge branch 'x86-microcode-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 microcode loader updates from Ingo Molnar:
+     "There are two main changes in this tree:
+    
+       - AMD microcode early loading fixes
+       - some microcode loader source files reorganization"
+    
+    * 'x86-microcode-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, microcode: Move to a proper location
+      x86, microcode, AMD: Fix early ucode loading
+      x86, microcode: Share native MSR accessing variants
+      x86, ramdisk: Export relocated ramdisk VA
+

@@ -1,0 +1,244 @@
+commit 9def39be4e960917fcb80514ff23651f9ec97193
+Author: Josh Triplett <josh@joshtriplett.org>
+Date:   Wed Oct 30 08:09:45 2013 -0700
+
+    x86: Support compiling out human-friendly processor feature names
+    
+    The table mapping CPUID bits to human-readable strings takes up a
+    non-trivial amount of space, and only exists to support /proc/cpuinfo
+    and a couple of kernel messages.  Since programs depend on the format of
+    /proc/cpuinfo, force inclusion of the table when building with /proc
+    support; otherwise, support omitting that table to save space, in which
+    case the kernel messages will print features numerically instead.
+    
+    In addition to saving 1408 bytes out of vmlinux, this also saves 1373
+    bytes out of the uncompressed setup code, which contributes directly to
+    the size of bzImage.
+    
+    Signed-off-by: Josh Triplett <josh@joshtriplett.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5d0bf1aa9dcb..a11f27c4266a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -136,6 +136,7 @@ config X86
+ 	select HAVE_ACPI_APEI if ACPI
+ 	select HAVE_ACPI_APEI_NMI if ACPI
+ 	select ACPI_LEGACY_TABLES_LOOKUP if ACPI
++	select X86_FEATURE_NAMES if PROC_FS
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+@@ -313,6 +314,17 @@ config SMP
+ 
+ 	  If you don't know what to do here, say N.
+ 
++config X86_FEATURE_NAMES
++	bool "Processor feature human-readable names" if EMBEDDED
++	default y
++	---help---
++	  This option compiles in a table of x86 feature bits and corresponding
++	  names.  This is required to support /proc/cpuinfo and a few kernel
++	  messages.  You can disable this to save space, at the expense of
++	  making those few kernel messages show numeric feature bits instead.
++
++	  If in doubt, say Y.
++
+ config X86_X2APIC
+ 	bool "Support x2apic"
+ 	depends on X86_LOCAL_APIC && X86_64 && IRQ_REMAP
+diff --git a/arch/x86/boot/Makefile b/arch/x86/boot/Makefile
+index dbe8dd2fe247..5b016e2498f3 100644
+--- a/arch/x86/boot/Makefile
++++ b/arch/x86/boot/Makefile
+@@ -35,19 +35,22 @@ setup-y		+= video-vesa.o
+ setup-y		+= video-bios.o
+ 
+ targets		+= $(setup-y)
+-hostprogs-y	:= mkcpustr tools/build
++hostprogs-y	:= tools/build
++hostprogs-$(CONFIG_X86_FEATURE_NAMES) += mkcpustr
+ 
+ HOST_EXTRACFLAGS += -I$(srctree)/tools/include \
+ 		    -include include/generated/autoconf.h \
+ 	            -D__EXPORTED_HEADERS__
+ 
++ifdef CONFIG_X86_FEATURE_NAMES
+ $(obj)/cpu.o: $(obj)/cpustr.h
+ 
+ quiet_cmd_cpustr = CPUSTR  $@
+       cmd_cpustr = $(obj)/mkcpustr > $@
+-targets		+= cpustr.h
++targets += cpustr.h
+ $(obj)/cpustr.h: $(obj)/mkcpustr FORCE
+ 	$(call if_changed,cpustr)
++endif
+ 
+ # ---------------------------------------------------------------------------
+ 
+diff --git a/arch/x86/boot/cpu.c b/arch/x86/boot/cpu.c
+index 6ec6bb6e9957..29207f69ae8c 100644
+--- a/arch/x86/boot/cpu.c
++++ b/arch/x86/boot/cpu.c
+@@ -16,7 +16,9 @@
+  */
+ 
+ #include "boot.h"
++#ifdef CONFIG_X86_FEATURE_NAMES
+ #include "cpustr.h"
++#endif
+ 
+ static char *cpu_name(int level)
+ {
+@@ -32,11 +34,48 @@ static char *cpu_name(int level)
+ 	}
+ }
+ 
++static void show_cap_strs(u32 *err_flags)
++{
++	int i, j;
++#ifdef CONFIG_X86_FEATURE_NAMES
++	const unsigned char *msg_strs = (const unsigned char *)x86_cap_strs;
++	for (i = 0; i < NCAPINTS; i++) {
++		u32 e = err_flags[i];
++		for (j = 0; j < 32; j++) {
++			if (msg_strs[0] < i ||
++			    (msg_strs[0] == i && msg_strs[1] < j)) {
++				/* Skip to the next string */
++				msg_strs += 2;
++				while (*msg_strs++)
++					;
++			}
++			if (e & 1) {
++				if (msg_strs[0] == i &&
++				    msg_strs[1] == j &&
++				    msg_strs[2])
++					printf("%s ", msg_strs+2);
++				else
++					printf("%d:%d ", i, j);
++			}
++			e >>= 1;
++		}
++	}
++#else
++	for (i = 0; i < NCAPINTS; i++) {
++		u32 e = err_flags[i];
++		for (j = 0; j < 32; j++) {
++			if (e & 1)
++				printf("%d:%d ", i, j);
++			e >>= 1;
++		}
++	}
++#endif
++}
++
+ int validate_cpu(void)
+ {
+ 	u32 *err_flags;
+ 	int cpu_level, req_level;
+-	const unsigned char *msg_strs;
+ 
+ 	check_cpu(&cpu_level, &req_level, &err_flags);
+ 
+@@ -49,34 +88,9 @@ int validate_cpu(void)
+ 	}
+ 
+ 	if (err_flags) {
+-		int i, j;
+ 		puts("This kernel requires the following features "
+ 		     "not present on the CPU:\n");
+-
+-		msg_strs = (const unsigned char *)x86_cap_strs;
+-
+-		for (i = 0; i < NCAPINTS; i++) {
+-			u32 e = err_flags[i];
+-
+-			for (j = 0; j < 32; j++) {
+-				if (msg_strs[0] < i ||
+-				    (msg_strs[0] == i && msg_strs[1] < j)) {
+-					/* Skip to the next string */
+-					msg_strs += 2;
+-					while (*msg_strs++)
+-						;
+-				}
+-				if (e & 1) {
+-					if (msg_strs[0] == i &&
+-					    msg_strs[1] == j &&
+-					    msg_strs[2])
+-						printf("%s ", msg_strs+2);
+-					else
+-						printf("%d:%d ", i, j);
+-				}
+-				e >>= 1;
+-			}
+-		}
++		show_cap_strs(err_flags);
+ 		putchar('\n');
+ 		return -1;
+ 	} else {
+diff --git a/arch/x86/include/asm/cpufeature.h b/arch/x86/include/asm/cpufeature.h
+index bb9b258d60e7..516903b98e06 100644
+--- a/arch/x86/include/asm/cpufeature.h
++++ b/arch/x86/include/asm/cpufeature.h
+@@ -250,8 +250,15 @@
+ #include <asm/asm.h>
+ #include <linux/bitops.h>
+ 
++#ifdef CONFIG_X86_FEATURE_NAMES
+ extern const char * const x86_cap_flags[NCAPINTS*32];
+ extern const char * const x86_power_flags[32];
++#define X86_CAP_FMT "%s"
++#define x86_cap_flag(flag) x86_cap_flags[flag]
++#else
++#define X86_CAP_FMT "%d:%d"
++#define x86_cap_flag(flag) ((flag) >> 5), ((flag) & 31)
++#endif
+ 
+ /*
+  * In order to save room, we index into this array by doing
+diff --git a/arch/x86/kernel/cpu/Makefile b/arch/x86/kernel/cpu/Makefile
+index 64038d842c57..77dcab277710 100644
+--- a/arch/x86/kernel/cpu/Makefile
++++ b/arch/x86/kernel/cpu/Makefile
+@@ -13,11 +13,12 @@ nostackp := $(call cc-option, -fno-stack-protector)
+ CFLAGS_common.o		:= $(nostackp)
+ 
+ obj-y			:= intel_cacheinfo.o scattered.o topology.o
+-obj-y			+= capflags.o powerflags.o common.o
++obj-y			+= common.o
+ obj-y			+= rdrand.o
+ obj-y			+= match.o
+ 
+ obj-$(CONFIG_PROC_FS)	+= proc.o
++obj-$(CONFIG_X86_FEATURE_NAMES) += capflags.o powerflags.o
+ 
+ obj-$(CONFIG_X86_32)	+= bugs.o
+ obj-$(CONFIG_X86_64)	+= bugs_64.o
+@@ -50,6 +51,7 @@ obj-$(CONFIG_X86_LOCAL_APIC)		+= perfctr-watchdog.o perf_event_amd_ibs.o
+ 
+ obj-$(CONFIG_HYPERVISOR_GUEST)		+= vmware.o hypervisor.o mshyperv.o
+ 
++ifdef CONFIG_X86_FEATURE_NAMES
+ quiet_cmd_mkcapflags = MKCAP   $@
+       cmd_mkcapflags = $(CONFIG_SHELL) $(srctree)/$(src)/mkcapflags.sh $< $@
+ 
+@@ -58,3 +60,4 @@ cpufeature = $(src)/../../include/asm/cpufeature.h
+ targets += capflags.c
+ $(obj)/capflags.c: $(cpufeature) $(src)/mkcapflags.sh FORCE
+ 	$(call if_changed,mkcapflags)
++endif
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index e4ab2b42bd6f..c649f236e288 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -346,8 +346,8 @@ static void filter_cpuid_features(struct cpuinfo_x86 *c, bool warn)
+ 			continue;
+ 
+ 		printk(KERN_WARNING
+-		       "CPU: CPU feature %s disabled, no CPUID level 0x%x\n",
+-				x86_cap_flags[df->feature], df->level);
++		       "CPU: CPU feature " X86_CAP_FMT " disabled, no CPUID level 0x%x\n",
++				x86_cap_flag(df->feature), df->level);
+ 	}
+ }
+ 

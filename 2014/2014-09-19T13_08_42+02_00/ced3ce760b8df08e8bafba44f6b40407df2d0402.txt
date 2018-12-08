@@ -1,0 +1,64 @@
+commit ced3ce760b8df08e8bafba44f6b40407df2d0402
+Author: David E. Box <david.e.box@linux.intel.com>
+Date:   Wed Sep 17 22:13:50 2014 -0700
+
+    x86/platform/intel/iosf: Add better description of IOSF driver in config
+    
+    Adds better description of IOSF driver to determine when it
+    should be enabled. Also moves the Kconfig option to "Processor
+    type and features" menu from main configuration menu.
+    
+    Signed-off-by: David E. Box <david.e.box@linux.intel.com>
+    Link: http://lkml.kernel.org/r/1411017231-20807-3-git-send-email-david.e.box@linux.intel.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index a99988f991ed..d6334f489214 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -479,6 +479,23 @@ config X86_INTEL_LPSS
+ 	  things like clock tree (common clock framework) and pincontrol
+ 	  which are needed by the LPSS peripheral drivers.
+ 
++config IOSF_MBI
++	tristate "Intel SoC IOSF Sideband support for SoC platforms"
++	depends on PCI
++	---help---
++	  This option enables sideband register access support for Intel SoC
++	  platforms. On these platforms the IOSF sideband is used in lieu of
++	  MSR's for some register accesses, mostly but not limited to thermal
++	  and power. Drivers may query the availability of this device to
++	  determine if they need the sideband in order to work on these
++	  platforms. The sideband is available on the following SoC products.
++	  This list is not meant to be exclusive.
++	   - BayTrail
++	   - Braswell
++	   - Quark
++
++	  You should say Y if you are running a kernel on one of these SoC's.
++
+ config X86_RDC321X
+ 	bool "RDC R-321x SoC"
+ 	depends on X86_32
+@@ -2432,21 +2449,6 @@ config X86_DMA_REMAP
+ 	bool
+ 	depends on STA2X11
+ 
+-config IOSF_MBI
+-	tristate "Intel System On Chip IOSF Sideband support"
+-	depends on PCI
+-	---help---
+-	  Enables sideband access to mailbox registers on SoC's. The sideband is
+-	  available on the following platforms. This list is not meant to be
+-	  exclusive.
+-	   - BayTrail
+-	   - Cherryview
+-	   - Braswell
+-	   - Quark
+-
+-	  You should say Y if you are running a kernel on one of these
+-	  platforms.
+-
+ config PMC_ATOM
+ 	def_bool y
+         depends on PCI

@@ -1,0 +1,86 @@
+commit 81c02a21b293faecab725f691d709111831e1944
+Merge: d27c0d90184a 3eec595235c1
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Aug 13 18:23:32 2014 -0600
+
+    Merge branch 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86/apic updates from Thomas Gleixner:
+     "This is a major overhaul to the x86 apic subsystem consisting of the
+      following parts:
+    
+       - Remove obsolete APIC driver abstractions (David Rientjes)
+    
+       - Use the irqdomain facilities to dynamically allocate IRQs for
+         IOAPICs.  This is a prerequisite to enable IOAPIC hotplug support,
+         and it also frees up wasted vectors (Jiang Liu)
+    
+       - Misc fixlets.
+    
+      Despite the hickup in Ingos previous pull request - caused by the
+      missing fixup for the suspend/resume issue reported by Borislav - I
+      strongly recommend that this update finds its way into 3.17.  Some
+      history for you:
+    
+      This is preparatory work for physical IOAPIC hotplug.  The first
+      attempt to support this was done by Yinghai and I shot it down because
+      it just added another layer of obscurity and complexity to the already
+      existing mess without tackling the underlying shortcomings of the
+      current implementation.
+    
+      After quite some on- and offlist discussions, I requested that the
+      design of this functionality must use generic infrastructure, i.e.
+      irq domains, which provide all the mechanisms to dynamically map linux
+      interrupt numbers to physical interrupts.
+    
+      Jiang picked up the idea and did a great job of consolidating the
+      existing interfaces to manage the x86 (IOAPIC) interrupt system by
+      utilizing irq domains.
+    
+      The testing in tip, Linux-next and inside of Intel on various machines
+      did not unearth any oddities until Borislav exposed it to one of his
+      oddball machines.  The issue was resolved quickly, but unfortunately
+      the fix fell through the cracks and did not hit the tip tree before
+      Ingo sent the pull request.  Not entirely Ingos fault, I also assumed
+      that the fix was already merged when Ingo asked me whether he could
+      send it.
+    
+      Nevertheless this work has a proper design, has undergone several
+      rounds of review and the final fallout after applying it to tip and
+      integrating it into Linux-next has been more than moderate.  It's the
+      ground work not only for IOAPIC hotplug, it will also allow us to move
+      the lowlevel vector allocation into the irqdomain hierarchy, which
+      will benefit other architectures as well.  Patches are posted already,
+      but they are on hold for two weeks, see below.
+    
+      I really appreciate the competence and responsiveness Jiang has shown
+      in course of this endavour.  So I'm sure that any fallout of this will
+      be addressed in a timely manner.
+    
+      FYI, I'm vanishing for 2 weeks into my annual kids summer camp kitchen
+      duty^Wvacation, while you folks are drooling at KS/LinuxCon :) But HPA
+      will have a look at the hopefully zero fallout until I'm back"
+    
+    * 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (53 commits)
+      x86, irq, PCI: Keep IRQ assignment for PCI devices during suspend/hibernation
+      x86/apic/vsmp: Make is_vsmp_box() static
+      x86, apic: Remove enable_apic_mode callback
+      x86, apic: Remove setup_portio_remap callback
+      x86, apic: Remove multi_timer_check callback
+      x86, apic: Replace noop_check_apicid_used
+      x86, apic: Remove check_apicid_present callback
+      x86, apic: Remove mps_oem_check callback
+      x86, apic: Remove smp_callin_clear_local_apic callback
+      x86, apic: Replace trampoline physical addresses with defaults
+      x86, apic: Remove x86_32_numa_cpu_node callback
+      x86: intel-mid: Use the new io_apic interfaces
+      x86, vsmp: Remove is_vsmp_box() from apic_is_clustered_box()
+      x86, irq: Clean up irqdomain transition code
+      x86, irq, devicetree: Release IOAPIC pin when PCI device is disabled
+      x86, irq, SFI: Release IOAPIC pin when PCI device is disabled
+      x86, irq, mpparse: Release IOAPIC pin when PCI device is disabled
+      x86, irq, ACPI: Release IOAPIC pin when PCI device is disabled
+      x86, irq: Introduce helper functions to release IOAPIC pin
+      x86, irq: Simplify the way to handle ISA IRQ
+      ...
+

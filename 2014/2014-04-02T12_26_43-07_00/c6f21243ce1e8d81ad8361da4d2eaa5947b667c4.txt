@@ -1,0 +1,54 @@
+commit c6f21243ce1e8d81ad8361da4d2eaa5947b667c4
+Merge: 9447dc43941c 37c975545ec6
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Apr 2 12:26:43 2014 -0700
+
+    Merge branch 'x86-vdso-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 vdso changes from Peter Anvin:
+     "This is the revamp of the 32-bit vdso and the associated cleanups.
+    
+      This adds timekeeping support to the 32-bit vdso that we already have
+      in the 64-bit vdso.  Although 32-bit x86 is legacy, it is likely to
+      remain in the embedded space for a very long time to come.
+    
+      This removes the traditional COMPAT_VDSO support; the configuration
+      variable is reused for simply removing the 32-bit vdso, which will
+      produce correct results but obviously suffer a performance penalty.
+      Only one beta version of glibc was affected, but that version was
+      unfortunately included in one OpenSUSE release.
+    
+      This is not the end of the vdso cleanups.  Stefani and Andy have
+      agreed to continue work for the next kernel cycle; in fact Andy has
+      already produced another set of cleanups that came too late for this
+      cycle.
+    
+      An incidental, but arguably important, change is that this ensures
+      that unused space in the VVAR page is properly zeroed.  It wasn't
+      before, and would contain whatever garbage was left in memory by BIOS
+      or the bootloader.  Since the VVAR page is accessible to user space
+      this had the potential of information leaks"
+    
+    * 'x86-vdso-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (23 commits)
+      x86, vdso: Fix the symbol versions on the 32-bit vDSO
+      x86, vdso, build: Don't rebuild 32-bit vdsos on every make
+      x86, vdso: Actually discard the .discard sections
+      x86, vdso: Fix size of get_unmapped_area()
+      x86, vdso: Finish removing VDSO32_PRELINK
+      x86, vdso: Move more vdso definitions into vdso.h
+      x86: Load the 32-bit vdso in place, just like the 64-bit vdsos
+      x86, vdso32: handle 32 bit vDSO larger one page
+      x86, vdso32: Disable stack protector, adjust optimizations
+      x86, vdso: Zero-pad the VVAR page
+      x86, vdso: Add 32 bit VDSO time support for 64 bit kernel
+      x86, vdso: Add 32 bit VDSO time support for 32 bit kernel
+      x86, vdso: Patch alternatives in the 32-bit VDSO
+      x86, vdso: Introduce VVAR marco for vdso32
+      x86, vdso: Cleanup __vdso_gettimeofday()
+      x86, vdso: Replace VVAR(vsyscall_gtod_data) by gtod macro
+      x86, vdso: __vdso_clock_gettime() cleanup
+      x86, vdso: Revamp vclock_gettime.c
+      mm: Add new func _install_special_mapping() to mmap.c
+      x86, vdso: Make vsyscall_gtod_data handling x86 generic
+      ...
+

@@ -1,0 +1,29 @@
+commit ce5686d4ed12158599d2042a6c8659254ed263ce
+Author: Peter Zijlstra (Intel) <peterz@infradead.org>
+Date:   Wed Oct 29 11:17:04 2014 +0100
+
+    perf/x86: Fix embarrasing typo
+    
+    Because we're all human and typing sucks..
+    
+    Fixes: 7fb0f1de49fc ("perf/x86: Fix compile warnings for intel_uncore")
+    Reported-by: Andi Kleen <ak@linux.intel.com>
+    Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: x86@kernel.org
+    Link: http://lkml.kernel.org/n/tip-be0bftjh8yfm4uvmvtf3yi87@git.kernel.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ded8a6774ac9..41a503c15862 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -144,7 +144,7 @@ config INSTRUCTION_DECODER
+ 
+ config PERF_EVENTS_INTEL_UNCORE
+ 	def_bool y
+-	depends on PERF_EVENTS && SUP_SUP_INTEL && PCI
++	depends on PERF_EVENTS && CPU_SUP_INTEL && PCI
+ 
+ config OUTPUT_FORMAT
+ 	string

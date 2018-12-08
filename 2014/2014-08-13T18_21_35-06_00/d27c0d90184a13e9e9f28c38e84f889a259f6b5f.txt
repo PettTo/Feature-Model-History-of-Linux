@@ -1,0 +1,15 @@
+commit d27c0d90184a13e9e9f28c38e84f889a259f6b5f
+Merge: 7453f33b2e07 9e13bcf7e098
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Aug 13 18:21:35 2014 -0600
+
+    Merge branch 'x86-efi-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86/efix fixes from Peter Anvin:
+     "Two EFI-related Kconfig changes, which happen to touch immediately
+      adjacent lines in Kconfig and thus collapse to a single patch"
+    
+    * 'x86-efi-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/efi: Enforce CONFIG_RELOCATABLE for EFI boot stub
+      x86/efi: Fix 3DNow optimization build failure in EFI stub
+

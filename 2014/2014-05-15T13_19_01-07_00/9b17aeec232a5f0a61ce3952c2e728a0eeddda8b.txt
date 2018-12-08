@@ -1,0 +1,23 @@
+commit 9b17aeec232a5f0a61ce3952c2e728a0eeddda8b
+Author: Alan <alan@acox1-desk.ger.corp.intel.com>
+Date:   Mon May 12 16:55:35 2014 +0100
+
+    goldfish: Allow 64bit builds
+    
+    We can now enable the 64bit option for the Goldfish 64bit emulator.
+    
+    Signed-off-by: Alan Cox <alan@linux.intel.com>
+    Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 25d2c6f7325e..9c43ea3cf510 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -415,7 +415,6 @@ config X86_UV
+ 
+ config X86_GOLDFISH
+        bool "Goldfish (Virtual Platform)"
+-       depends on X86_32
+        depends on X86_EXTENDED_PLATFORM
+        ---help---
+ 	 Enable support for the Goldfish virtual platform used primarily

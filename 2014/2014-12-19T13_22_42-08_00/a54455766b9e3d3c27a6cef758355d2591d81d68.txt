@@ -1,0 +1,18 @@
+commit a54455766b9e3d3c27a6cef758355d2591d81d68
+Merge: 1092b596a56b 72e9b5fe9bee
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Dec 19 13:22:42 2014 -0800
+
+    Merge branch 'x86-mpx-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 MPX fixes from Thomas Gleixner:
+     "Three updates for the new MPX infrastructure:
+       - Use the proper error check in the trap handler
+       - Add a proper config option for it
+       - Bring documentation up to date"
+    
+    * 'x86-mpx-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, mpx: Give MPX a real config option prompt
+      x86, mpx: Update documentation
+      x86_64/traps: Fix always true condition
+

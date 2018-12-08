@@ -1,0 +1,55 @@
+commit 467cbd207abdbfe29514b5804a22661ab6e80dc6
+Merge: 7125764c5d1a b5660ba76b41
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Apr 2 13:15:58 2014 -0700
+
+    Merge branch 'x86-nuke-platforms-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 old platform removal from Peter Anvin:
+     "This patchset removes support for several completely obsolete
+      platforms, where the maintainers either have completely vanished or
+      acked the removal.  For some of them it is questionable if there even
+      exists functional specimens of the hardware"
+    
+    Geert Uytterhoeven apparently thought this was a April Fool's pull request ;)
+    
+    * 'x86-nuke-platforms-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86, platforms: Remove NUMAQ
+      x86, platforms: Remove SGI Visual Workstation
+      x86, apic: Remove support for IBM Summit/EXA chipset
+      x86, apic: Remove support for ia32-based Unisys ES7000
+
+diff --cc drivers/pci/Makefile
+index e2501ac6fe84,9d5ee4dcee7d..e04fe2d9df3b
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@@ -33,15 -33,20 +33,14 @@@ obj-$(CONFIG_PCI_IOV) += iov.
+  #
+  # Some architectures use the generic PCI setup functions
+  #
+ -obj-$(CONFIG_X86) += setup-bus.o
+ -obj-$(CONFIG_ALPHA) += setup-bus.o setup-irq.o
+ -obj-$(CONFIG_ARM) += setup-bus.o setup-irq.o
+ -obj-$(CONFIG_UNICORE32) += setup-bus.o setup-irq.o
+ -obj-$(CONFIG_PARISC) += setup-bus.o
+ -obj-$(CONFIG_SUPERH) += setup-bus.o setup-irq.o
+ -obj-$(CONFIG_PPC) += setup-bus.o
+ -obj-$(CONFIG_FRV) += setup-bus.o
+ -obj-$(CONFIG_MIPS) += setup-bus.o setup-irq.o
+ -obj-$(CONFIG_MN10300) += setup-bus.o
+ -obj-$(CONFIG_MICROBLAZE) += setup-bus.o
+ -obj-$(CONFIG_TILE) += setup-bus.o setup-irq.o
+ -obj-$(CONFIG_SPARC_LEON) += setup-bus.o setup-irq.o
+ -obj-$(CONFIG_M68K) += setup-bus.o setup-irq.o
+ +obj-$(CONFIG_ALPHA) += setup-irq.o
+ +obj-$(CONFIG_ARM) += setup-irq.o
+ +obj-$(CONFIG_UNICORE32) += setup-irq.o
+ +obj-$(CONFIG_SUPERH) += setup-irq.o
+ +obj-$(CONFIG_MIPS) += setup-irq.o
+- obj-$(CONFIG_X86_VISWS) += setup-irq.o
+ +obj-$(CONFIG_TILE) += setup-irq.o
+ +obj-$(CONFIG_SPARC_LEON) += setup-irq.o
+ +obj-$(CONFIG_M68K) += setup-irq.o
+  
+  #
+  # ACPI Related PCI FW Functions
