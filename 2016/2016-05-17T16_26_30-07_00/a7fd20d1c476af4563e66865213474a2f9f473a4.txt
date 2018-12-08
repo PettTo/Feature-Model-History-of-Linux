@@ -1,0 +1,97 @@
+commit a7fd20d1c476af4563e66865213474a2f9f473a4
+Merge: b80fed959551 917fa5353da0
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue May 17 16:26:30 2016 -0700
+
+    Merge git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next
+    
+    Pull networking updates from David Miller:
+     "Highlights:
+    
+       1) Support SPI based w5100 devices, from Akinobu Mita.
+    
+       2) Partial Segmentation Offload, from Alexander Duyck.
+    
+       3) Add GMAC4 support to stmmac driver, from Alexandre TORGUE.
+    
+       4) Allow cls_flower stats offload, from Amir Vadai.
+    
+       5) Implement bpf blinding, from Daniel Borkmann.
+    
+       6) Optimize _ASYNC_ bit twiddling on sockets, unless the socket is
+          actually using FASYNC these atomics are superfluous.  From Eric
+          Dumazet.
+    
+       7) Run TCP more preemptibly, also from Eric Dumazet.
+    
+       8) Support LED blinking, EEPROM dumps, and rxvlan offloading in mlx5e
+          driver, from Gal Pressman.
+    
+       9) Allow creating ppp devices via rtnetlink, from Guillaume Nault.
+    
+      10) Improve BPF usage documentation, from Jesper Dangaard Brouer.
+    
+      11) Support tunneling offloads in qed, from Manish Chopra.
+    
+      12) aRFS offloading in mlx5e, from Maor Gottlieb.
+    
+      13) Add RFS and RPS support to SCTP protocol, from Marcelo Ricardo
+          Leitner.
+    
+      14) Add MSG_EOR support to TCP, this allows controlling packet
+          coalescing on application record boundaries for more accurate
+          socket timestamp sampling.  From Martin KaFai Lau.
+    
+      15) Fix alignment of 64-bit netlink attributes across the board, from
+          Nicolas Dichtel.
+    
+      16) Per-vlan stats in bridging, from Nikolay Aleksandrov.
+    
+      17) Several conversions of drivers to ethtool ksettings, from Philippe
+          Reynes.
+    
+      18) Checksum neutral ILA in ipv6, from Tom Herbert.
+    
+      19) Factorize all of the various marvell dsa drivers into one, from
+          Vivien Didelot
+    
+      20) Add VF support to qed driver, from Yuval Mintz"
+    
+    * git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next: (1649 commits)
+      Revert "phy dp83867: Fix compilation with CONFIG_OF_MDIO=m"
+      Revert "phy dp83867: Make rgmii parameters optional"
+      r8169: default to 64-bit DMA on recent PCIe chips
+      phy dp83867: Make rgmii parameters optional
+      phy dp83867: Fix compilation with CONFIG_OF_MDIO=m
+      bpf: arm64: remove callee-save registers use for tmp registers
+      asix: Fix offset calculation in asix_rx_fixup() causing slow transmissions
+      switchdev: pass pointer to fib_info instead of copy
+      net_sched: close another race condition in tcf_mirred_release()
+      tipc: fix nametable publication field in nl compat
+      drivers: net: Don't print unpopulated net_device name
+      qed: add support for dcbx.
+      ravb: Add missing free_irq() calls to ravb_close()
+      qed: Remove a stray tab
+      net: ethernet: fec-mpc52xx: use phy_ethtool_{get|set}_link_ksettings
+      net: ethernet: fec-mpc52xx: use phydev from struct net_device
+      bpf, doc: fix typo on bpf_asm descriptions
+      stmmac: hardware TX COE doesn't work when force_thresh_dma_mode is set
+      net: ethernet: fs-enet: use phy_ethtool_{get|set}_link_ksettings
+      net: ethernet: fs-enet: use phydev from struct net_device
+      ...
+
+diff --cc arch/arm64/Kconfig
+index 8845c0d100d7,e6761ea2feec..76747d92bc72
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@@ -59,9 -58,7 +59,9 @@@ config ARM6
+  	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
+  	select HAVE_ARCH_SECCOMP_FILTER
+  	select HAVE_ARCH_TRACEHOOK
+ +	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ +	select HAVE_ARM_SMCCC
+- 	select HAVE_BPF_JIT
++ 	select HAVE_EBPF_JIT
+  	select HAVE_C_RECORDMCOUNT
+  	select HAVE_CC_STACKPROTECTOR
+  	select HAVE_CMPXCHG_DOUBLE

@@ -1,0 +1,42 @@
+commit 3aa2fc1667acdd9cca816a2bc9529f494bd61b05
+Merge: 5af234401345 c6e360a0d9d2
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri May 20 21:26:15 2016 -0700
+
+    Merge tag 'driver-core-4.7-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/driver-core
+    
+    Pull driver core updates from Greg KH:
+     "Here's the "big" driver core update for 4.7-rc1.
+    
+      Mostly just debugfs changes, the long-known and messy races with
+      removing debugfs files should be fixed thanks to the great work of
+      Nicolai Stange.  We also have some isa updates in here (the x86
+      maintainers told me to take it through this tree), a new warning when
+      we run out of dynamic char major numbers, and a few other assorted
+      changes, details in the shortlog.
+    
+      All have been in linux-next for some time with no reported issues"
+    
+    * tag 'driver-core-4.7-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/driver-core: (32 commits)
+      Revert "base: dd: don't remove driver_data in -EPROBE_DEFER case"
+      gpio: ws16c48: Utilize the ISA bus driver
+      gpio: 104-idio-16: Utilize the ISA bus driver
+      gpio: 104-idi-48: Utilize the ISA bus driver
+      gpio: 104-dio-48e: Utilize the ISA bus driver
+      watchdog: ebc-c384_wdt: Utilize the ISA bus driver
+      iio: stx104: Utilize the module_isa_driver and max_num_isa_dev macros
+      iio: stx104: Add X86 dependency to STX104 Kconfig option
+      Documentation: Add ISA bus driver documentation
+      isa: Implement the max_num_isa_dev macro
+      isa: Implement the module_isa_driver macro
+      pnp: pnpbios: Add explicit X86_32 dependency to PNPBIOS
+      isa: Decouple X86_32 dependency from the ISA Kconfig option
+      driver-core: use 'dev' argument in dev_dbg_ratelimited stub
+      base: dd: don't remove driver_data in -EPROBE_DEFER case
+      kernfs: Move faulting copy_user operations outside of the mutex
+      devcoredump: add scatterlist support
+      debugfs: unproxify files created through debugfs_create_u32_array()
+      debugfs: unproxify files created through debugfs_create_blob()
+      debugfs: unproxify files created through debugfs_create_bool()
+      ...
+

@@ -1,0 +1,52 @@
+commit 5469dc270cd44c451590d40c031e6a71c1f637e8
+Merge: 2f37dd131c5d ea9b50133ffe
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri May 20 22:31:33 2016 -0700
+
+    Merge branch 'akpm' (patches from Andrew)
+    
+    Merge more updates from Andrew Morton:
+    
+     - the rest of MM
+    
+     - KASAN updates
+    
+     - procfs updates
+    
+     - exit, fork updates
+    
+     - printk updates
+    
+     - lib/ updates
+    
+     - radix-tree testsuite updates
+    
+     - checkpatch updates
+    
+     - kprobes updates
+    
+     - a few other misc bits
+    
+    * emailed patches from Andrew Morton <akpm@linux-foundation.org>: (162 commits)
+      samples/kprobes: print out the symbol name for the hooks
+      samples/kprobes: add a new module parameter
+      kprobes: add the "tls" argument for j_do_fork
+      init/main.c: simplify initcall_blacklisted()
+      fs/efs/super.c: fix return value
+      checkpatch: improve --git <commit-count> shortcut
+      checkpatch: reduce number of `git log` calls with --git
+      checkpatch: add support to check already applied git commits
+      checkpatch: add --list-types to show message types to show or ignore
+      checkpatch: advertise the --fix and --fix-inplace options more
+      checkpatch: whine about ACCESS_ONCE
+      checkpatch: add test for keywords not starting on tabstops
+      checkpatch: improve CONSTANT_COMPARISON test for structure members
+      checkpatch: add PREFER_IS_ENABLED test
+      lib/GCD.c: use binary GCD algorithm instead of Euclidean
+      radix-tree: free up the bottom bit of exceptional entries for reuse
+      dax: move RADIX_DAX_ definitions to dax.c
+      radix-tree: make radix_tree_descend() more useful
+      radix-tree: introduce radix_tree_replace_clear_tags()
+      radix-tree: tidy up __radix_tree_create()
+      ...
+

@@ -1,0 +1,9 @@
+commit 889fac6d67d46a5e781c08fb26fec9016db1c307
+Merge: dad38ca64a25 bf1620068911
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Wed Apr 13 08:57:03 2016 +0200
+
+    Merge tag 'v4.6-rc3' into perf/core, to refresh the tree
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+

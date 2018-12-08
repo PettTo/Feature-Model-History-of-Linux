@@ -1,0 +1,38 @@
+commit 9cf8d6360c1589a97a98313729ed9e5db187f80b
+Merge: ecc026bff6e8 4ace2e7a48ab
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Mar 15 10:39:22 2016 -0700
+
+    Merge branch 'x86-microcode-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 microcode updates from Ingo Molnar:
+     "The biggest change in this cycle was the separation of the microcode
+      loading mechanism from the initrd code plus the support of built-in
+      microcode images.
+    
+      There were also lots cleanups and general restructuring (by Borislav
+      Petkov)"
+    
+    * 'x86-microcode-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (24 commits)
+      x86/microcode/intel: Drop orig_sum from ext signature checksum
+      x86/microcode/intel: Improve microcode sanity-checking error messages
+      x86/microcode/intel: Merge two consecutive if-statements
+      x86/microcode/intel: Get rid of DWSIZE
+      x86/microcode/intel: Change checksum variables to u32
+      x86/microcode: Use kmemdup() rather than duplicating its implementation
+      x86/microcode: Remove unnecessary paravirt_enabled check
+      x86/microcode: Document builtin microcode loading method
+      x86/microcode/AMD: Issue microcode updated message later
+      x86/microcode/intel: Cleanup get_matching_model_microcode()
+      x86/microcode/intel: Remove unused arg of get_matching_model_microcode()
+      x86/microcode/intel: Rename mc_saved_in_initrd
+      x86/microcode/intel: Use *wrmsrl variants
+      x86/microcode/intel: Cleanup apply_microcode_intel()
+      x86/microcode/intel: Move the BUG_ON up and turn it into WARN_ON
+      x86/microcode/intel: Rename mc_intel variable to mc
+      x86/microcode/intel: Rename mc_saved_count to num_saved
+      x86/microcode/intel: Rename local variables of type struct mc_saved_data
+      x86/microcode/AMD: Drop redundant printk prefix
+      x86/microcode: Issue update message only once
+      ...
+

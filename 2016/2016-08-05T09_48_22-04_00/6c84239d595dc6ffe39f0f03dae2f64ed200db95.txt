@@ -1,0 +1,69 @@
+commit 6c84239d595dc6ffe39f0f03dae2f64ed200db95
+Merge: d4c06c708123 6f367788d633
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Aug 5 09:48:22 2016 -0400
+
+    Merge tag 'rtc-4.8' of git://git.kernel.org/pub/scm/linux/kernel/git/abelloni/linux
+    
+    Pull RTC updates from Alexandre Belloni:
+     "RTC for 4.8
+    
+      Cleanups:
+       - huge cleanup of rtc-generic and char/genrtc this allowed to cleanup
+         rtc-cmos, rtc-sh, rtc-m68k, rtc-powerpc and rtc-parisc
+       - move mn10300 to rtc-cmos
+    
+      Subsystem:
+       - fix wakealarms after hibernate
+       - multiples fixes for rctest
+       - simplify implementations of .read_alarm
+    
+      New drivers:
+       - Maxim MAX6916
+    
+      Drivers:
+       - ds1307: fix weekday
+       - m41t80: add wakeup support
+       - pcf85063: add support for PCF85063A variant
+       - rv8803: extend i2c fix and other fixes
+       - s35390a: fix alarm reading, this fixes instant reboot after
+         shutdown for QNAP TS-41x
+       - s3c: clock fixes"
+    
+    * tag 'rtc-4.8' of git://git.kernel.org/pub/scm/linux/kernel/git/abelloni/linux: (65 commits)
+      rtc: rv8803: Clear V1F when setting the time
+      rtc: rv8803: Stop the clock while setting the time
+      rtc: rv8803: Always apply the I²C workaround
+      rtc: rv8803: Fix read day of week
+      rtc: rv8803: Remove the check for valid time
+      rtc: rv8803: Kconfig: Indicate rx8900 support
+      rtc: asm9260: remove .owner field for driver
+      rtc: at91sam9: Fix missing spin_lock_init()
+      rtc: m41t80: add suspend handlers for alarm IRQ
+      rtc: m41t80: make it a real error message
+      rtc: pcf85063: Add support for the PCF85063A device
+      rtc: pcf85063: fix year range
+      rtc: hym8563: in .read_alarm set .tm_sec to 0 to signal minute accuracy
+      rtc: explicitly set tm_sec = 0 for drivers with minute accurancy
+      rtc: s3c: Add s3c_rtc_{enable/disable}_clk in s3c_rtc_setfreq()
+      rtc: s3c: Remove unnecessary call to disable already disabled clock
+      rtc: abx80x: use devm_add_action_or_reset()
+      rtc: m41t80: use devm_add_action_or_reset()
+      rtc: fix a typo and reduce three empty lines to one
+      rtc: s35390a: improve two comments in .set_alarm
+      ...
+
+diff --cc arch/x86/platform/efi/efi_64.c
+index 04db6fbce96d,663c282801f3..677e29e29473
+--- a/arch/x86/platform/efi/efi_64.c
++++ b/arch/x86/platform/efi/efi_64.c
+@@@ -24,7 -24,8 +24,8 @@@
+  #include <linux/spinlock.h>
+  #include <linux/bootmem.h>
+  #include <linux/ioport.h>
+ -#include <linux/module.h>
+ +#include <linux/init.h>
++ #include <linux/mc146818rtc.h>
+  #include <linux/efi.h>
+  #include <linux/uaccess.h>
+  #include <linux/io.h>

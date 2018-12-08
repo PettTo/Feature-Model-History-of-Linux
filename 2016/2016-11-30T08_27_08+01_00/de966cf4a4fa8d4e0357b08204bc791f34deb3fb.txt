@@ -1,0 +1,134 @@
+commit de966cf4a4fa8d4e0357b08204bc791f34deb3fb
+Author: Tim Chen <tim.c.chen@linux.intel.com>
+Date:   Tue Nov 29 10:43:27 2016 -0800
+
+    sched/x86: Change CONFIG_SCHED_ITMT to CONFIG_SCHED_MC_PRIO
+    
+    Rename CONFIG_SCHED_ITMT for Intel Turbo Boost Max Technology 3.0
+    to CONFIG_SCHED_MC_PRIO.  This makes the configuration extensible
+    in future to other architectures that wish to similarly establish
+    CPU core priorities support in the scheduler.
+    
+    The description in Kconfig is updated to reflect this change with
+    added details for better clarity.  The configuration is explicitly
+    default-y, to enable the feature on CPUs that have this feature.
+    
+    It has no effect on non-TBM3 CPUs.
+    
+    Signed-off-by: Tim Chen <tim.c.chen@linux.intel.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: bp@suse.de
+    Cc: jolsa@redhat.com
+    Cc: linux-acpi@vger.kernel.org
+    Cc: linux-pm@vger.kernel.org
+    Cc: rjw@rjwysocki.net
+    Link: http://lkml.kernel.org/r/2b2ee29d93e3f162922d72d0165a1405864fbb23.1480444902.git.tim.c.chen@linux.intel.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 25950f0ccc33..715c1f3664c4 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -939,14 +939,24 @@ config SCHED_MC
+ 	  making when dealing with multi-core CPU chips at a cost of slightly
+ 	  increased overhead in some places. If unsure say N here.
+ 
+-config SCHED_ITMT
+-	bool "Intel Turbo Boost Max Technology (ITMT) scheduler support"
++config SCHED_MC_PRIO
++	bool "CPU core priorities scheduler support"
+ 	depends on SCHED_MC && CPU_SUP_INTEL && X86_INTEL_PSTATE
++	default y
+ 	---help---
+-	  ITMT enabled scheduler support improves the CPU scheduler's decision
+-	  to move tasks to cpu core that can be boosted to a higher frequency
+-	  than others. It will have better performance at a cost of slightly
+-	  increased overhead in task migrations. If unsure say N here.
++	   Intel Turbo Boost Max Technology 3.0 enabled CPUs have a
++	   core ordering determined at manufacturing time, which allows
++	   certain cores to reach higher turbo frequencies (when running
++	   single threaded workloads) than others.
++
++	   Enabling this kernel feature teaches the scheduler about
++	   the TBM3 (aka ITMT) priority order of the CPU cores and adjusts the
++	   scheduler's CPU selection logic accordingly, so that higher
++	   overall system performance can be achieved.
++
++	   This feature will have no effect on CPUs without this feature.
++
++	   If unsure say Y here.
+ 
+ source "kernel/Kconfig.preempt"
+ 
+diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
+index 4813df5c21f0..6358a85e2270 100644
+--- a/arch/x86/include/asm/topology.h
++++ b/arch/x86/include/asm/topology.h
+@@ -148,7 +148,7 @@ void x86_pci_root_bus_resources(int bus, struct list_head *resources);
+ 
+ extern bool x86_topology_update;
+ 
+-#ifdef CONFIG_SCHED_ITMT
++#ifdef CONFIG_SCHED_MC_PRIO
+ #include <asm/percpu.h>
+ 
+ DECLARE_PER_CPU_READ_MOSTLY(int, sched_core_priority);
+@@ -163,7 +163,7 @@ int sched_set_itmt_support(void);
+ /* Interface to notify scheduler that system revokes ITMT support */
+ void sched_clear_itmt_support(void);
+ 
+-#else /* CONFIG_SCHED_ITMT */
++#else /* CONFIG_SCHED_MC_PRIO */
+ 
+ #define sysctl_sched_itmt_enabled	0
+ static inline void sched_set_itmt_core_prio(int prio, int core_cpu)
+@@ -176,6 +176,6 @@ static inline int sched_set_itmt_support(void)
+ static inline void sched_clear_itmt_support(void)
+ {
+ }
+-#endif /* CONFIG_SCHED_ITMT */
++#endif /* CONFIG_SCHED_MC_PRIO */
+ 
+ #endif /* _ASM_X86_TOPOLOGY_H */
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index bbd0ebcfcc2a..05110c1097ae 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -123,7 +123,7 @@ obj-$(CONFIG_EFI)			+= sysfb_efi.o
+ 
+ obj-$(CONFIG_PERF_EVENTS)		+= perf_regs.o
+ obj-$(CONFIG_TRACING)			+= tracepoint.o
+-obj-$(CONFIG_SCHED_ITMT)		+= itmt.o
++obj-$(CONFIG_SCHED_MC_PRIO)		+= itmt.o
+ 
+ ifdef CONFIG_FRAME_POINTER
+ obj-y					+= unwind_frame.o
+diff --git a/drivers/acpi/bus.c b/drivers/acpi/bus.c
+index 806db0d6e6e8..5cbefd7621f0 100644
+--- a/drivers/acpi/bus.c
++++ b/drivers/acpi/bus.c
+@@ -338,7 +338,7 @@ static void acpi_bus_osc_support(void)
+ 	}
+ #endif
+ 
+-	if (IS_ENABLED(CONFIG_SCHED_ITMT))
++	if (IS_ENABLED(CONFIG_SCHED_MC_PRIO))
+ 		capbuf[OSC_SUPPORT_DWORD] |= OSC_SB_CPC_DIVERSE_HIGH_SUPPORT;
+ 
+ 	if (!ghes_disable)
+diff --git a/drivers/cpufreq/Kconfig.x86 b/drivers/cpufreq/Kconfig.x86
+index c6d273b43ff9..35f71825b7f3 100644
+--- a/drivers/cpufreq/Kconfig.x86
++++ b/drivers/cpufreq/Kconfig.x86
+@@ -6,7 +6,7 @@ config X86_INTEL_PSTATE
+        bool "Intel P state control"
+        depends on X86
+        select ACPI_PROCESSOR if ACPI
+-       select ACPI_CPPC_LIB if X86_64 && ACPI && SCHED_ITMT
++       select ACPI_CPPC_LIB if X86_64 && ACPI && SCHED_MC_PRIO
+        help
+           This driver provides a P state for Intel core processors.
+ 	  The driver implements an internal governor and will become

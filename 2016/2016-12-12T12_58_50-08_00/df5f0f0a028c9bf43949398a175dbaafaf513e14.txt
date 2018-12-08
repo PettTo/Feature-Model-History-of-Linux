@@ -1,0 +1,34 @@
+commit df5f0f0a028c9bf43949398a175dbaafaf513e14
+Merge: cbaa1576c454 3f5a7896a509
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Dec 12 12:58:50 2016 -0800
+
+    Merge branch 'ras-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 RAS updates from Ingo Molnar:
+     "The main changes in this development cycle were:
+    
+       - more AMD northbridge support work, mostly in preparation for Fam17h
+         CPUs (Yazen Ghannam, Borislav Petkov)
+    
+       - cleanups/refactorings and fixes (Borislav Petkov, Tony Luck,
+         Yinghai Lu)"
+    
+    * 'ras-core-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/mce: Include the PPIN in MCE records when available
+      x86/mce/AMD: Add system physical address translation for AMD Fam17h
+      x86/amd_nb: Add SMN and Indirect Data Fabric access for AMD Fam17h
+      x86/amd_nb: Add Fam17h Data Fabric as "Northbridge"
+      x86/amd_nb: Make all exports EXPORT_SYMBOL_GPL
+      x86/amd_nb: Make amd_northbridges internal to amd_nb.c
+      x86/mce/AMD: Reset Threshold Limit after logging error
+      x86/mce/AMD: Fix HWID_MCATYPE calculation by grouping arguments
+      x86/MCE: Correct TSC timestamping of error records
+      x86/RAS: Hide SMCA bank names
+      x86/RAS: Rename smca_bank_names to smca_names
+      x86/RAS: Simplify SMCA HWID descriptor struct
+      x86/RAS: Simplify SMCA bank descriptor struct
+      x86/MCE: Dump MCE to dmesg if no consumers
+      x86/RAS: Add TSC timestamp to the injected MCE
+      x86/MCE: Do not look at panic_on_oops in the severity grading
+

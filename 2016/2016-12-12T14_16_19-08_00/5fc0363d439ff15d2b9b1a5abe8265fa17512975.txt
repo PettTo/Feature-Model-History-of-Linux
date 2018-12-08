@@ -1,0 +1,25 @@
+commit 5fc0363d439ff15d2b9b1a5abe8265fa17512975
+Merge: 06cc6b969c63 9190e21780df
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Dec 12 14:16:19 2016 -0800
+
+    Merge branch 'x86-build-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 build updates from Ingo Molnar:
+     "The main changes in this cycle were:
+    
+       - Makefile improvements (Paul Bolle)
+    
+       - KConfig cleanups to better separate 32-bit only, 64-bit only and
+         generic feature enablement sections (Ingo Molnar)"
+    
+    * 'x86-build-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/build: Remove three unneeded genhdr-y entries
+      x86/build: Don't use $(LINUXINCLUDE) twice
+      x86/kconfig: Sort the 'config X86' selects alphabetically
+      x86/kconfig: Clean up 32-bit compat options
+      x86/kconfig: Clean up IA32_EMULATION select
+      x86/kconfig, x86/pkeys: Move pkeys selects to X86_INTEL_MEMORY_PROTECTION_KEYS
+      x86/kconfig: Move 64-bit only arch Kconfig selects to 'config X86_64'
+      x86/kconfig: Move 32-bit only arch Kconfig selects to 'config X86_32'
+

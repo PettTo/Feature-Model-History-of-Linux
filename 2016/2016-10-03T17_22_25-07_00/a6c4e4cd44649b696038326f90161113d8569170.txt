@@ -1,0 +1,37 @@
+commit a6c4e4cd44649b696038326f90161113d8569170
+Merge: a8adc0f09112 65f7422288cd
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Oct 3 17:22:25 2016 -0700
+
+    Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 platform changes from Ingo Molnar:
+     "The main changes in this cycle were:
+    
+       - SGI UV updates (Andrew Banman)
+    
+       - Intel MID updates (Andy Shevchenko)
+    
+       - Initial Mellanox systems platform (Vadim Pasternak)"
+    
+    * 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/platform/mellanox: Fix return value check in mlxplat_init()
+      x86/platform/mellanox: Introduce support for Mellanox systems platform
+      x86/platform/uv/BAU: Add UV4-specific functions
+      x86/platform/uv/BAU: Fix payload queue setup on UV4 hardware
+      x86/platform/uv/BAU: Disable software timeout on UV4 hardware
+      x86/platform/uv/BAU: Populate ->uvhub_version with UV4 version information
+      x86/platform/uv/BAU: Use generic function pointers
+      x86/platform/uv/BAU: Add generic function pointers
+      x86/platform/uv/BAU: Convert uv_physnodeaddr() use to uv_gpa_to_offset()
+      x86/platform/uv/BAU: Clean up pq_init()
+      x86/platform/uv/BAU: Clean up and update printks
+      x86/platform/uv/BAU: Clean up vertical alignment
+      x86/platform/intel-mid: Keep SRAM powered on at boot
+      x86/platform/intel-mid: Add Intel Penwell to ID table
+      x86/cpu: Rename Merrifield2 to Moorefield
+      x86/platform/intel-mid: Implement power off sequence
+      x86/platform/intel-mid: Enable SD card detection on Merrifield
+      x86/platform/intel-mid: Enable WiFi on Intel Edison
+      x86/platform/intel-mid: Run PWRMU command immediately
+

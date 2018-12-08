@@ -1,0 +1,73 @@
+commit 8ac0fba2da41620f4931a1007c71b0d4723eb02a
+Author: William Breathitt Gray <vilhelm.gray@gmail.com>
+Date:   Sun May 1 17:50:29 2016 -0400
+
+    isa: Decouple X86_32 dependency from the ISA Kconfig option
+    
+    The introduction of the ISA_BUS option blocks the compilation of ISA
+    drivers on non-x86 platforms. The ISA_BUS configuration option should
+    not be necessary if the X86_32 dependency can be decoupled from the ISA
+    configuration option. This patch both removes the ISA_BUS configuration
+    option entirely and removes the X86_32 dependency from the ISA
+    configuration option.
+    
+    Acked-by: Ingo Molnar <mingo@kernel.org>
+    Signed-off-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+    Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index a5977986f38b..280e5ebae2f5 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2472,16 +2472,8 @@ config ISA_DMA_API
+ 	  Enables ISA-style DMA support for devices requiring such controllers.
+ 	  If unsure, say Y.
+ 
+-config ISA_BUS
+-	bool "ISA bus support"
+-	help
+-	  Enables ISA bus support for devices requiring such controllers.
+-
+-if X86_32
+-
+ config ISA
+ 	bool "ISA support"
+-	depends on ISA_BUS
+ 	---help---
+ 	  Find out whether you have ISA slots on your motherboard.  ISA is the
+ 	  name of a bus system, i.e. the way the CPU talks to the other stuff
+@@ -2489,6 +2481,8 @@ config ISA
+ 	  (MCA) or VESA.  ISA is an older system, now being displaced by PCI;
+ 	  newer boards don't support it.  If you have ISA, say Y, otherwise N.
+ 
++if X86_32
++
+ config EISA
+ 	bool "EISA support"
+ 	depends on ISA
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+index 4ebfb81cc7e9..6b2a84e7f2be 100644
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -10,7 +10,7 @@ obj-$(CONFIG_DMA_CMA) += dma-contiguous.o
+ obj-y			+= power/
+ obj-$(CONFIG_HAS_DMA)	+= dma-mapping.o
+ obj-$(CONFIG_HAVE_GENERIC_DMA_COHERENT) += dma-coherent.o
+-obj-$(CONFIG_ISA_BUS)	+= isa.o
++obj-$(CONFIG_ISA)	+= isa.o
+ obj-$(CONFIG_FW_LOADER)	+= firmware_class.o
+ obj-$(CONFIG_NUMA)	+= node.o
+ obj-$(CONFIG_MEMORY_HOTPLUG_SPARSE) += memory.o
+diff --git a/include/linux/isa.h b/include/linux/isa.h
+index 2a02862775eb..b0270e3814c8 100644
+--- a/include/linux/isa.h
++++ b/include/linux/isa.h
+@@ -22,7 +22,7 @@ struct isa_driver {
+ 
+ #define to_isa_driver(x) container_of((x), struct isa_driver, driver)
+ 
+-#ifdef CONFIG_ISA_BUS
++#ifdef CONFIG_ISA
+ int isa_register_driver(struct isa_driver *, unsigned int);
+ void isa_unregister_driver(struct isa_driver *);
+ #else

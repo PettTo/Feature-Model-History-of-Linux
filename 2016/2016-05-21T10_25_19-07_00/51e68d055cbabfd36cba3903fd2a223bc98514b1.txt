@@ -1,0 +1,56 @@
+commit 51e68d055cbabfd36cba3903fd2a223bc98514b1
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat May 21 10:25:19 2016 -0700
+
+    x86 isa: add back X86_32 dependency on CONFIG_ISA
+    
+    Commit b3c1be1b789c ("base: isa: Remove X86_32 dependency") made ISA
+    support available on x86-64 too.  That's not right - while there are
+    some LPC-style devices that might be useful still and be based on
+    ISA-like IP blocks, that is *not* an excuse to try to enable any random
+    legacy drivers.
+    
+    Such drivers should be individually enabled and made to perhaps depend
+    on ISA_DMA_API instead (which we have continued to support on x86-64).
+    Or we could add another "ISA_XYZ_API" that we support that doesn't
+    enable random old drivers that aren't even 64-bit clean nor do we have
+    any test coverage for.
+    
+    Turning off ISA will now also turn off some drivers that have been
+    marked as depending on it as part of this series, and that used to work
+    on modern platforms.
+    
+    See for example commits ad7afc38eab3..cc736607c86d, which may also need
+    to be reverted.
+    
+    This commit means that the warnings that came in due to enabling ISA
+    widely are now gone again.
+    
+    Acked-by: William Breathitt Gray <vilhelm.gray@gmail.com>
+    Cc: Linus Walleij <linus.walleij@linaro.org>
+    Cc: Guenter Roeck <linux@roeck-us.net>
+    Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 48ac29034e1e..0a7b885964ba 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2447,6 +2447,8 @@ config ISA_DMA_API
+ 	  Enables ISA-style DMA support for devices requiring such controllers.
+ 	  If unsure, say Y.
+ 
++if X86_32
++
+ config ISA
+ 	bool "ISA support"
+ 	---help---
+@@ -2456,8 +2458,6 @@ config ISA
+ 	  (MCA) or VESA.  ISA is an older system, now being displaced by PCI;
+ 	  newer boards don't support it.  If you have ISA, say Y, otherwise N.
+ 
+-if X86_32
+-
+ config EISA
+ 	bool "EISA support"
+ 	depends on ISA

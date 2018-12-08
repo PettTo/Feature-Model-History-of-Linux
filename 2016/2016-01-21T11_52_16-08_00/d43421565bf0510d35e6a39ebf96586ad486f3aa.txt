@@ -1,0 +1,140 @@
+commit d43421565bf0510d35e6a39ebf96586ad486f3aa
+Merge: 859e76254490 9662e32c810a
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Jan 21 11:52:16 2016 -0800
+
+    Merge tag 'pci-v4.5-changes' of git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci
+    
+    Pull PCI updates from Bjorn Helgaas:
+     "PCI changes for the v4.5 merge window:
+    
+      Enumeration:
+       - Simplify config space size computation (Bjorn Helgaas)
+       - Avoid iterating through ROM outside the resource window (Edward O'Callaghan)
+       - Support PCIe devices with short cfg_size (Jason S. McMullan)
+       - Add Netronome vendor and device IDs (Jason S. McMullan)
+       - Limit config space size for Netronome NFP6000 family (Jason S. McMullan)
+       - Add Netronome NFP4000 PF device ID (Simon Horman)
+       - Limit config space size for Netronome NFP4000 (Simon Horman)
+       - Print warnings for all invalid expansion ROM headers (Vladis Dronov)
+    
+      Resource management:
+       - Fix minimum allocation address overwrite (Christoph Biedl)
+    
+      PCI device hotplug:
+       - acpiphp_ibm: Fix null dereferences on null ibm_slot (Colin Ian King)
+       - pciehp: Always protect pciehp_disable_slot() with hotplug mutex (Guenter Roeck)
+       - shpchp: Constify hpc_ops structure (Julia Lawall)
+       - ibmphp: Remove unneeded NULL test (Julia Lawall)
+    
+      Power management:
+       - Make ASPM sysfs link_state_store() consistent with link_state_show() (Andy Lutomirski)
+    
+      Virtualization
+       - Add function 1 DMA alias quirk for Lite-On/Plextor M6e/Marvell 88SS9183 (Tim Sander)
+    
+      MSI:
+       - Remove empty pci_msi_init_pci_dev() (Bjorn Helgaas)
+       - Mark PCIe/PCI (MSI) IRQ cascade handlers as IRQF_NO_THREAD (Grygorii Strashko)
+       - Initialize MSI capability for all architectures (Guilherme G. Piccoli)
+       - Relax msi_domain_alloc() to support parentless MSI irqdomains (Liu Jiang)
+    
+      ARM Versatile host bridge driver:
+       - Remove unused pci_sys_data structures (Lorenzo Pieralisi)
+    
+      Broadcom iProc host bridge driver:
+       - Hide CONFIG_PCIE_IPROC (Arnd Bergmann)
+       - Do not use 0x in front of %pap (Dmitry V. Krivenok)
+       - Update iProc PCIe device tree binding (Ray Jui)
+       - Add PAXC interface support (Ray Jui)
+       - Add iProc PCIe MSI device tree binding (Ray Jui)
+       - Add iProc PCIe MSI support (Ray Jui)
+    
+      Freescale i.MX6 host bridge driver:
+       - Use gpio_set_value_cansleep() (Fabio Estevam)
+       - Add support for active-low reset GPIO (Petr Štetiar)
+    
+      HiSilicon host bridge driver:
+       - Add support for HiSilicon Hip06 PCIe host controllers (Gabriele Paoloni)
+    
+      Intel VMD host bridge driver:
+       - Export irq_domain_set_info() for module use (Keith Busch)
+       - x86/PCI: Allow DMA ops specific to a PCI domain (Keith Busch)
+       - Use 32 bit PCI domain numbers (Keith Busch)
+       - Add driver for Intel Volume Management Device (VMD) (Keith Busch)
+    
+      Qualcomm host bridge driver:
+       - Document PCIe devicetree bindings (Stanimir Varbanov)
+       - Add Qualcomm PCIe controller driver (Stanimir Varbanov)
+       - dts: apq8064: add PCIe devicetree node (Stanimir Varbanov)
+       - dts: ifc6410: enable PCIe DT node for this board (Stanimir Varbanov)
+    
+      Renesas R-Car host bridge driver:
+       - Add support for R-Car H3 to pcie-rcar (Harunobu Kurokawa)
+       - Allow DT to override default window settings (Phil Edworthy)
+       - Convert to DT resource parsing API (Phil Edworthy)
+       - Revert "PCI: rcar: Build pcie-rcar.c only on ARM" (Phil Edworthy)
+       - Remove unused pci_sys_data struct from pcie-rcar (Phil Edworthy)
+       - Add runtime PM support to pcie-rcar (Phil Edworthy)
+       - Add Gen2 PHY setup to pcie-rcar (Phil Edworthy)
+       - Add gen2 fallback compatibility string for pci-rcar-gen2 (Simon Horman)
+       - Add gen2 fallback compatibility string for pcie-rcar (Simon Horman)
+    
+      Synopsys DesignWare host bridge driver:
+       - Simplify control flow (Bjorn Helgaas)
+       - Make config accessor override checking symmetric (Bjorn Helgaas)
+       - Ensure ATU is enabled before IO/conf space accesses (Stanimir Varbanov)
+    
+      Miscellaneous:
+       - Add of_pci_get_host_bridge_resources() stub (Arnd Bergmann)
+       - Check for PCI_HEADER_TYPE_BRIDGE equality, not bitmask (Bjorn Helgaas)
+       - Fix all whitespace issues (Bogicevic Sasa)
+       - x86/PCI: Simplify pci_bios_{read,write} (Geliang Tang)
+       - Use to_pci_dev() instead of open-coding it (Geliang Tang)
+       - Use kobj_to_dev() instead of open-coding it (Geliang Tang)
+       - Use list_for_each_entry() to simplify code (Geliang Tang)
+       - Fix typos in <linux/msi.h> (Thomas Petazzoni)
+       - x86/PCI: Clarify AMD Fam10h config access restrictions comment (Tomasz Nowicki)"
+    
+    * tag 'pci-v4.5-changes' of git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci: (58 commits)
+      PCI: Add function 1 DMA alias quirk for Lite-On/Plextor M6e/Marvell 88SS9183
+      PCI: Limit config space size for Netronome NFP4000
+      PCI: Add Netronome NFP4000 PF device ID
+      x86/PCI: Add driver for Intel Volume Management Device (VMD)
+      PCI/AER: Use 32 bit PCI domain numbers
+      x86/PCI: Allow DMA ops specific to a PCI domain
+      irqdomain: Export irq_domain_set_info() for module use
+      PCI: host: Add of_pci_get_host_bridge_resources() stub
+      genirq/MSI: Relax msi_domain_alloc() to support parentless MSI irqdomains
+      PCI: rcar: Add Gen2 PHY setup to pcie-rcar
+      PCI: rcar: Add runtime PM support to pcie-rcar
+      PCI: designware: Make config accessor override checking symmetric
+      PCI: ibmphp: Remove unneeded NULL test
+      ARM: dts: ifc6410: enable PCIe DT node for this board
+      ARM: dts: apq8064: add PCIe devicetree node
+      PCI: hotplug: Use list_for_each_entry() to simplify code
+      PCI: rcar: Remove unused pci_sys_data struct from pcie-rcar
+      PCI: hisi: Add support for HiSilicon Hip06 PCIe host controllers
+      PCI: Avoid iterating through memory outside the resource window
+      PCI: acpiphp_ibm: Fix null dereferences on null ibm_slot
+      ...
+
+diff --cc arch/arm/boot/dts/qcom-apq8064-ifc6410.dts
+index aa9303b84d67,955c697b4dd4..fd4d49ef9ef2
+--- a/arch/arm/boot/dts/qcom-apq8064-ifc6410.dts
++++ b/arch/arm/boot/dts/qcom-apq8064-ifc6410.dts
+@@@ -120,9 -132,13 +132,13 @@@
+  					bias-pull-down;
+  				};
+  
+ -				pm8921_lvs1: lvs1 {
+ +				lvs1 {
+  					bias-pull-down;
+  				};
++ 
++ 				lvs6 {
++ 					bias-pull-down;
++ 				};
+  			};
+  		};
+  

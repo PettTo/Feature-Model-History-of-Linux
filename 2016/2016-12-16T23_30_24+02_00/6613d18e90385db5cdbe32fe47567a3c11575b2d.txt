@@ -1,0 +1,119 @@
+commit 6613d18e90385db5cdbe32fe47567a3c11575b2d
+Author: Vadim Pasternak <vadimp@mellanox.com>
+Date:   Mon Oct 31 07:22:33 2016 +0000
+
+    platform/x86: mlx-platform: Move module from arch/x86
+    
+    Since mlx-platform is not an architectural driver, it is moved out
+    of arch/x86/platform to drivers/platform/x86.
+    Relevant Makefile and Kconfig are updated.
+    
+    Signed-off-by: Vadim Pasternak <vadimp@mellanox.com>
+    Acked-by: Thomas Gleixner <tglx@linutronix.de>
+    Signed-off-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 3e30399e715f..960f364f1c94 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -7879,7 +7879,7 @@ MELLANOX PLATFORM DRIVER
+ M:      Vadim Pasternak <vadimp@mellanox.com>
+ L:      platform-driver-x86@vger.kernel.org
+ S:      Supported
+-F:      arch/x86/platform/mellanox/mlx-platform.c
++F:      drivers/platform/x86/mlx-platform.c
+ 
+ MELLANOX MLX CPLD HOTPLUG DRIVER
+ M:	Vadim Pasternak <vadimp@mellanox.com>
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index bada636d1065..ccd5ff7d1879 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -550,18 +550,6 @@ config X86_INTEL_QUARK
+ 	  Say Y here if you have a Quark based system such as the Arduino
+ 	  compatible Intel Galileo.
+ 
+-config MLX_PLATFORM
+-	tristate "Mellanox Technologies platform support"
+-	depends on X86_64
+-	depends on X86_EXTENDED_PLATFORM
+-	---help---
+-	  This option enables system support for the Mellanox Technologies
+-	  platform.
+-
+-	  Say Y here if you are building a kernel for Mellanox system.
+-
+-	  Otherwise, say N.
+-
+ config X86_INTEL_LPSS
+ 	bool "Intel Low Power Subsystem Support"
+ 	depends on X86 && ACPI
+diff --git a/arch/x86/platform/Makefile b/arch/x86/platform/Makefile
+index 3c3c19ea94df..184842ef332e 100644
+--- a/arch/x86/platform/Makefile
++++ b/arch/x86/platform/Makefile
+@@ -8,7 +8,6 @@ obj-y	+= iris/
+ obj-y	+= intel/
+ obj-y	+= intel-mid/
+ obj-y	+= intel-quark/
+-obj-y	+= mellanox/
+ obj-y	+= olpc/
+ obj-y	+= scx200/
+ obj-y	+= sfi/
+diff --git a/arch/x86/platform/mellanox/Makefile b/arch/x86/platform/mellanox/Makefile
+deleted file mode 100644
+index f43c93188a1d..000000000000
+--- a/arch/x86/platform/mellanox/Makefile
++++ /dev/null
+@@ -1 +0,0 @@
+-obj-$(CONFIG_MLX_PLATFORM)	+= mlx-platform.o
+diff --git a/drivers/platform/x86/Kconfig b/drivers/platform/x86/Kconfig
+index 185376901d9c..4639d970f8cb 100644
+--- a/drivers/platform/x86/Kconfig
++++ b/drivers/platform/x86/Kconfig
+@@ -1028,10 +1028,21 @@ config INTEL_TELEMETRY
+ 	  directly via debugfs files. Various tools may use
+ 	  this interface for SoC state monitoring.
+ 
++config MLX_PLATFORM
++	tristate "Mellanox Technologies platform support"
++	depends on X86_64
++	---help---
++	  This option enables system support for the Mellanox Technologies
++	  platform. The Mellanox systems provide data center networking
++	  solutions based on Virtual Protocol Interconnect (VPI) technology
++	  enable seamless connectivity to 56/100Gb/s InfiniBand or 10/40/56GbE
++	  connection.
++
++	  If you have a Mellanox system, say Y or M here.
++
+ config MLX_CPLD_PLATFORM
+ 	tristate "Mellanox platform hotplug driver support"
+ 	default n
+-	depends on MLX_PLATFORM
+ 	select HWMON
+ 	select I2C
+ 	---help---
+diff --git a/drivers/platform/x86/Makefile b/drivers/platform/x86/Makefile
+index 1f06b6339cf7..2d6a587bded5 100644
+--- a/drivers/platform/x86/Makefile
++++ b/drivers/platform/x86/Makefile
+@@ -71,4 +71,5 @@ obj-$(CONFIG_INTEL_TELEMETRY)	+= intel_telemetry_core.o \
+ 				   intel_telemetry_pltdrv.o \
+ 				   intel_telemetry_debugfs.o
+ obj-$(CONFIG_INTEL_PMC_CORE)    += intel_pmc_core.o
++obj-$(CONFIG_MLX_PLATFORM)	+= mlx-platform.o
+ obj-$(CONFIG_MLX_CPLD_PLATFORM)	+= mlxcpld-hotplug.o
+diff --git a/arch/x86/platform/mellanox/mlx-platform.c b/drivers/platform/x86/mlx-platform.c
+similarity index 99%
+rename from arch/x86/platform/mellanox/mlx-platform.c
+rename to drivers/platform/x86/mlx-platform.c
+index 7dcfcca97399..bbf60d16faa6 100644
+--- a/arch/x86/platform/mellanox/mlx-platform.c
++++ b/drivers/platform/x86/mlx-platform.c
+@@ -1,5 +1,4 @@
+ /*
+- * arch/x86/platform/mellanox/mlx-platform.c
+  * Copyright (c) 2016 Mellanox Technologies. All rights reserved.
+  * Copyright (c) 2016 Vadim Pasternak <vadimp@mellanox.com>
+  *

@@ -1,0 +1,74 @@
+commit 07dc900e17a94681877b5797ce62ba97fa170400
+Author: Peter Zijlstra <peterz@infradead.org>
+Date:   Tue Mar 29 14:30:35 2016 +0200
+
+    perf/x86: Move Kconfig.perf and other perf configuration bits to events/Kconfig
+    
+    Ingo says:
+    
+     "If we do a separate file we should have it in arch/x86/events/Kconfig
+      (not in arch/x86/Kconfig.perf), and also move some of the other bits,
+      such as PERF_EVENTS_AMD_POWER?"
+    
+    Suggested-by: Ingo Molnar <mingo@kernel.org>
+    Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+    Cc: Alexander Shishkin <alexander.shishkin@linux.intel.com>
+    Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
+    Cc: Jiri Olsa <jolsa@redhat.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Stephane Eranian <eranian@google.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Vince Weaver <vincent.weaver@maine.edu>
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 496218b8236b..c2d34578a0a4 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1038,7 +1038,7 @@ config X86_THERMAL_VECTOR
+ 	def_bool y
+ 	depends on X86_MCE_INTEL
+ 
+-source "arch/x86/Kconfig.perf"
++source "arch/x86/events/Kconfig"
+ 
+ config X86_LEGACY_VM86
+ 	bool "Legacy VM86 support"
+@@ -1204,15 +1204,6 @@ config MICROCODE_OLD_INTERFACE
+ 	def_bool y
+ 	depends on MICROCODE
+ 
+-config PERF_EVENTS_AMD_POWER
+-	depends on PERF_EVENTS && CPU_SUP_AMD
+-	tristate "AMD Processor Power Reporting Mechanism"
+-	---help---
+-	  Provide power reporting mechanism support for AMD processors.
+-	  Currently, it leverages X86_FEATURE_ACC_POWER
+-	  (CPUID Fn8000_0007_EDX[12]) interface to calculate the
+-	  average power consumption on Family 15h processors.
+-
+ config X86_MSR
+ 	tristate "/dev/cpu/*/msr - Model-specific register support"
+ 	---help---
+diff --git a/arch/x86/Kconfig.perf b/arch/x86/events/Kconfig
+similarity index 68%
+rename from arch/x86/Kconfig.perf
+rename to arch/x86/events/Kconfig
+index 7d29dd75d07b..98397db5ceae 100644
+--- a/arch/x86/Kconfig.perf
++++ b/arch/x86/events/Kconfig
+@@ -24,4 +24,13 @@ config PERF_EVENTS_INTEL_CSTATE
+ 	Include support for Intel cstate performance events for power
+ 	monitoring on modern processors.
+ 
++config PERF_EVENTS_AMD_POWER
++	depends on PERF_EVENTS && CPU_SUP_AMD
++	tristate "AMD Processor Power Reporting Mechanism"
++	---help---
++	  Provide power reporting mechanism support for AMD processors.
++	  Currently, it leverages X86_FEATURE_ACC_POWER
++	  (CPUID Fn8000_0007_EDX[12]) interface to calculate the
++	  average power consumption on Family 15h processors.
++
+ endmenu

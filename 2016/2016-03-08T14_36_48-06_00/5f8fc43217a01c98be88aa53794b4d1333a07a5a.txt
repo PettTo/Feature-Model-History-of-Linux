@@ -1,0 +1,157 @@
+commit 5f8fc43217a01c98be88aa53794b4d1333a07a5a
+Author: Bogicevic Sasa <brutallesale@gmail.com>
+Date:   Wed Feb 3 13:24:22 2016 -0800
+
+    PCI: Include pci/pcie/Kconfig directly from pci/Kconfig
+    
+    Include pci/pcie/Kconfig directly from pci/Kconfig, so arches don't
+    have to source both pci/Kconfig and pci/pcie/Kconfig.
+    
+    Note that this effectively adds pci/pcie/Kconfig to the following
+    arches, because they already sourced drivers/pci/Kconfig but they
+    previously did not source drivers/pci/pcie/Kconfig:
+    
+      alpha
+      avr32
+      blackfin
+      frv
+      m32r
+      m68k
+      microblaze
+      mn10300
+      parisc
+      sparc
+      unicore32
+      xtensa
+    
+    [bhelgaas: changelog, source pci/pcie/Kconfig at top of pci/Kconfig, whitespace]
+    Signed-off-by: Sasa Bogicevic <brutallesale@gmail.com>
+    Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 4f799e567fc8..1d00da16d980 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1212,7 +1212,6 @@ config PCI_HOST_ITE8152
+ 	select DMABOUNCE
+ 
+ source "drivers/pci/Kconfig"
+-source "drivers/pci/pcie/Kconfig"
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 8cc62289a63e..128ec3c8d475 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -235,7 +235,6 @@ config PCI_SYSCALL
+ 	def_bool PCI
+ 
+ source "drivers/pci/Kconfig"
+-source "drivers/pci/pcie/Kconfig"
+ source "drivers/pci/hotplug/Kconfig"
+ 
+ endmenu
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index fb0515eb639b..1bc4b5add65c 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -574,8 +574,6 @@ config PCI_DOMAINS
+ config PCI_SYSCALL
+ 	def_bool PCI
+ 
+-source "drivers/pci/pcie/Kconfig"
+-
+ source "drivers/pci/Kconfig"
+ 
+ source "drivers/pci/hotplug/Kconfig"
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 57a945e832f4..d21eec746afb 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2876,8 +2876,6 @@ config PCI_DOMAINS
+ 
+ source "drivers/pci/Kconfig"
+ 
+-source "drivers/pci/pcie/Kconfig"
+-
+ #
+ # ISA support is now enabled via select.  Too many systems still have the one
+ # or other ISA chip on the board that users don't know about so don't expect
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index e4824fd04bb7..247a09f01608 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -828,8 +828,6 @@ config PCI_8260
+ 	select PPC_INDIRECT_PCI
+ 	default y
+ 
+-source "drivers/pci/pcie/Kconfig"
+-
+ source "drivers/pci/Kconfig"
+ 
+ source "drivers/pcmcia/Kconfig"
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 3be9c832dec1..991843342005 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -605,7 +605,6 @@ config PCI_NR_MSI
+ 	  PCI devices.
+ 
+ source "drivers/pci/Kconfig"
+-source "drivers/pci/pcie/Kconfig"
+ source "drivers/pci/hotplug/Kconfig"
+ 
+ endif	# PCI
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index e13da05505dc..ce52af9ca6ba 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -847,8 +847,6 @@ config PCI
+ config PCI_DOMAINS
+ 	bool
+ 
+-source "drivers/pci/pcie/Kconfig"
+-
+ source "drivers/pci/Kconfig"
+ 
+ source "drivers/pcmcia/Kconfig"
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index de4a4fff9323..0c95266d102b 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -455,7 +455,6 @@ config TILE_PCI_IO
+ 
+ source "drivers/pci/Kconfig"
+ 
+-source "drivers/pci/pcie/Kconfig"
+ 
+ config TILE_USB
+ 	tristate "Tilera USB host adapter support"
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 330e738ccfc1..ff7fe2dc881c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2431,8 +2431,6 @@ config PCI_CNB20LE_QUIRK
+ 
+ 	  You should say N unless you know you need this.
+ 
+-source "drivers/pci/pcie/Kconfig"
+-
+ source "drivers/pci/Kconfig"
+ 
+ # x86_64 have no ISA slots, but can have ISA-style DMA.
+diff --git a/drivers/pci/Kconfig b/drivers/pci/Kconfig
+index 73de4efcbe6e..04e00923d178 100644
+--- a/drivers/pci/Kconfig
++++ b/drivers/pci/Kconfig
+@@ -1,6 +1,9 @@
+ #
+ # PCI configuration
+ #
++
++source "drivers/pci/pcie/Kconfig"
++
+ config PCI_BUS_ADDR_T_64BIT
+ 	def_bool y if (ARCH_DMA_ADDR_T_64BIT || 64BIT)
+ 	depends on PCI

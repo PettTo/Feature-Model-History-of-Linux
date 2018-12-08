@@ -1,0 +1,37 @@
+commit 69385f8879344f4a1f078f761bd3523fcf697131
+Author: Borislav Petkov <bp@suse.de>
+Date:   Wed Apr 6 10:05:14 2016 +0200
+
+    x86/RAS: Rename AMD MCE injector config item
+    
+    ... to be the same like the file name of injection module itself to
+    avoid confusion when grepping.
+    
+    No functionality change.
+    
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Link: http://lkml.kernel.org/r/1459929916-12852-2-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/ras/Kconfig b/arch/x86/ras/Kconfig
+index df280da34825..d957d5f21a86 100644
+--- a/arch/x86/ras/Kconfig
++++ b/arch/x86/ras/Kconfig
+@@ -1,4 +1,4 @@
+-config AMD_MCE_INJ
++config MCE_AMD_INJ
+ 	tristate "Simple MCE injection interface for AMD processors"
+ 	depends on RAS && EDAC_DECODE_MCE && DEBUG_FS && AMD_NB
+ 	default n
+diff --git a/arch/x86/ras/Makefile b/arch/x86/ras/Makefile
+index dd2c98b84037..5f94546db280 100644
+--- a/arch/x86/ras/Makefile
++++ b/arch/x86/ras/Makefile
+@@ -1,2 +1,2 @@
+-obj-$(CONFIG_AMD_MCE_INJ)		+= mce_amd_inj.o
++obj-$(CONFIG_MCE_AMD_INJ)		+= mce_amd_inj.o
+ 

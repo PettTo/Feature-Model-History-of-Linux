@@ -1,0 +1,231 @@
+commit 63e30271b04c712c684c07567401b61b10d094d4
+Merge: 277edbabf6fe 6e6f498b039a
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Mar 16 14:45:55 2016 -0700
+
+    Merge tag 'pci-v4.6-changes' of git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci
+    
+    Pull PCI updates from Bjorn Helgaas:
+     "PCI changes for v4.6:
+    
+      Enumeration:
+       - Disable IO/MEM decoding for devices with non-compliant BARs (Bjorn Helgaas)
+       - Mark Broadwell-EP Home Agent & PCU as having non-compliant BARs (Bjorn Helgaas
+    
+      Resource management:
+       - Mark shadow copy of VGA ROM as IORESOURCE_PCI_FIXED (Bjorn Helgaas)
+       - Don't assign or reassign immutable resources (Bjorn Helgaas)
+       - Don't enable/disable ROM BAR if we're using a RAM shadow copy (Bjorn Helgaas)
+       - Set ROM shadow location in arch code, not in PCI core (Bjorn Helgaas)
+       - Remove arch-specific IORESOURCE_ROM_SHADOW size from sysfs (Bjorn Helgaas)
+       - ia64: Use ioremap() instead of open-coded equivalent (Bjorn Helgaas)
+       - ia64: Keep CPU physical (not virtual) addresses in shadow ROM resource (Bjorn Helgaas)
+       - MIPS: Keep CPU physical (not virtual) addresses in shadow ROM resource (Bjorn Helgaas)
+       - Remove unused IORESOURCE_ROM_COPY and IORESOURCE_ROM_BIOS_COPY (Bjorn Helgaas)
+       - Don't leak memory if sysfs_create_bin_file() fails (Bjorn Helgaas)
+       - rcar: Remove PCI_PROBE_ONLY handling (Lorenzo Pieralisi)
+       - designware: Remove PCI_PROBE_ONLY handling (Lorenzo Pieralisi)
+    
+      Virtualization:
+       - Wait for up to 1000ms after FLR reset (Alex Williamson)
+       - Support SR-IOV on any function type (Kelly Zytaruk)
+       - Add ACS quirk for all Cavium devices (Manish Jaggi)
+    
+      AER:
+       - Rename pci_ops_aer to aer_inj_pci_ops (Bjorn Helgaas)
+       - Restore pci_ops pointer while calling original pci_ops (David Daney)
+       - Fix aer_inject error codes (Jean Delvare)
+       - Use dev_warn() in aer_inject (Jean Delvare)
+       - Log actual error causes in aer_inject (Jean Delvare)
+       - Log aer_inject error injections (Jean Delvare)
+    
+      VPD:
+       - Prevent VPD access for buggy devices (Babu Moger)
+       - Move pci_read_vpd() and pci_write_vpd() close to other VPD code (Bjorn Helgaas)
+       - Move pci_vpd_release() from header file to pci/access.c (Bjorn Helgaas)
+       - Remove struct pci_vpd_ops.release function pointer (Bjorn Helgaas)
+       - Rename VPD symbols to remove unnecessary "pci22" (Bjorn Helgaas)
+       - Fold struct pci_vpd_pci22 into struct pci_vpd (Bjorn Helgaas)
+       - Sleep rather than busy-wait for VPD access completion (Bjorn Helgaas)
+       - Update VPD definitions (Hannes Reinecke)
+       - Allow access to VPD attributes with size 0 (Hannes Reinecke)
+       - Determine actual VPD size on first access (Hannes Reinecke)
+    
+      Generic host bridge driver:
+       - Move structure definitions to separate header file (David Daney)
+       - Add pci_host_common_probe(), based on gen_pci_probe() (David Daney)
+       - Expose pci_host_common_probe() for use by other drivers (David Daney)
+    
+      Altera host bridge driver:
+       - Fix altera_pcie_link_is_up() (Ley Foon Tan)
+    
+      Cavium ThunderX host bridge driver:
+       - Add PCIe host driver for ThunderX processors (David Daney)
+       - Add driver for ThunderX-pass{1,2} on-chip devices (David Daney)
+    
+      Freescale i.MX6 host bridge driver:
+       - Add DT bindings to configure PHY Tx driver settings (Justin Waters)
+       - Move imx6_pcie_reset_phy() near other PHY handling functions (Lucas Stach)
+       - Move PHY reset into imx6_pcie_establish_link() (Lucas Stach)
+       - Remove broken Gen2 workaround (Lucas Stach)
+       - Move link up check into imx6_pcie_wait_for_link() (Lucas Stach)
+    
+      Freescale Layerscape host bridge driver:
+       - Add "fsl,ls2085a-pcie" compatible ID (Yang Shi)
+    
+      Intel VMD host bridge driver:
+       - Attach VMD resources to parent domain's resource tree (Jon Derrick)
+       - Set bus resource start to 0 (Keith Busch)
+    
+      Microsoft Hyper-V host bridge driver:
+       - Add fwnode_handle to x86 pci_sysdata (Jake Oshins)
+       - Look up IRQ domain by fwnode_handle (Jake Oshins)
+       - Add paravirtual PCI front-end for Microsoft Hyper-V VMs (Jake Oshins)
+    
+      NVIDIA Tegra host bridge driver:
+       - Add pci_ops.{add,remove}_bus() callbacks (Thierry Reding)
+       - Implement ->{add,remove}_bus() callbacks (Thierry Reding)
+       - Remove unused struct tegra_pcie.num_ports field (Thierry Reding)
+       - Track bus -> CPU mapping (Thierry Reding)
+       - Remove misleading PHYS_OFFSET (Thierry Reding)
+    
+      Renesas R-Car host bridge driver:
+       - Depend on ARCH_RENESAS, not ARCH_SHMOBILE (Simon Horman)
+    
+      Synopsys DesignWare host bridge driver:
+       - ARC: Add PCI support (Joao Pinto)
+       - Add generic dw_pcie_wait_for_link() (Joao Pinto)
+       - Add default link up check if sub-driver doesn't override (Joao Pinto)
+       - Add driver for prototyping kits based on ARC SDP (Joao Pinto)
+    
+      TI Keystone host bridge driver:
+       - Defer probing if devm_phy_get() returns -EPROBE_DEFER (Shawn Lin)
+    
+      Xilinx AXI host bridge driver:
+       - Use of_pci_get_host_bridge_resources() to parse DT (Bharat Kumar Gogada)
+       - Remove dependency on ARM-specific struct hw_pci (Bharat Kumar Gogada)
+       - Don't call pci_fixup_irqs() on Microblaze (Bharat Kumar Gogada)
+       - Update Zynq binding with Microblaze node (Bharat Kumar Gogada)
+       - microblaze: Support generic Xilinx AXI PCIe Host Bridge IP driver (Bharat Kumar Gogada)
+    
+      Xilinx NWL host bridge driver:
+       - Add support for Xilinx NWL PCIe Host Controller (Bharat Kumar Gogada)
+    
+      Miscellaneous:
+       - Check device_attach() return value always (Bjorn Helgaas)
+       - Move pci_set_flags() from asm-generic/pci-bridge.h to linux/pci.h (Bjorn Helgaas)
+       - Remove includes of empty asm-generic/pci-bridge.h (Bjorn Helgaas)
+       - ARM64: Remove generated include of asm-generic/pci-bridge.h (Bjorn Helgaas)
+       - Remove empty asm-generic/pci-bridge.h (Bjorn Helgaas)
+       - Remove includes of asm/pci-bridge.h (Bjorn Helgaas)
+       - Consolidate PCI DMA constants and interfaces in linux/pci-dma-compat.h (Bjorn Helgaas)
+       - unicore32: Remove unused HAVE_ARCH_PCI_SET_DMA_MASK definition (Bjorn Helgaas)
+       - Cleanup pci/pcie/Kconfig whitespace (Andreas Ziegler)
+       - Include pci/hotplug Kconfig directly from pci/Kconfig (Bjorn Helgaas)
+       - Include pci/pcie/Kconfig directly from pci/Kconfig (Bogicevic Sasa)
+       - frv: Remove stray pci_{alloc,free}_consistent() declaration (Christoph Hellwig)
+       - Move pci_dma_* helpers to common code (Christoph Hellwig)
+       - Add PCI_CLASS_SERIAL_USB_DEVICE definition (Heikki Krogerus)
+       - Add QEMU top-level IDs for (sub)vendor & device (Robin H. Johnson)
+       - Fix broken URL for Dell biosdevname (Naga Venkata Sai Indubhaskar Jupudi)"
+    
+    * tag 'pci-v4.6-changes' of git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci: (94 commits)
+      PCI: Add PCI_CLASS_SERIAL_USB_DEVICE definition
+      PCI: designware: Add driver for prototyping kits based on ARC SDP
+      PCI: designware: Add default link up check if sub-driver doesn't override
+      PCI: designware: Add generic dw_pcie_wait_for_link()
+      PCI: Cleanup pci/pcie/Kconfig whitespace
+      PCI: Simplify pci_create_attr() control flow
+      PCI: Don't leak memory if sysfs_create_bin_file() fails
+      PCI: Simplify sysfs ROM cleanup
+      PCI: Remove unused IORESOURCE_ROM_COPY and IORESOURCE_ROM_BIOS_COPY
+      MIPS: Loongson 3: Keep CPU physical (not virtual) addresses in shadow ROM resource
+      MIPS: Loongson 3: Use temporary struct resource * to avoid repetition
+      ia64/PCI: Keep CPU physical (not virtual) addresses in shadow ROM resource
+      ia64/PCI: Use ioremap() instead of open-coded equivalent
+      ia64/PCI: Use temporary struct resource * to avoid repetition
+      PCI: Clean up pci_map_rom() whitespace
+      PCI: Remove arch-specific IORESOURCE_ROM_SHADOW size from sysfs
+      PCI: thunder: Add driver for ThunderX-pass{1,2} on-chip devices
+      PCI: thunder: Add PCIe host driver for ThunderX processors
+      PCI: generic: Expose pci_host_common_probe() for use by other drivers
+      PCI: generic: Add pci_host_common_probe(), based on gen_pci_probe()
+      ...
+
+diff --cc arch/arc/Kconfig
+index 8a188bc1786a,f9e3b357af79..07a5cb944d4f
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@@ -561,14 -570,30 +565,36 @@@ endmen
+  endmenu	 # "ARC Architecture Configuration"
+  
+  source "mm/Kconfig"
+ +
+ +config FORCE_MAX_ZONEORDER
+ +	int "Maximum zone order"
+ +	default "12" if ARC_HUGEPAGE_16M
+ +	default "11"
+ +
+  source "net/Kconfig"
+  source "drivers/Kconfig"
++ 
++ menu "Bus Support"
++ 
++ config PCI
++ 	bool "PCI support" if MIGHT_HAVE_PCI
++ 	help
++ 	  PCI is the name of a bus system, i.e., the way the CPU talks to
++ 	  the other stuff inside your box.  Find out if your board/platform
++ 	  has PCI.
++ 
++ 	  Note: PCIe support for Synopsys Device will be available only
++ 	  when HAPS DX is configured with PCIe RC bitmap. If you have PCI,
++ 	  say Y, otherwise N.
++ 
++ config PCI_SYSCALL
++ 	def_bool PCI
++ 
++ source "drivers/pci/Kconfig"
++ source "drivers/pci/pcie/Kconfig"
++ 
++ endmenu
++ 
+  source "fs/Kconfig"
+  source "arch/arc/Kconfig.debug"
+  source "security/Kconfig"
+diff --cc drivers/pci/host/Kconfig
+index d1cdd9c992ac,391623e516f0..c5014bf95a20
+--- a/drivers/pci/host/Kconfig
++++ b/drivers/pci/host/Kconfig
+@@@ -14,9 -14,30 +14,31 @@@ config PCI_DRA7X
+  config PCI_MVEBU
+  	bool "Marvell EBU PCIe controller"
+  	depends on ARCH_MVEBU || ARCH_DOVE
+ +	depends on ARM
+  	depends on OF
+  
++ 
++ config PCIE_XILINX_NWL
++ 	bool "NWL PCIe Core"
++ 	depends on ARCH_ZYNQMP
++ 	select PCI_MSI_IRQ_DOMAIN if PCI_MSI
++ 	help
++ 	 Say 'Y' here if you want kernel support for Xilinx
++ 	 NWL PCIe controller. The controller can act as Root Port
++ 	 or End Point. The current option selection will only
++ 	 support root port enabling.
++ 
++ config PCIE_DW_PLAT
++ 	bool "Platform bus based DesignWare PCIe Controller"
++ 	select PCIE_DW
++ 	---help---
++ 	 This selects the DesignWare PCIe controller support. Select this if
++ 	 you have a PCIe controller on Platform bus.
++ 
++ 	 If you have a controller with this interface, say Y or M here.
++ 
++ 	 If unsure, say N.
++ 
+  config PCIE_DW
+  	bool
+  

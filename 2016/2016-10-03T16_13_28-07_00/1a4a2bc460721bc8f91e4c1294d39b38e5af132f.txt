@@ -1,0 +1,94 @@
+commit 1a4a2bc460721bc8f91e4c1294d39b38e5af132f
+Merge: 110a9e42b687 1ef55be16ed6
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Oct 3 16:13:28 2016 -0700
+
+    Merge branch 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull low-level x86 updates from Ingo Molnar:
+     "In this cycle this topic tree has become one of those 'super topics'
+      that accumulated a lot of changes:
+    
+       - Add CONFIG_VMAP_STACK=y support to the core kernel and enable it on
+         x86 - preceded by an array of changes. v4.8 saw preparatory changes
+         in this area already - this is the rest of the work. Includes the
+         thread stack caching performance optimization. (Andy Lutomirski)
+    
+       - switch_to() cleanups and all around enhancements. (Brian Gerst)
+    
+       - A large number of dumpstack infrastructure enhancements and an
+         unwinder abstraction. The secret long term plan is safe(r) live
+         patching plus maybe another attempt at debuginfo based unwinding -
+         but all these current bits are standalone enhancements in a frame
+         pointer based debug environment as well. (Josh Poimboeuf)
+    
+       - More __ro_after_init and const annotations. (Kees Cook)
+    
+       - Enable KASLR for the vmemmap memory region. (Thomas Garnier)"
+    
+    [ The virtually mapped stack changes are pretty fundamental, and not
+      x86-specific per se, even if they are only used on x86 right now. ]
+    
+    * 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (70 commits)
+      x86/asm: Get rid of __read_cr4_safe()
+      thread_info: Use unsigned long for flags
+      x86/alternatives: Add stack frame dependency to alternative_call_2()
+      x86/dumpstack: Fix show_stack() task pointer regression
+      x86/dumpstack: Remove dump_trace() and related callbacks
+      x86/dumpstack: Convert show_trace_log_lvl() to use the new unwinder
+      oprofile/x86: Convert x86_backtrace() to use the new unwinder
+      x86/stacktrace: Convert save_stack_trace_*() to use the new unwinder
+      perf/x86: Convert perf_callchain_kernel() to use the new unwinder
+      x86/unwind: Add new unwind interface and implementations
+      x86/dumpstack: Remove NULL task pointer convention
+      fork: Optimize task creation by caching two thread stacks per CPU if CONFIG_VMAP_STACK=y
+      sched/core: Free the stack early if CONFIG_THREAD_INFO_IN_TASK
+      lib/syscall: Pin the task stack in collect_syscall()
+      x86/process: Pin the target stack in get_wchan()
+      x86/dumpstack: Pin the target stack when dumping it
+      kthread: Pin the stack via try_get_task_stack()/put_task_stack() in to_live_kthread() function
+      sched/core: Add try_get_task_stack() and put_task_stack()
+      x86/entry/64: Fix a minor comment rebase error
+      iommu/amd: Don't put completion-wait semaphore on stack
+      ...
+
+diff --cc kernel/sched/core.c
+index fac6492f0b98,23c6037e2d89..94732d1ab00a
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@@ -3403,35 -3407,7 +3407,34 @@@ static void __sched notrace __schedule(
+  
+  	balance_callback(rq);
+  }
+- STACK_FRAME_NON_STANDARD(__schedule); /* switch_to() */
+  
+ +void __noreturn do_task_dead(void)
+ +{
+ +	/*
+ +	 * The setting of TASK_RUNNING by try_to_wake_up() may be delayed
+ +	 * when the following two conditions become true.
+ +	 *   - There is race condition of mmap_sem (It is acquired by
+ +	 *     exit_mm()), and
+ +	 *   - SMI occurs before setting TASK_RUNINNG.
+ +	 *     (or hypervisor of virtual machine switches to other guest)
+ +	 *  As a result, we may become TASK_RUNNING after becoming TASK_DEAD
+ +	 *
+ +	 * To avoid it, we have to wait for releasing tsk->pi_lock which
+ +	 * is held by try_to_wake_up()
+ +	 */
+ +	smp_mb();
+ +	raw_spin_unlock_wait(&current->pi_lock);
+ +
+ +	/* causes final put_task_struct in finish_task_switch(). */
+ +	__set_current_state(TASK_DEAD);
+ +	current->flags |= PF_NOFREEZE;	/* tell freezer to ignore us */
+ +	__schedule(false);
+ +	BUG();
+ +	/* Avoid "noreturn function does return".  */
+ +	for (;;)
+ +		cpu_relax();	/* For when BUG is null */
+ +}
+ +
+  static inline void sched_submit_work(struct task_struct *tsk)
+  {
+  	if (!tsk->state || tsk_is_pi_blocked(tsk))

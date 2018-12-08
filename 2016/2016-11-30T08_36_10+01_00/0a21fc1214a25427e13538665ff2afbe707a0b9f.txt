@@ -1,0 +1,68 @@
+commit 0a21fc1214a25427e13538665ff2afbe707a0b9f
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Wed Nov 30 08:33:54 2016 +0100
+
+    sched/x86: Make CONFIG_SCHED_MC_PRIO=y easier to enable
+    
+    Right now CONFIG_SCHED_MC_PRIO has X86_INTEL_PSTATE as a dependency,
+    which is not enabled by default and which hides the CONFIG_SCHED_MC_PRIO
+    hardware-enabling feature.
+    
+    Select X86_INTEL_PSTATE instead, plus its dependency (CPU_FREQ), if the
+    user enables CONFIG_SCHED_MC_PRIO=y.
+    
+    (Also align the CONFIG_SCHED_MC_PRIO Kconfig help text in standard style.)
+    
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tim Chen <tim.c.chen@linux.intel.com>
+    Cc: bp@suse.de
+    Cc: jolsa@redhat.com
+    Cc: linux-acpi@vger.kernel.org
+    Cc: linux-pm@vger.kernel.org
+    Cc: rjw@rjwysocki.net
+    Cc: linux-kernel@vger.kernel.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 715c1f3664c4..b50e5eeefd21 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -941,22 +941,24 @@ config SCHED_MC
+ 
+ config SCHED_MC_PRIO
+ 	bool "CPU core priorities scheduler support"
+-	depends on SCHED_MC && CPU_SUP_INTEL && X86_INTEL_PSTATE
++	depends on SCHED_MC && CPU_SUP_INTEL
++	select X86_INTEL_PSTATE
++	select CPU_FREQ
+ 	default y
+ 	---help---
+-	   Intel Turbo Boost Max Technology 3.0 enabled CPUs have a
+-	   core ordering determined at manufacturing time, which allows
+-	   certain cores to reach higher turbo frequencies (when running
+-	   single threaded workloads) than others.
++	  Intel Turbo Boost Max Technology 3.0 enabled CPUs have a
++	  core ordering determined at manufacturing time, which allows
++	  certain cores to reach higher turbo frequencies (when running
++	  single threaded workloads) than others.
+ 
+-	   Enabling this kernel feature teaches the scheduler about
+-	   the TBM3 (aka ITMT) priority order of the CPU cores and adjusts the
+-	   scheduler's CPU selection logic accordingly, so that higher
+-	   overall system performance can be achieved.
++	  Enabling this kernel feature teaches the scheduler about
++	  the TBM3 (aka ITMT) priority order of the CPU cores and adjusts the
++	  scheduler's CPU selection logic accordingly, so that higher
++	  overall system performance can be achieved.
+ 
+-	   This feature will have no effect on CPUs without this feature.
++	  This feature will have no effect on CPUs without this feature.
+ 
+-	   If unsure say Y here.
++	  If unsure say Y here.
+ 
+ source "kernel/Kconfig.preempt"
+ 

@@ -1,0 +1,2614 @@
+commit 8c27ceff3604b249a9efafbd1bd8b141b79e619d
+Author: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+Date:   Tue Oct 18 10:12:27 2016 -0200
+
+    docs: fix locations of several documents that got moved
+    
+    The previous patch renamed several files that are cross-referenced
+    along the Kernel documentation. Adjust the links to point to
+    the right places.
+    
+    Signed-off-by: Mauro Carvalho Chehab <mchehab@s-opensource.com>
+
+diff --git a/Documentation/00-INDEX b/Documentation/00-INDEX
+index d07575a8499e..39caa6544d1f 100644
+--- a/Documentation/00-INDEX
++++ b/Documentation/00-INDEX
+@@ -15,11 +15,11 @@ Following translations are available on the WWW:
+ ABI/
+ 	- info on kernel <-> userspace ABI and relative interface stability.
+ 
+-BUG-HUNTING
++admin-guide/bug-hunting.rst
+ 	- brute force method of doing binary search of patches to find bug.
+-Changes
++process/changes.rst
+ 	- list of changes that break older software packages.
+-CodingStyle
++process/coding-style.rst
+ 	- how the maintainers expect the C code in the kernel to look.
+ DMA-API.txt
+ 	- DMA API, pci_ API & extensions for non-consistent memory machines.
+@@ -33,7 +33,7 @@ DocBook/
+ 	- directory with DocBook templates etc. for kernel documentation.
+ EDID/
+ 	- directory with info on customizing EDID for broken gfx/displays.
+-HOWTO
++process/howto.rst
+ 	- the process and procedures of how to do Linux kernel development.
+ IPMI.txt
+ 	- info on Linux Intelligent Platform Management Interface (IPMI) Driver.
+@@ -48,7 +48,7 @@ Intel-IOMMU.txt
+ Makefile
+ 	- This file does nothing. Removing it breaks make htmldocs and
+ 	  make distclean.
+-ManagementStyle
++process/management-style.rst
+ 	- how to (attempt to) manage kernel hackers.
+ RCU/
+ 	- directory with info on RCU (read-copy update).
+@@ -56,13 +56,13 @@ SAK.txt
+ 	- info on Secure Attention Keys.
+ SM501.txt
+ 	- Silicon Motion SM501 multimedia companion chip
+-SecurityBugs
++admin-guide/security-bugs.rst
+ 	- procedure for reporting security bugs found in the kernel.
+-SubmitChecklist
++process/submit-checklist.rst
+ 	- Linux kernel patch submission checklist.
+-SubmittingDrivers
++process/submitting-drivers.rst
+ 	- procedure to get a new driver source included into the kernel tree.
+-SubmittingPatches
++process/submitting-patches.rst
+ 	- procedure to get a source patch included into the kernel tree.
+ VGA-softcursor.txt
+ 	- how to change your VGA cursor from a blinking underscore.
+@@ -72,7 +72,7 @@ acpi/
+ 	- info on ACPI-specific hooks in the kernel.
+ aoe/
+ 	- description of AoE (ATA over Ethernet) along with config examples.
+-applying-patches.txt
++process/applying-patches.rst
+ 	- description of various trees and how to apply their patches.
+ arm/
+ 	- directory with info about Linux on the ARM architecture.
+@@ -86,7 +86,7 @@ auxdisplay/
+ 	- misc. LCD driver documentation (cfag12864b, ks0108).
+ backlight/
+ 	- directory with info on controlling backlights in flat panel displays
+-bad_memory.txt
++admin-guide/bad-memory.rst
+ 	- how to use kernel parameters to exclude bad RAM regions.
+ basic_profiling.txt
+ 	- basic instructions for those who wants to profile Linux kernel.
+@@ -154,7 +154,7 @@ process/
+ 	- how to work with the mainline kernel development process.
+ device-mapper/
+ 	- directory with info on Device Mapper.
+-devices.txt
++admin-guide/devices.rst
+ 	- plain ASCII listing of all the nodes in /dev/ with major minor #'s.
+ devicetree/
+ 	- directory with info on device tree files used by OF/PowerPC/ARM
+@@ -178,7 +178,7 @@ efi-stub.txt
+ 	- How to use the EFI boot stub to bypass GRUB or elilo on EFI systems.
+ eisa.txt
+ 	- info on EISA bus support.
+-email-clients.txt
++process/email-clients.rst
+ 	- info on how to use e-mail to send un-mangled (git) patches.
+ extcon/
+ 	- directory with porting guide for Android kernel switch driver.
+@@ -226,9 +226,9 @@ ia64/
+ 	- directory with info about Linux on Intel 64 bit architecture.
+ infiniband/
+ 	- directory with documents concerning Linux InfiniBand support.
+-init.txt
++admin-guide/init.rst
+ 	- what to do when the kernel can't find the 1st process to run.
+-initrd.txt
++admin-guide/initrd.rst
+ 	- how to use the RAM disk as an initial/temporary root filesystem.
+ input/
+ 	- info on Linux input device support.
+@@ -248,7 +248,7 @@ isapnp.txt
+ 	- info on Linux ISA Plug & Play support.
+ isdn/
+ 	- directory with info on the Linux ISDN support, and supported cards.
+-java.txt
++admin-guide/java.rst
+ 	- info on the in-kernel binary support for Java(tm).
+ ja_JP/
+ 	- directory with Japanese translations of various documents
+@@ -256,11 +256,11 @@ kbuild/
+ 	- directory with info about the kernel build process.
+ kdump/
+ 	- directory with mini HowTo on getting the crash dump code to work.
+-kernel-docs.txt
++process/kernel-docs.rst
+ 	- listing of various WWW + books that document kernel internals.
+ kernel-documentation.rst
+ 	- how to write and format reStructuredText kernel documentation
+-kernel-parameters.txt
++admin-guide/kernel-parameters.rst
+ 	- summary listing of command line / boot prompt args for the kernel.
+ kernel-per-CPU-kthreads.txt
+ 	- List of all per-CPU kthreads and how they introduce jitter.
+@@ -302,7 +302,7 @@ magic-number.txt
+ 	- list of magic numbers used to mark/protect kernel data structures.
+ mailbox.txt
+ 	- How to write drivers for the common mailbox framework (IPC).
+-md.txt
++admin-guide/md.rst
+ 	- info on boot arguments for the multiple devices driver.
+ media-framework.txt
+ 	- info on media framework, its data structures, functions and usage.
+@@ -326,7 +326,7 @@ module-signing.txt
+ 	- Kernel module signing for increased security when loading modules.
+ mtd/
+ 	- directory with info about memory technology devices (flash)
+-mono.txt
++admin-guide/mono.rst
+ 	- how to execute Mono-based .NET binaries with the help of BINFMT_MISC.
+ namespaces/
+ 	- directory with various information about namespaces
+@@ -340,7 +340,7 @@ nommu-mmap.txt
+ 	- documentation about no-mmu memory mapping support.
+ numastat.txt
+ 	- info on how to read Numa policy hit/miss statistics in sysfs.
+-oops-tracing.txt
++admin-guide/oops-tracing.rst
+ 	- how to decode those nasty internal kernel error dump messages.
+ padata.txt
+ 	- An introduction to the "padata" parallel execution API
+@@ -378,7 +378,7 @@ ptp/
+ 	- directory with info on support for IEEE 1588 PTP clocks in Linux.
+ pwm.txt
+ 	- info on the pulse width modulation driver subsystem
+-ramoops.txt
++admin-guide/ramoops.rst
+ 	- documentation of the ramoops oops/panic logging module.
+ rapidio/
+ 	- directory with info on RapidIO packet-based fabric interconnect
+@@ -406,7 +406,7 @@ security/
+ 	- directory that contains security-related info
+ serial/
+ 	- directory with info on the low level serial API.
+-serial-console.txt
++admin-guide/serial-console.rst
+ 	- how to set up Linux with a serial line console as the default.
+ sgi-ioc4.txt
+ 	- description of the SGI IOC4 PCI (multi function) device.
+@@ -420,9 +420,9 @@ sparse.txt
+ 	- info on how to obtain and use the sparse tool for typechecking.
+ spi/
+ 	- overview of Linux kernel Serial Peripheral Interface (SPI) support.
+-stable_api_nonsense.txt
++process/stable-api-nonsense.rst
+ 	- info on why the kernel does not have a stable in-kernel api or abi.
+-stable_kernel_rules.txt
++process/stable-kernel-rules.rst
+ 	- rules and procedures for the -stable kernel releases.
+ static-keys.txt
+ 	- info on how static keys allow debug code in hotpaths via patching
+@@ -444,7 +444,7 @@ trace/
+ 	- directory with info on tracing technologies within linux
+ unaligned-memory-access.txt
+ 	- info on how to avoid arch breaking unaligned memory access in code.
+-unicode.txt
++admin-guide/unicode.rst
+ 	- info on the Unicode character/font mapping used in Linux.
+ unshare.txt
+ 	- description of the Linux unshare system call.
+@@ -466,7 +466,7 @@ vm/
+ 	- directory with info on the Linux vm code.
+ vme_api.txt
+ 	- file relating info on the VME bus API in linux
+-volatile-considered-harmful.txt
++process/volatile-considered-harmful.rst
+ 	- Why the "volatile" type class should not be used
+ w1/
+ 	- directory with documents regarding the 1-wire (w1) subsystem.
+diff --git a/Documentation/ABI/README b/Documentation/ABI/README
+index 1fafc4b0753b..3121029dce21 100644
+--- a/Documentation/ABI/README
++++ b/Documentation/ABI/README
+@@ -84,4 +84,4 @@ stable:
+ 
+ - Kernel-internal symbols.  Do not rely on the presence, absence, location, or
+   type of any kernel symbol, either in System.map files or the kernel binary
+-  itself.  See Documentation/stable_api_nonsense.txt.
++  itself.  See Documentation/process/stable-api-nonsense.rst.
+diff --git a/Documentation/ABI/testing/sysfs-kernel-slab b/Documentation/ABI/testing/sysfs-kernel-slab
+index 91bd6ca5440f..2cc0a72b64be 100644
+--- a/Documentation/ABI/testing/sysfs-kernel-slab
++++ b/Documentation/ABI/testing/sysfs-kernel-slab
+@@ -347,7 +347,7 @@ Description:
+ 		because of fragmentation, SLUB will retry with the minimum order
+ 		possible depending on its characteristics.
+ 		When debug_guardpage_minorder=N (N > 0) parameter is specified
+-		(see Documentation/kernel-parameters.txt), the minimum possible
++		(see Documentation/admin-guide/kernel-parameters.rst), the minimum possible
+ 		order is used and this sysfs entry can not be used to change
+ 		the order at run time.
+ 
+diff --git a/Documentation/DocBook/kernel-hacking.tmpl b/Documentation/DocBook/kernel-hacking.tmpl
+index 2a272275c81b..da5c087462b1 100644
+--- a/Documentation/DocBook/kernel-hacking.tmpl
++++ b/Documentation/DocBook/kernel-hacking.tmpl
+@@ -1208,8 +1208,8 @@ static struct block_device_operations opt_fops = {
+    
+    <listitem>
+     <para>
+-     Finally, don't forget to read <filename>Documentation/SubmittingPatches</filename>
+-     and possibly <filename>Documentation/SubmittingDrivers</filename>.
++     Finally, don't forget to read <filename>Documentation/process/submitting-patches.rst</filename>
++     and possibly <filename>Documentation/process/submitting-drivers.rst</filename>.
+     </para>
+    </listitem>
+   </itemizedlist>
+diff --git a/Documentation/acpi/video_extension.txt b/Documentation/acpi/video_extension.txt
+index 78b32ac02466..79bf6a4921be 100644
+--- a/Documentation/acpi/video_extension.txt
++++ b/Documentation/acpi/video_extension.txt
+@@ -101,6 +101,6 @@ received a notification, it will set the backlight level accordingly. This does
+ not affect the sending of event to user space, they are always sent to user
+ space regardless of whether or not the video module controls the backlight level
+ directly. This behaviour can be controlled through the brightness_switch_enabled
+-module parameter as documented in kernel-parameters.txt. It is recommended to
++module parameter as documented in admin-guide/kernel-parameters.rst. It is recommended to
+ disable this behaviour once a GUI environment starts up and wants to have full
+ control of the backlight level.
+diff --git a/Documentation/admin-guide/README.rst b/Documentation/admin-guide/README.rst
+index 05aad8543340..1b6dfb2b3adb 100644
+--- a/Documentation/admin-guide/README.rst
++++ b/Documentation/admin-guide/README.rst
+@@ -50,7 +50,8 @@ Documentation
+  - There are various README files in the Documentation/ subdirectory:
+    these typically contain kernel-specific installation notes for some
+    drivers for example. See Documentation/00-INDEX for a list of what
+-   is contained in each file.  Please read the Changes file, as it
++   is contained in each file.  Please read the
++   :ref:`Documentation/process/changes.rst <changes>` file, as it
+    contains information about the problems, which may result by upgrading
+    your kernel.
+ 
+@@ -96,7 +97,7 @@ Installing the kernel source
+    and 4.0.2 patches. Similarly, if you are running kernel version 4.0.2 and
+    want to jump to 4.0.3, you must first reverse the 4.0.2 patch (that is,
+    patch -R) **before** applying the 4.0.3 patch. You can read more on this in
+-   :ref:`Documentation/applying-patches.txt <applying_patches>`.
++   :ref:`Documentation/process/applying-patches.rst <applying_patches>`.
+ 
+    Alternatively, the script patch-kernel can be used to automate this
+    process.  It determines the current kernel version and applies any
+@@ -120,7 +121,7 @@ Software requirements
+ 
+    Compiling and running the 4.x kernels requires up-to-date
+    versions of various software packages.  Consult
+-   :ref:`Documentation/Changes <changes>` for the minimum version numbers
++   :ref:`Documentation/process/changes.rst <changes>` for the minimum version numbers
+    required and how to get updates for these packages.  Beware that using
+    excessively old versions of these packages can cause indirect
+    errors that are very difficult to track down, so don't assume that
+@@ -254,7 +255,7 @@ Compiling the kernel
+ --------------------
+ 
+  - Make sure you have at least gcc 3.2 available.
+-   For more information, refer to :ref:`Documentation/Changes <changes>`.
++   For more information, refer to :ref:`Documentation/process/changes.rst <changes>`.
+ 
+    Please note that you can still run a.out user programs with this kernel.
+ 
+@@ -355,7 +356,7 @@ If something goes wrong
+    help debugging the problem.  The text above the dump is also
+    important: it tells something about why the kernel dumped code (in
+    the above example, it's due to a bad kernel pointer). More information
+-   on making sense of the dump is in Documentation/oops-tracing.txt
++   on making sense of the dump is in Documentation/admin-guide/oops-tracing.rst
+ 
+  - If you compiled the kernel with CONFIG_KALLSYMS you can send the dump
+    as is, otherwise you will have to use the ``ksymoops`` program to make
+@@ -393,7 +394,7 @@ If something goes wrong
+ 
+    If you for some reason cannot do the above (you have a pre-compiled
+    kernel image or similar), telling me as much about your setup as
+-   possible will help.  Please read the :ref:`REPORTING-BUGS <reportingbugs>`
++   possible will help.  Please read the :ref:`admin-guide/reporting-bugs.rst <reportingbugs>`
+    document for details.
+ 
+  - Alternatively, you can use gdb on a running kernel. (read-only; i.e. you
+diff --git a/Documentation/admin-guide/bad-memory.rst b/Documentation/admin-guide/bad-memory.rst
+index 017fc86430c3..a5c0e25e496f 100644
+--- a/Documentation/admin-guide/bad-memory.rst
++++ b/Documentation/admin-guide/bad-memory.rst
+@@ -33,7 +33,7 @@ memmap is already in the kernel and usable as kernel-parameter at
+ boot-time.  Its syntax is slightly strange and you may need to
+ calculate the values by yourself!
+ 
+-Syntax to exclude a memory area (see kernel-parameters.txt for details)::
++Syntax to exclude a memory area (see admin-guide/kernel-parameters.rst for details)::
+ 
+ 	memmap=<size>$<address>
+ 
+diff --git a/Documentation/admin-guide/binfmt-misc.rst b/Documentation/admin-guide/binfmt-misc.rst
+index 9c5ff8f260bf..97b0d7927078 100644
+--- a/Documentation/admin-guide/binfmt-misc.rst
++++ b/Documentation/admin-guide/binfmt-misc.rst
+@@ -124,7 +124,7 @@ A few examples (assumed you are in ``/proc/sys/fs/binfmt_misc``):
+ 
+     echo ':DOSWin:M::MZ::/usr/local/bin/wine:' > register
+ 
+-For java support see Documentation/java.txt
++For java support see Documentation/admin-guide/java.rst
+ 
+ 
+ You can enable/disable binfmt_misc or one binary type by echoing 0 (to disable)
+@@ -140,7 +140,7 @@ Hints
+ -----
+ 
+ If you want to pass special arguments to your interpreter, you can
+-write a wrapper script for it. See Documentation/java.txt for an
++write a wrapper script for it. See Documentation/admin-guide/java.rst for an
+ example.
+ 
+ Your interpreter should NOT look in the PATH for the filename; the kernel
+diff --git a/Documentation/admin-guide/braille-console.rst b/Documentation/admin-guide/braille-console.rst
+index fa3702dc04ab..18e79337dcfd 100644
+--- a/Documentation/admin-guide/braille-console.rst
++++ b/Documentation/admin-guide/braille-console.rst
+@@ -3,7 +3,7 @@ Linux Braille Console
+ 
+ To get early boot messages on a braille device (before userspace screen
+ readers can start), you first need to compile the support for the usual serial
+-console (see :ref:`Documentation/serial-console.txt <serial_console>`), and
++console (see :ref:`Documentation/admin-guide/serial-console.rst <serial_console>`), and
+ for braille device
+ (in :menuselection:`Device Drivers --> Accessibility support --> Console on braille device`).
+ 
+@@ -13,7 +13,7 @@ format is::
+ 	console=brl,serial_options...
+ 
+ where ``serial_options...`` are the same as described in
+-:ref:`Documentation/serial-console.txt <serial_console>`.
++:ref:`Documentation/admin-guide/serial-console.rst <serial_console>`.
+ 
+ So for instance you can use ``console=brl,ttyS0`` if the braille device is connected to the first serial port, and ``console=brl,ttyS0,115200`` to
+ override the baud rate to 115200, etc.
+@@ -31,7 +31,7 @@ parameter.
+ For simplicity, only one braille console can be enabled, other uses of
+ ``console=brl,...`` will be discarded.  Also note that it does not interfere with
+ the console selection mechanism described in
+-:ref:`Documentation/serial-console.txt <serial_console>`.
++:ref:`Documentation/admin-guide/serial-console.rst <serial_console>`.
+ 
+ For now, only the VisioBraille device is supported.
+ 
+diff --git a/Documentation/admin-guide/bug-hunting.rst b/Documentation/admin-guide/bug-hunting.rst
+index a8ef794aadae..d35dd9fd1af0 100644
+--- a/Documentation/admin-guide/bug-hunting.rst
++++ b/Documentation/admin-guide/bug-hunting.rst
+@@ -15,7 +15,7 @@ give up. Report as much as you have found to the relevant maintainer. See
+ MAINTAINERS for who that is for the subsystem you have worked on.
+ 
+ Before you submit a bug report read
+-:ref:`Documentation/REPORTING-BUGS <reportingbugs>`.
++:ref:`Documentation/admin-guide/reporting-bugs.rst <reportingbugs>`.
+ 
+ Devices not appearing
+ =====================
+@@ -244,5 +244,6 @@ Once you have worked out a fix please submit it upstream. After all open
+ source is about sharing what you do and don't you want to be recognised for
+ your genius?
+ 
+-Please do read :ref:`Documentation/SubmittingPatches <submittingpatches>`
+-though to help your code get accepted.
++Please do read
++ref:`Documentation/process/submitting-patches.rst <submittingpatches>` though
++to help your code get accepted.
+diff --git a/Documentation/admin-guide/devices.rst b/Documentation/admin-guide/devices.rst
+index b29555041531..89db341fba7a 100644
+--- a/Documentation/admin-guide/devices.rst
++++ b/Documentation/admin-guide/devices.rst
+@@ -10,7 +10,7 @@ The LaTeX version of this document is no longer maintained, nor is
+ the document that used to reside at lanana.org.  This version in the
+ mainline Linux kernel is the master document.  Updates shall be sent
+ as patches to the kernel maintainers (see the
+-:ref:`Documentation/SubmittingPatches <submittingpatches>` document).
++:ref:`Documentation/process/submitting-patches.rst <submittingpatches>` document).
+ Specifically explore the sections titled "CHAR and MISC DRIVERS", and
+ "BLOCK LAYER" in the MAINTAINERS file to find the right maintainers
+ to involve for character and block devices.
+diff --git a/Documentation/admin-guide/kernel-parameters.rst b/Documentation/admin-guide/kernel-parameters.rst
+index b0804273b6e3..d2f2725f032e 100644
+--- a/Documentation/admin-guide/kernel-parameters.rst
++++ b/Documentation/admin-guide/kernel-parameters.rst
+@@ -815,7 +815,7 @@ bytes respectively. Such letter suffixes can also be entirely omitted::
+ 			bits, and "f" is flow control ("r" for RTS or
+ 			omit it).  Default is "9600n8".
+ 
+-			See Documentation/serial-console.txt for more
++			See Documentation/admin-guide/serial-console.rst for more
+ 			information.  See
+ 			Documentation/networking/netconsole.txt for an
+ 			alternative.
+@@ -2239,7 +2239,7 @@ bytes respectively. Such letter suffixes can also be entirely omitted::
+ 	mce=option	[X86-64] See Documentation/x86/x86_64/boot-options.txt
+ 
+ 	md=		[HW] RAID subsystems devices and level
+-			See Documentation/md.txt.
++			See Documentation/admin-guide/md.rst.
+ 
+ 	mdacon=		[MDA]
+ 			Format: <first>,<last>
+@@ -3322,7 +3322,7 @@ bytes respectively. Such letter suffixes can also be entirely omitted::
+ 	r128=		[HW,DRM]
+ 
+ 	raid=		[HW,RAID]
+-			See Documentation/md.txt.
++			See Documentation/admin-guide/md.rst.
+ 
+ 	ramdisk_size=	[RAM] Sizes of RAM disks in kilobytes
+ 			See Documentation/blockdev/ramdisk.txt.
+diff --git a/Documentation/admin-guide/oops-tracing.rst b/Documentation/admin-guide/oops-tracing.rst
+index 3e25ea7349ee..13be8d7bcfe7 100644
+--- a/Documentation/admin-guide/oops-tracing.rst
++++ b/Documentation/admin-guide/oops-tracing.rst
+@@ -44,7 +44,7 @@ the disk is not available then you have three options :
+     so won't help for 'early' oopses)
+ 
+ (2) Boot with a serial console (see
+-    :ref:`Documentation/serial-console.txt <serial_console>`),
++    :ref:`Documentation/admin-guide/serial-console.rst <serial_console>`),
+     run a null modem to a second machine and capture the output there
+     using your favourite communication program.  Minicom works well.
+ 
+diff --git a/Documentation/admin-guide/ramoops.rst b/Documentation/admin-guide/ramoops.rst
+index 7eaf1e71c083..fe95c027e37c 100644
+--- a/Documentation/admin-guide/ramoops.rst
++++ b/Documentation/admin-guide/ramoops.rst
+@@ -61,7 +61,7 @@ Setting the ramoops parameters can be done in several different manners:
+ 	mem=128M ramoops.mem_address=0x8000000 ramoops.ecc=1
+ 
+  B. Use Device Tree bindings, as described in
+- ``Documentation/device-tree/bindings/reserved-memory/ramoops.txt``.
++ ``Documentation/device-tree/bindings/reserved-memory/admin-guide/ramoops.rst``.
+  For example::
+ 
+ 	reserved-memory {
+diff --git a/Documentation/admin-guide/reporting-bugs.rst b/Documentation/admin-guide/reporting-bugs.rst
+index 05c53ac7fa76..0c0f2698ec5a 100644
+--- a/Documentation/admin-guide/reporting-bugs.rst
++++ b/Documentation/admin-guide/reporting-bugs.rst
+@@ -61,7 +61,7 @@ files to the get_maintainer.pl script::
+ 
+ If it is a security bug, please copy the Security Contact listed in the
+ MAINTAINERS file.  They can help coordinate bugfix and disclosure.  See
+-:ref:`Documentation/SecurityBugs <securitybugs>` for more information.
++:ref:`Documentation/admin-guide/security-bugs.rst <securitybugs>` for more information.
+ 
+ If you can't figure out which subsystem caused the issue, you should file
+ a bug in kernel.org bugzilla and send email to
+@@ -94,7 +94,7 @@ step-by-step instructions for how a user can trigger the bug.
+ 
+ If the failure includes an "OOPS:", take a picture of the screen, capture
+ a netconsole trace, or type the message from your screen into the bug
+-report.  Please read "Documentation/oops-tracing.txt" before posting your
++report.  Please read "Documentation/admin-guide/oops-tracing.rst" before posting your
+ bug report. This explains what you should do with the "Oops" information
+ to make it useful to the recipient.
+ 
+@@ -120,7 +120,7 @@ summary from [1.]>" for easy identification by the developers::
+   [4.2.] Kernel .config file:
+   [5.] Most recent kernel version which did not have the bug:
+   [6.] Output of Oops.. message (if applicable) with symbolic information
+-       resolved (see Documentation/oops-tracing.txt)
++       resolved (see Documentation/admin-guide/oops-tracing.rst)
+   [7.] A small shell script or example program which triggers the
+        problem (if possible)
+   [8.] Environment
+diff --git a/Documentation/admin-guide/security-bugs.rst b/Documentation/admin-guide/security-bugs.rst
+index df795e22d08b..4f7414cad586 100644
+--- a/Documentation/admin-guide/security-bugs.rst
++++ b/Documentation/admin-guide/security-bugs.rst
+@@ -19,7 +19,7 @@ area maintainers to understand and fix the security vulnerability.
+ 
+ As it is with any bug, the more information provided the easier it
+ will be to diagnose and fix.  Please review the procedure outlined in
+-REPORTING-BUGS if you are unclear about what information is helpful.
++admin-guide/reporting-bugs.rst if you are unclear about what information is helpful.
+ Any exploit code is very helpful and will not be released without
+ consent from the reporter unless it has already been made public.
+ 
+diff --git a/Documentation/admin-guide/unicode.rst b/Documentation/admin-guide/unicode.rst
+index 012e8e895842..4e5c3df9d55f 100644
+--- a/Documentation/admin-guide/unicode.rst
++++ b/Documentation/admin-guide/unicode.rst
+@@ -7,7 +7,7 @@ This file is maintained by H. Peter Anvin <unicode@lanana.org> as part
+ of the Linux Assigned Names And Numbers Authority (LANANA) project.
+ The current version can be found at:
+ 
+-	    http://www.lanana.org/docs/unicode/unicode.txt
++	    http://www.lanana.org/docs/unicode/admin-guide/unicode.rst
+ 
+ Introdution
+ -----------
+diff --git a/Documentation/arm/Booting b/Documentation/arm/Booting
+index 83c1df2fc758..259f00af3ab3 100644
+--- a/Documentation/arm/Booting
++++ b/Documentation/arm/Booting
+@@ -51,7 +51,7 @@ As an alternative, the boot loader can pass the relevant 'console='
+ option to the kernel via the tagged lists specifying the port, and
+ serial format options as described in
+ 
+-       Documentation/kernel-parameters.txt.
++       Documentation/admin-guide/kernel-parameters.rst.
+ 
+ 
+ 3. Detect the machine type
+diff --git a/Documentation/atomic_ops.txt b/Documentation/atomic_ops.txt
+index c9d1cacb4395..7281bf939779 100644
+--- a/Documentation/atomic_ops.txt
++++ b/Documentation/atomic_ops.txt
+@@ -16,7 +16,7 @@ will fail.  Something like the following should suffice:
+ 	typedef struct { long counter; } atomic_long_t;
+ 
+ Historically, counter has been declared volatile.  This is now discouraged.
+-See Documentation/volatile-considered-harmful.txt for the complete rationale.
++See Documentation/process/volatile-considered-harmful.rst for the complete rationale.
+ 
+ local_t is very similar to atomic_t. If the counter is per CPU and only
+ updated by one CPU, local_t is probably more appropriate. Please see
+diff --git a/Documentation/blockdev/ramdisk.txt b/Documentation/blockdev/ramdisk.txt
+index fe2ef978d85a..501e12e0323e 100644
+--- a/Documentation/blockdev/ramdisk.txt
++++ b/Documentation/blockdev/ramdisk.txt
+@@ -14,7 +14,7 @@ Contents:
+ 
+ The RAM disk driver is a way to use main system memory as a block device.  It
+ is required for initrd, an initial filesystem used if you need to load modules
+-in order to access the root filesystem (see Documentation/initrd.txt).  It can
++in order to access the root filesystem (see Documentation/admin-guide/initrd.rst).  It can
+ also be used for a temporary filesystem for crypto work, since the contents
+ are erased on reboot.
+ 
+diff --git a/Documentation/cgroup-v1/00-INDEX b/Documentation/cgroup-v1/00-INDEX
+index 106885ad670d..13e0c85e7b35 100644
+--- a/Documentation/cgroup-v1/00-INDEX
++++ b/Documentation/cgroup-v1/00-INDEX
+@@ -8,7 +8,7 @@ cpuacct.txt
+ 	- CPU Accounting Controller; account CPU usage for groups of tasks.
+ cpusets.txt
+ 	- documents the cpusets feature; assign CPUs and Mem to a set of tasks.
+-devices.txt
++admin-guide/devices.rst
+ 	- Device Whitelist Controller; description, interface and security.
+ freezer-subsystem.txt
+ 	- checkpointing; rationale to not use signals, interface.
+diff --git a/Documentation/devicetree/bindings/rtc/maxim,ds3231.txt b/Documentation/devicetree/bindings/rtc/maxim,ds3231.txt
+index ddef330d2709..1ad4c1c2b3b3 100644
+--- a/Documentation/devicetree/bindings/rtc/maxim,ds3231.txt
++++ b/Documentation/devicetree/bindings/rtc/maxim,ds3231.txt
+@@ -1,7 +1,7 @@
+ * Maxim DS3231 Real Time Clock
+ 
+ Required properties:
+-see: Documentation/devicetree/bindings/i2c/trivial-devices.txt
++see: Documentation/devicetree/bindings/i2c/trivial-admin-guide/devices.rst
+ 
+ Optional property:
+ - #clock-cells: Should be 1.
+diff --git a/Documentation/devicetree/bindings/rtc/pcf8563.txt b/Documentation/devicetree/bindings/rtc/pcf8563.txt
+index 72f6d2c9665e..086c998c5561 100644
+--- a/Documentation/devicetree/bindings/rtc/pcf8563.txt
++++ b/Documentation/devicetree/bindings/rtc/pcf8563.txt
+@@ -3,7 +3,7 @@
+ Philips PCF8563/Epson RTC8564 Real Time Clock
+ 
+ Required properties:
+-see: Documentation/devicetree/bindings/i2c/trivial-devices.txt
++see: Documentation/devicetree/bindings/i2c/trivial-admin-guide/devices.rst
+ 
+ Optional property:
+ - #clock-cells: Should be 0.
+diff --git a/Documentation/devicetree/bindings/submitting-patches.txt b/Documentation/devicetree/bindings/submitting-patches.txt
+index 7d44eae7ab0b..274058c583dd 100644
+--- a/Documentation/devicetree/bindings/submitting-patches.txt
++++ b/Documentation/devicetree/bindings/submitting-patches.txt
+@@ -3,7 +3,7 @@
+ 
+ I. For patch submitters
+ 
+-  0) Normal patch submission rules from Documentation/SubmittingPatches
++  0) Normal patch submission rules from Documentation/process/submitting-patches.rst
+      applies.
+ 
+   1) The Documentation/ portion of the patch should be a separate patch.
+diff --git a/Documentation/filesystems/locks.txt b/Documentation/filesystems/locks.txt
+index 2cf81082581d..5368690f412e 100644
+--- a/Documentation/filesystems/locks.txt
++++ b/Documentation/filesystems/locks.txt
+@@ -19,7 +19,7 @@ forever.
+ 
+ This should not cause problems for anybody, since everybody using a
+ 2.1.x kernel should have updated their C library to a suitable version
+-anyway (see the file "Documentation/Changes".)
++anyway (see the file "Documentation/process/changes.rst".)
+ 
+ 1.2 Allow Mixed Locks Again
+ ---------------------------
+diff --git a/Documentation/filesystems/nfs/nfsroot.txt b/Documentation/filesystems/nfs/nfsroot.txt
+index 0b2883b17d4c..5efae00f6c7f 100644
+--- a/Documentation/filesystems/nfs/nfsroot.txt
++++ b/Documentation/filesystems/nfs/nfsroot.txt
+@@ -11,7 +11,7 @@ Updated 2006 by Horms <horms@verge.net.au>
+ In order to use a diskless system, such as an X-terminal or printer server
+ for example, it is necessary for the root filesystem to be present on a
+ non-disk device. This may be an initramfs (see Documentation/filesystems/
+-ramfs-rootfs-initramfs.txt), a ramdisk (see Documentation/initrd.txt) or a
++ramfs-rootfs-initramfs.txt), a ramdisk (see Documentation/admin-guide/initrd.rst) or a
+ filesystem mounted via NFS. The following text describes on how to use NFS
+ for the root filesystem. For the rest of this text 'client' means the
+ diskless system, and 'server' means the NFS server.
+@@ -284,7 +284,7 @@ They depend on various facilities being available:
+ 	"kernel <relative-path-below /tftpboot>". The nfsroot parameters
+ 	are passed to the kernel by adding them to the "append" line.
+ 	It is common to use serial console in conjunction with pxeliunx,
+-	see Documentation/serial-console.txt for more information.
++	see Documentation/admin-guide/serial-console.rst for more information.
+ 
+ 	For more information on isolinux, including how to create bootdisks
+ 	for prebuilt kernels, see http://syslinux.zytor.com/
+diff --git a/Documentation/frv/booting.txt b/Documentation/frv/booting.txt
+index 9bdf4b46e741..cd9dc1dfb144 100644
+--- a/Documentation/frv/booting.txt
++++ b/Documentation/frv/booting.txt
+@@ -119,7 +119,7 @@ separated by spaces:
+ 	253:0		Device with major 253 and minor 0
+ 
+       Authoritative information can be found in
+-      "Documentation/kernel-parameters.txt".
++      "Documentation/admin-guide/kernel-parameters.rst".
+ 
+   (*) rw
+ 
+diff --git a/Documentation/hwmon/submitting-patches b/Documentation/hwmon/submitting-patches
+index 57f60307accc..f88221b46153 100644
+--- a/Documentation/hwmon/submitting-patches
++++ b/Documentation/hwmon/submitting-patches
+@@ -10,10 +10,10 @@ increase the chances of your change being accepted.
+ ----------
+ 
+ * It should be unnecessary to mention, but please read and follow
+-    Documentation/SubmitChecklist
+-    Documentation/SubmittingDrivers
+-    Documentation/SubmittingPatches
+-    Documentation/CodingStyle
++    Documentation/process/submit-checklist.rst
++    Documentation/process/submitting-drivers.rst
++    Documentation/process/submitting-patches.rst
++    Documentation/process/coding-style.rst
+ 
+ * Please run your patch through 'checkpatch --strict'. There should be no
+   errors, no warnings, and few if any check messages. If there are any
+diff --git a/Documentation/isdn/README b/Documentation/isdn/README
+index cfb1884342ee..32d4e80c2c03 100644
+--- a/Documentation/isdn/README
++++ b/Documentation/isdn/README
+@@ -332,7 +332,7 @@ README for the ISDN-subsystem
+ 4. Device-inodes
+ 
+    The major and minor numbers and their names are described in
+-   Documentation/devices.txt. The major numbers are:
++   Documentation/admin-guide/devices.rst. The major numbers are:
+ 
+      43 for the ISDN-tty's.
+      44 for the ISDN-callout-tty's.
+diff --git a/Documentation/ja_JP/HOWTO b/Documentation/ja_JP/HOWTO
+index 581c14bdd7be..b03fc8047f03 100644
+--- a/Documentation/ja_JP/HOWTO
++++ b/Documentation/ja_JP/HOWTO
+@@ -127,15 +127,15 @@ linux-api@ver.kernel.org に送ることを勧めます。
+      小限のレベルで必要な数々のソフトウェアパッケージの一覧を示してい
+      ます。
+ 
+-  Documentation/CodingStyle
++  Documentation/process/coding-style.rst
+     これは Linux カーネルのコーディングスタイルと背景にある理由を記述
+     しています。全ての新しいコードはこのドキュメントにあるガイドライン
+     に従っていることを期待されています。大部分のメンテナはこれらのルー
+     ルに従っているものだけを受け付け、多くの人は正しいスタイルのコード
+     だけをレビューします。
+ 
+-  Documentation/SubmittingPatches
+-  Documentation/SubmittingDrivers
++  Documentation/process/submitting-patches.rst
++  Documentation/process/submitting-drivers.rst
+      これらのファイルには、どうやってうまくパッチを作って投稿するかに
+      ついて非常に詳しく書かれており、以下を含みます(これだけに限らない
+      けれども)
+@@ -153,7 +153,7 @@ linux-api@ver.kernel.org に送ることを勧めます。
+ 	"Linux kernel patch submission format"
+ 		http://linux.yyz.us/patch-format.html
+ 
+-  Documentation/stable_api_nonsense.txt
++  Documentation/process/stable-api-nonsense.rst
+      このファイルはカーネルの中に不変のAPIを持たないことにした意識的な
+      決断の背景にある理由について書かれています。以下のようなことを含
+      んでいます-
+@@ -164,29 +164,29 @@ linux-api@ver.kernel.org に送ることを勧めます。
+      このドキュメントは Linux 開発の思想を理解するのに非常に重要です。
+      そして、他のOSでの開発者が Linux に移る時にとても重要です。
+ 
+-  Documentation/SecurityBugs
++  Documentation/admin-guide/security-bugs.rst
+     もし Linux カーネルでセキュリティ問題を発見したように思ったら、こ
+     のドキュメントのステップに従ってカーネル開発者に連絡し、問題解決を
+     支援してください。
+ 
+-  Documentation/ManagementStyle
++  Documentation/process/management-style.rst
+     このドキュメントは Linux カーネルのメンテナ達がどう行動するか、
+     彼らの手法の背景にある共有されている精神について記述しています。こ
+     れはカーネル開発の初心者なら（もしくは、単に興味があるだけの人でも）
+     重要です。なぜならこのドキュメントは、カーネルメンテナ達の独特な
+     行動についての多くの誤解や混乱を解消するからです。
+ 
+-  Documentation/stable_kernel_rules.txt
++  Documentation/process/stable-kernel-rules.rst
+     このファイルはどのように stable カーネルのリリースが行われるかのルー
+     ルが記述されています。そしてこれらのリリースの中のどこかで変更を取
+     り入れてもらいたい場合に何をすれば良いかが示されています。
+ 
+-  Documentation/kernel-docs.txt
++  Documentation/process/kernel-docs.rst
+ 　　カーネル開発に付随する外部ドキュメントのリストです。もしあなたが
+     探しているものがカーネル内のドキュメントでみつからなかった場合、
+     このリストをあたってみてください。
+ 
+-  Documentation/applying-patches.txt
++  Documentation/process/applying-patches.rst
+     パッチとはなにか、パッチをどうやって様々なカーネルの開発ブランチに
+     適用するのかについて正確に記述した良い入門書です。
+ 
+@@ -314,7 +314,7 @@ Andrew Morton が Linux-kernel メーリングリストにカーネルリリー
+ た問題がなければもう少し長くなることもあります。セキュリティ関連の問題
+ の場合はこれに対してだいたいの場合、すぐにリリースがされます。
+ 
+-カーネルツリーに入っている、Documentation/stable_kernel_rules.txt ファ
++カーネルツリーに入っている、Documentation/process/stable-kernel-rules.rst ファ
+ イルにはどのような種類の変更が -stable ツリーに受け入れ可能か、またリ
+ リースプロセスがどう動くかが記述されています。
+ 
+@@ -372,7 +372,7 @@ bugzilla.kernel.org は Linux カーネル開発者がカーネルのバグを
+ 場所です。ユーザは見つけたバグの全てをこのツールで報告すべきです。
+ どう kernel bugzilla を使うかの詳細は、以下を参照してください-
+ 	http://bugzilla.kernel.org/page.cgi?id=faq.html
+-メインカーネルソースディレクトリにあるファイル REPORTING-BUGS はカーネ
++メインカーネルソースディレクトリにあるファイル admin-guide/reporting-bugs.rst はカーネ
+ ルバグらしいものについてどうレポートするかの良いテンプレートであり、問
+ 題の追跡を助けるためにカーネル開発者にとってどんな情報が必要なのかの詳
+ 細が書かれています。
+@@ -438,7 +438,7 @@ MAINTAINERS ファイルにリストがありますので参照してくださ
+ メールの先頭でなく、各引用行の間にあなたの言いたいことを追加するべきで
+ す。
+ 
+-もしパッチをメールに付ける場合は、Documentation/SubmittingPatches に提
++もしパッチをメールに付ける場合は、Documentation/process/submitting-patches.rst に提
+ 示されているように、それは プレーンな可読テキストにすることを忘れない
+ ようにしましょう。カーネル開発者は 添付や圧縮したパッチを扱いたがりま
+ せん-
+diff --git a/Documentation/ja_JP/SubmitChecklist b/Documentation/ja_JP/SubmitChecklist
+index cb5507b1ac81..60c7c35ac517 100644
+--- a/Documentation/ja_JP/SubmitChecklist
++++ b/Documentation/ja_JP/SubmitChecklist
+@@ -1,5 +1,5 @@
+ NOTE:
+-This is a version of Documentation/SubmitChecklist into Japanese.
++This is a version of Documentation/process/submit-checklist.rst into Japanese.
+ This document is maintained by Takenori Nagano <t-nagano@ah.jp.nec.com>
+ and the JF Project team <http://www.linux.or.jp/JF/>.
+ If you find any difference between this document and the original file
+@@ -14,7 +14,7 @@ to update the original English file first.
+ Last Updated: 2008/07/14
+ ==================================
+ これは、
+-linux-2.6.26/Documentation/SubmitChecklist の和訳です。
++linux-2.6.26/Documentation/process/submit-checklist.rst の和訳です。
+ 
+ 翻訳団体： JF プロジェクト < http://www.linux.or.jp/JF/ >
+ 翻訳日： 2008/07/14
+@@ -27,7 +27,7 @@ Linux カーネルパッチ投稿者向けチェックリスト
+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ 本書では、パッチをより素早く取り込んでもらいたい開発者が実践すべき基本的な事柄
+-をいくつか紹介します。ここにある全ての事柄は、Documentation/SubmittingPatches
++をいくつか紹介します。ここにある全ての事柄は、Documentation/process/submitting-patches.rst
+ などのLinuxカーネルパッチ投稿に際しての心得を補足するものです。
+ 
+  1: 妥当なCONFIGオプションや変更されたCONFIGオプション、つまり =y, =m, =n
+@@ -84,7 +84,7 @@ Linux カーネルパッチ投稿者向けチェックリスト
+     必ずドキュメントを追加してください。
+ 
+ 17: 新しいブートパラメータを追加した場合には、
+-    必ずDocumentation/kernel-parameters.txt に説明を追加してください。
++    必ずDocumentation/admin-guide/kernel-parameters.rst に説明を追加してください。
+ 
+ 18: 新しくmoduleにパラメータを追加した場合には、MODULE_PARM_DESC()を
+     利用して必ずその説明を記述してください。
+diff --git a/Documentation/ja_JP/SubmittingPatches b/Documentation/ja_JP/SubmittingPatches
+index 5d6ae639bfa0..02139656463e 100644
+--- a/Documentation/ja_JP/SubmittingPatches
++++ b/Documentation/ja_JP/SubmittingPatches
+@@ -1,5 +1,5 @@
+ NOTE:
+-This is a version of Documentation/SubmittingPatches into Japanese.
++This is a version of Documentation/process/submitting-patches.rst into Japanese.
+ This document is maintained by Keiichi KII <k-keiichi@bx.jp.nec.com>
+ and the JF Project team <http://www.linux.or.jp/JF/>.
+ If you find any difference between this document and the original file
+@@ -15,7 +15,7 @@ Last Updated: 2011/06/09
+ 
+ ==================================
+ これは、
+-linux-2.6.39/Documentation/SubmittingPatches の和訳
++linux-2.6.39/Documentation/process/submitting-patches.rst の和訳
+ です。
+ 翻訳団体： JF プロジェクト < http://www.linux.or.jp/JF/ >
+ 翻訳日： 2011/06/09
+@@ -34,9 +34,9 @@ Linux カーネルに変更を加えたいと思っている個人又は会社
+ おじけづかせることもあります。この文章はあなたの変更を大いに受け入れ
+ てもらえやすくする提案を集めたものです。
+ 
+-コードを投稿する前に、Documentation/SubmitChecklist の項目リストに目
++コードを投稿する前に、Documentation/process/submit-checklist.rst の項目リストに目
+ を通してチェックしてください。もしあなたがドライバーを投稿しようとし
+-ているなら、Documentation/SubmittingDrivers にも目を通してください。
++ているなら、Documentation/process/submitting-drivers.rst にも目を通してください。
+ 
+ --------------------------------------------
+ セクション1 パッチの作り方と送り方
+@@ -148,7 +148,7 @@ http://savannah.nongnu.org/projects/quilt
+ 4) パッチのスタイルチェック
+ 
+ あなたのパッチが基本的な( Linux カーネルの)コーディングスタイルに違反し
+-ていないかをチェックして下さい。その詳細を Documentation/CodingStyle で
++ていないかをチェックして下さい。その詳細を Documentation/process/coding-style.rst で
+ 見つけることができます。コーディングスタイルの違反はレビューする人の
+ 時間を無駄にするだけなので、恐らくあなたのパッチは読まれることすらなく
+ 拒否されるでしょう。
+@@ -246,7 +246,7 @@ MIME 形式の添付ファイルは Linus に手間を取らせることにな
+ あれば、誰かが MIME 形式のパッチを再送するよう求めるかもしれません。
+ 
+ 余計な変更を加えずにあなたのパッチを送信するための電子メールクライアントの設定
+-のヒントについては Documentation/email-clients.txt を参照してください。
++のヒントについては Documentation/process/email-clients.rst を参照してください。
+ 
+ 8) 電子メールのサイズ
+ 
+@@ -609,7 +609,7 @@ diffstat の結果を生成するために「 git diff -M --stat --summary 」
+ し例外を適用するには、本当に妥当な理由が不可欠です。あなたは恐らくこの
+ セクションを Linus のコンピュータ・サイエンス101と呼ぶでしょう。
+ 
+-1) Documentation/CodingStyleを参照
++1) Documentation/process/coding-style.rstを参照
+ 
+ 言うまでもなく、あなたのコードがこのコーディングスタイルからあまりに
+ も逸脱していると、レビューやコメントなしに受け取ってもらえないかもし
+@@ -704,8 +704,8 @@ Greg Kroah-Hartman, "How to piss off a kernel subsystem maintainer".
+ NO!!!! No more huge patch bombs to linux-kernel@vger.kernel.org people!
+   <https://lkml.org/lkml/2005/7/11/336>
+ 
+-Kernel Documentation/CodingStyle:
+-  <http://users.sosdg.org/~qiyong/lxr/source/Documentation/CodingStyle>
++Kernel Documentation/process/coding-style.rst:
++  <http://users.sosdg.org/~qiyong/lxr/source/Documentation/process/coding-style.rst>
+ 
+ Linus Torvalds's mail on the canonical patch format:
+   <http://lkml.org/lkml/2005/4/7/183>
+diff --git a/Documentation/ja_JP/stable_api_nonsense.txt b/Documentation/ja_JP/stable_api_nonsense.txt
+index 7653b5cbfed2..a3b40a4bdcfd 100644
+--- a/Documentation/ja_JP/stable_api_nonsense.txt
++++ b/Documentation/ja_JP/stable_api_nonsense.txt
+@@ -1,5 +1,5 @@
+ NOTE:
+-This is a version of Documentation/stable_api_nonsense.txt into Japanese.
++This is a version of Documentation/process/stable-api-nonsense.rst into Japanese.
+ This document is maintained by IKEDA, Munehiro <m-ikeda@ds.jp.nec.com>
+ and the JF Project team <http://www.linux.or.jp/JF/>.
+ If you find any difference between this document and the original file
+@@ -14,7 +14,7 @@ to update the original English file first.
+ Last Updated: 2007/07/18
+ ==================================
+ これは、
+-linux-2.6.22-rc4/Documentation/stable_api_nonsense.txt の和訳
++linux-2.6.22-rc4/Documentation/process/stable-api-nonsense.rst の和訳
+ です。
+ 翻訳団体： JF プロジェクト < http://www.linux.or.jp/JF/ >
+ 翻訳日 ： 2007/06/11
+diff --git a/Documentation/ja_JP/stable_kernel_rules.txt b/Documentation/ja_JP/stable_kernel_rules.txt
+index 9dbda9b5d21e..f9249aecba64 100644
+--- a/Documentation/ja_JP/stable_kernel_rules.txt
++++ b/Documentation/ja_JP/stable_kernel_rules.txt
+@@ -1,5 +1,5 @@
+ NOTE:
+-This is Japanese translated version of "Documentation/stable_kernel_rules.txt".
++This is Japanese translated version of "Documentation/process/stable-kernel-rules.rst".
+ This one is maintained by Tsugikazu Shibata <tshibata@ab.jp.nec.com>
+ and JF Project team <www.linux.or.jp/JF>.
+ If you find difference with original file or problem in translation,
+@@ -12,7 +12,7 @@ file at first.
+ 
+ ==================================
+ これは、
+-linux-2.6.29/Documentation/stable_kernel_rules.txt
++linux-2.6.29/Documentation/process/stable-kernel-rules.rst
+ の和訳です。
+ 
+ 翻訳団体： JF プロジェクト < http://www.linux.or.jp/JF/ >
+@@ -43,7 +43,7 @@ linux-2.6.29/Documentation/stable_kernel_rules.txt
+    "理論的には競合状態になる"ようなものは不可。
+  - いかなる些細な修正も含めることはできない。(スペルの修正、空白のクリー
+    ンアップなど)
+- - Documentation/SubmittingPatches の規則に従ったものでなければならない。
++ - Documentation/process/submitting-patches.rst の規則に従ったものでなければならない。
+  - パッチ自体か同等の修正が Linus のツリーに既に存在しなければならない。
+ 　 Linus のツリーでのコミットID を -stable へのパッチ投稿の際に引用す
+    ること。
+diff --git a/Documentation/kernel-per-CPU-kthreads.txt b/Documentation/kernel-per-CPU-kthreads.txt
+index bbc3a8b8cff4..df31e30b6a02 100644
+--- a/Documentation/kernel-per-CPU-kthreads.txt
++++ b/Documentation/kernel-per-CPU-kthreads.txt
+@@ -264,7 +264,7 @@ To reduce its OS jitter, do at least one of the following:
+ 	kthreads from being created in the first place.
+ 2.	Boot with "nosoftlockup=0", which will also prevent these kthreads
+ 	from being created.  Other related watchdog and softlockup boot
+-	parameters may be found in Documentation/kernel-parameters.txt
++	parameters may be found in Documentation/admin-guide/kernel-parameters.rst
+ 	and Documentation/watchdog/watchdog-parameters.txt.
+ 3.	Echo a zero to /proc/sys/kernel/watchdog to disable the
+ 	watchdog timer.
+diff --git a/Documentation/ko_KR/HOWTO b/Documentation/ko_KR/HOWTO
+index 9a3e65924d54..025252731af5 100644
+--- a/Documentation/ko_KR/HOWTO
++++ b/Documentation/ko_KR/HOWTO
+@@ -1,5 +1,5 @@
+ NOTE:
+-This is a version of Documentation/HOWTO translated into korean
++This is a version of Documentation/process/howto.rst translated into korean
+ This document is maintained by Minchan Kim <minchan@kernel.org>
+ If you find any difference between this document and the original file or
+ a problem with the translation, please contact the maintainer of this file.
+@@ -11,7 +11,7 @@ try to update the original English file first.
+ 
+ ==================================
+ 이 문서는
+-Documentation/HOWTO
++Documentation/process/howto.rst
+ 의 한글 번역입니다.
+ 
+ 역자： 김민찬 <minchan@kernel.org>
+@@ -98,18 +98,18 @@ mtk.manpages@gmail.com의 메인테이너에게 보낼 것을 권장한다.
+     빌드하기 위해 필요한 것을 설명한다. 커널에 입문하는 사람들은 여기서
+     시작해야 한다.
+ 
+-  Documentation/Changes
++  Documentation/process/changes.rst
+     이 파일은 커널을 성공적으로 빌드하고 실행시키기 위해 필요한 다양한
+     소프트웨어 패키지들의 최소 버젼을 나열한다.
+ 
+-  Documentation/CodingStyle
++  Documentation/process/coding-style.rst
+     이 문서는 리눅스 커널 코딩 스타일과 그렇게 한 몇몇 이유를 설명한다.
+     모든 새로운 코드는 이 문서에 가이드라인들을 따라야 한다. 대부분의
+     메인테이너들은 이 규칙을 따르는 패치들만을 받아들일 것이고 많은 사람들이
+     그 패치가 올바른 스타일일 경우만 코드를 검토할 것이다.
+ 
+-  Documentation/SubmittingPatches
+-  Documentation/SubmittingDrivers
++  Documentation/process/submitting-patches.rst
++  Documentation/process/submitting-drivers.rst
+     이 파일들은 성공적으로 패치를 만들고 보내는 법을 다음의 내용들로
+     굉장히 상세히 설명하고 있다(그러나 다음으로 한정되진 않는다).
+        - Email 내용들
+@@ -126,7 +126,7 @@ mtk.manpages@gmail.com의 메인테이너에게 보낼 것을 권장한다.
+     "Linux kernel patch submission format"
+         http://linux.yyz.us/patch-format.html
+ 
+-   Documentation/stable_api_nonsense.txt
++   Documentation/process/stable-api-nonsense.rst
+     이 문서는 의도적으로 커널이 불변하는 API를 갖지 않도록 결정한
+     이유를 설명하며 다음과 같은 것들을 포함한다.
+        - 서브시스템 shim-layer(호환성을 위해?)
+@@ -136,12 +136,12 @@ mtk.manpages@gmail.com의 메인테이너에게 보낼 것을 권장한다.
+     리눅스로 전향하는 사람들에게는 매우 중요하다.
+ 
+ 
+-  Documentation/SecurityBugs
++  Documentation/admin-guide/security-bugs.rst
+     여러분들이 리눅스 커널의 보안 문제를 발견했다고 생각한다면 이 문서에
+     나온 단계에 따라서 커널 개발자들에게 알리고 그 문제를 해결할 수 있도록
+     도와 달라.
+ 
+-  Documentation/ManagementStyle
++  Documentation/process/management-style.rst
+     이 문서는 리눅스 커널 메인테이너들이 그들의 방법론에 녹아 있는
+     정신을 어떻게 공유하고 운영하는지를 설명한다. 이것은 커널 개발에 입문하는
+     모든 사람들(또는 커널 개발에 작은 호기심이라도 있는 사람들)이
+@@ -149,17 +149,17 @@ mtk.manpages@gmail.com의 메인테이너에게 보낼 것을 권장한다.
+     독특한 행동에 관하여 흔히 있는 오해들과 혼란들을 해소하고 있기
+     때문이다.
+ 
+-  Documentation/stable_kernel_rules.txt
++  Documentation/process/stable-kernel-rules.rst
+     이 문서는 안정적인 커널 배포가 이루어지는 규칙을 설명하고 있으며
+     여러분들이 이러한 배포들 중 하나에 변경을 하길 원한다면
+     무엇을 해야 하는지를 설명한다.
+ 
+-  Documentation/kernel-docs.txt
++  Documentation/process/kernel-docs.rst
+     커널 개발에 관계된 외부 문서의 리스트이다. 커널 내의 포함된 문서들
+     중에 여러분이 찾고 싶은 문서를 발견하지 못할 경우 이 리스트를
+     살펴보라.
+ 
+-  Documentation/applying-patches.txt
++  Documentation/process/applying-patches.rst
+     패치가 무엇이며 그것을 커널의 다른 개발 브랜치들에 어떻게
+     적용하는지에 관하여 자세히 설명하고 있는 좋은 입문서이다.
+ 
+@@ -276,7 +276,7 @@ Andrew Morton의 글이 있다.
+ 4.x.y는 "stable" 팀<stable@vger.kernel.org>에 의해 관리되며 거의 매번 격주로
+ 배포된다.
+ 
+-커널 트리 문서들 내에 Documentation/stable_kernel_rules.txt 파일은 어떤
++커널 트리 문서들 내에 Documentation/process/stable-kernel-rules.rst 파일은 어떤
+ 종류의 변경들이 -stable 트리로 들어왔는지와 배포 프로세스가 어떻게
+ 진행되는지를 설명한다.
+ 
+@@ -328,7 +328,7 @@ bugzilla.kernel.org는 리눅스 커널 개발자들이 커널의 버그를 추
+ kernel bugzilla를 사용하는 자세한 방법은 다음을 참조하라.
+     http://test.kernel.org/bugzilla/faq.html
+ 
+-메인 커널 소스 디렉토리에 있는 REPORTING-BUGS 파일은 커널 버그라고 생각되는
++메인 커널 소스 디렉토리에 있는 admin-guide/reporting-bugs.rst 파일은 커널 버그라고 생각되는
+ 것을 보고하는 방법에 관한 좋은 템플릿이며 문제를 추적하기 위해서 커널
+ 개발자들이 필요로 하는 정보가 무엇들인지를 상세히 설명하고 있다.
+ 
+@@ -391,7 +391,7 @@ bugme-janitor 메일링 리스트(bugzilla에 모든 변화들이 여기서 메
+ "John 커널해커는 작성했다...."를 유지하며 여러분들의 의견을 그 메일의 윗부분에
+ 작성하지 말고 각 인용한 단락들 사이에 넣어라.
+ 
+-여러분들이 패치들을 메일에 넣는다면 그것들은 Documentation/SubmittingPatches에
++여러분들이 패치들을 메일에 넣는다면 그것들은 Documentation/process/submitting-patches.rst에
+ 나와있는데로 명백히(plain) 읽을 수 있는 텍스트여야 한다. 커널 개발자들은
+ 첨부파일이나 압축된 패치들을 원하지 않는다. 그들은 여러분들의 패치의
+ 각 라인 단위로 코멘트를 하길 원하며 압축하거나 첨부하지 않고 보내는 것이
+diff --git a/Documentation/ko_KR/stable_api_nonsense.txt b/Documentation/ko_KR/stable_api_nonsense.txt
+index 3ba10b11d556..4d93af1efd61 100644
+--- a/Documentation/ko_KR/stable_api_nonsense.txt
++++ b/Documentation/ko_KR/stable_api_nonsense.txt
+@@ -1,5 +1,5 @@
+ NOTE:
+-This is a version of Documentation/stable_api_nonsense.txt translated
++This is a version of Documentation/process/stable-api-nonsense.rst translated
+ into korean
+ This document is maintained by Minchan Kim <minchan@kernel.org>
+ If you find any difference between this document and the original file or
+@@ -12,7 +12,7 @@ try to update the original English file first.
+ 
+ ==================================
+ 이 문서는
+-Documentation/stable_api_nonsense.txt
++Documentation/process/stable-api-nonsense.rst
+ 의 한글 번역입니다.
+ 
+ 역자： 김민찬 <minchan@kernel.org>
+diff --git a/Documentation/lockup-watchdogs.txt b/Documentation/lockup-watchdogs.txt
+index 4a6e33e1af61..c8b8378513d6 100644
+--- a/Documentation/lockup-watchdogs.txt
++++ b/Documentation/lockup-watchdogs.txt
+@@ -11,7 +11,7 @@ details), without giving other tasks a chance to run. The current
+ stack trace is displayed upon detection and, by default, the system
+ will stay locked up. Alternatively, the kernel can be configured to
+ panic; a sysctl, "kernel.softlockup_panic", a kernel parameter,
+-"softlockup_panic" (see "Documentation/kernel-parameters.txt" for
++"softlockup_panic" (see "Documentation/admin-guide/kernel-parameters.rst" for
+ details), and a compile option, "BOOTPARAM_SOFTLOCKUP_PANIC", are
+ provided for this.
+ 
+@@ -23,7 +23,7 @@ upon detection and the system will stay locked up unless the default
+ behavior is changed, which can be done through a sysctl,
+ 'hardlockup_panic', a compile time knob, "BOOTPARAM_HARDLOCKUP_PANIC",
+ and a kernel parameter, "nmi_watchdog"
+-(see "Documentation/kernel-parameters.txt" for details).
++(see "Documentation/admin-guide/kernel-parameters.rst" for details).
+ 
+ The panic option can be used in combination with panic_timeout (this
+ timeout is set through the confusingly named "kernel.panic" sysctl),
+diff --git a/Documentation/m68k/kernel-options.txt b/Documentation/m68k/kernel-options.txt
+index eaf32a1fd0b1..79d21246c75a 100644
+--- a/Documentation/m68k/kernel-options.txt
++++ b/Documentation/m68k/kernel-options.txt
+@@ -139,7 +139,7 @@ follows:
+   PARTUUID=00112233-4455-6677-8899-AABBCCDDEEFF/PARTNROFF=-2
+ 
+ Authoritative information can be found in
+-"Documentation/kernel-parameters.txt".
++"Documentation/admin-guide/kernel-parameters.rst".
+ 
+ 
+ 2.2) ro, rw
+diff --git a/Documentation/media/uapi/v4l/diff-v4l.rst b/Documentation/media/uapi/v4l/diff-v4l.rst
+index 76b2ecab8657..8209eeb63dd2 100644
+--- a/Documentation/media/uapi/v4l/diff-v4l.rst
++++ b/Documentation/media/uapi/v4l/diff-v4l.rst
+@@ -648,12 +648,12 @@ microcode programming. A new interface for MPEG compression and playback
+ devices is documented in :ref:`extended-controls`.
+ 
+ .. [#f1]
+-   According to Documentation/devices.txt these should be symbolic links
++   According to Documentation/admin-guide/devices.rst these should be symbolic links
+    to ``/dev/video0``. Note the original bttv interface is not
+    compatible with V4L or V4L2.
+ 
+ .. [#f2]
+-   According to ``Documentation/devices.txt`` a symbolic link to
++   According to ``Documentation/admin-guide/devices.rst`` a symbolic link to
+    ``/dev/radio0``.
+ 
+ .. [#f3]
+diff --git a/Documentation/media/v4l-drivers/bttv.rst b/Documentation/media/v4l-drivers/bttv.rst
+index 7abc1c9a261b..bc63b12efafd 100644
+--- a/Documentation/media/v4l-drivers/bttv.rst
++++ b/Documentation/media/v4l-drivers/bttv.rst
+@@ -304,10 +304,10 @@ bug.  It is very helpful if you can tell where exactly it broke
+ With a hard freeze you probably doesn't find anything in the logfiles.
+ The only way to capture any kernel messages is to hook up a serial
+ console and let some terminal application log the messages.  /me uses
+-screen.  See Documentation/serial-console.txt for details on setting
++screen.  See Documentation/admin-guide/serial-console.rst for details on setting
+ up a serial console.
+ 
+-Read Documentation/oops-tracing.txt to learn how to get any useful
++Read Documentation/admin-guide/oops-tracing.rst to learn how to get any useful
+ information out of a register+stack dump printed by the kernel on
+ protection faults (so-called "kernel oops").
+ 
+diff --git a/Documentation/memory-hotplug.txt b/Documentation/memory-hotplug.txt
+index 0d7cb955aa01..5de846d3ecc0 100644
+--- a/Documentation/memory-hotplug.txt
++++ b/Documentation/memory-hotplug.txt
+@@ -324,7 +324,7 @@ guarantee that the memory block contains only migratable pages.
+ Now, a boot option for making a memory block which consists of migratable pages
+ is supported. By specifying "kernelcore=" or "movablecore=" boot option, you can
+ create ZONE_MOVABLE...a zone which is just used for movable pages.
+-(See also Documentation/kernel-parameters.txt)
++(See also Documentation/admin-guide/kernel-parameters.rst)
+ 
+ Assume the system has "TOTAL" amount of memory at boot time, this boot option
+ creates ZONE_MOVABLE as following.
+diff --git a/Documentation/networking/netconsole.txt b/Documentation/networking/netconsole.txt
+index 30409a36e95d..296ea00fd3eb 100644
+--- a/Documentation/networking/netconsole.txt
++++ b/Documentation/networking/netconsole.txt
+@@ -200,7 +200,7 @@ priority messages to the console. You can change this at runtime using:
+ or by specifying "debug" on the kernel command line at boot, to send
+ all kernel messages to the console. A specific value for this parameter
+ can also be set using the "loglevel" kernel boot option. See the
+-dmesg(8) man page and Documentation/kernel-parameters.txt for details.
++dmesg(8) man page and Documentation/admin-guide/kernel-parameters.rst for details.
+ 
+ Netconsole was designed to be as instantaneous as possible, to
+ enable the logging of even the most critical kernel bugs. It works
+diff --git a/Documentation/networking/netdev-FAQ.txt b/Documentation/networking/netdev-FAQ.txt
+index 0fe1c6e0dbcd..cdebc5c8705f 100644
+--- a/Documentation/networking/netdev-FAQ.txt
++++ b/Documentation/networking/netdev-FAQ.txt
+@@ -136,14 +136,14 @@ A: Normally Greg Kroah-Hartman collects stable commits himself, but
+ 
+ Q: I see a network patch and I think it should be backported to stable.
+    Should I request it via "stable@vger.kernel.org" like the references in
+-   the kernel's Documentation/stable_kernel_rules.txt file say?
++   the kernel's Documentation/process/stable-kernel-rules.rst file say?
+ 
+ A: No, not for networking.  Check the stable queues as per above 1st to see
+    if it is already queued.  If not, then send a mail to netdev, listing
+    the upstream commit ID and why you think it should be a stable candidate.
+ 
+    Before you jump to go do the above, do note that the normal stable rules
+-   in Documentation/stable_kernel_rules.txt still apply.  So you need to
++   in Documentation/process/stable-kernel-rules.rst still apply.  So you need to
+    explicitly indicate why it is a critical fix and exactly what users are
+    impacted.  In addition, you need to convince yourself that you _really_
+    think it has been overlooked, vs. having been considered and rejected.
+@@ -165,7 +165,7 @@ A: No.  See above answer.  In short, if you think it really belongs in
+ 
+    If you think there is some valid information relating to it being in
+    stable that does _not_ belong in the commit log, then use the three
+-   dash marker line as described in Documentation/SubmittingPatches to
++   dash marker line as described in Documentation/process/submitting-patches.rst to
+    temporarily embed that information into the patch that you send.
+ 
+ Q: Someone said that the comment style and coding convention is different
+@@ -220,5 +220,5 @@ A: Attention to detail.  Re-read your own work as if you were the
+    If it is your first patch, mail it to yourself so you can test apply
+    it to an unpatched tree to confirm infrastructure didn't mangle it.
+ 
+-   Finally, go back and read Documentation/SubmittingPatches to be
++   Finally, go back and read Documentation/process/submitting-patches.rst to be
+    sure you are not repeating some common mistake documented there.
+diff --git a/Documentation/networking/vortex.txt b/Documentation/networking/vortex.txt
+index 97282da82b75..ad3dead052a4 100644
+--- a/Documentation/networking/vortex.txt
++++ b/Documentation/networking/vortex.txt
+@@ -364,7 +364,7 @@ steps you should take:
+ 
+ - The contents of your report will vary a lot depending upon the
+   problem.  If it's a kernel crash then you should refer to the
+-  REPORTING-BUGS file.
++  admin-guide/reporting-bugs.rst file.
+ 
+   But for most problems it is useful to provide the following:
+ 
+diff --git a/Documentation/power/00-INDEX b/Documentation/power/00-INDEX
+index ad04cc8097ed..7cb6085839f3 100644
+--- a/Documentation/power/00-INDEX
++++ b/Documentation/power/00-INDEX
+@@ -6,7 +6,7 @@ basic-pm-debugging.txt
+ 	- Debugging suspend and resume
+ charger-manager.txt
+ 	- Battery charger management.
+-devices.txt
++admin-guide/devices.rst
+ 	- How drivers interact with system-wide power management
+ drivers-testing.txt
+ 	- Testing suspend and resume support in device drivers
+diff --git a/Documentation/power/pci.txt b/Documentation/power/pci.txt
+index 44558882aa60..85c746cbab2c 100644
+--- a/Documentation/power/pci.txt
++++ b/Documentation/power/pci.txt
+@@ -8,7 +8,7 @@ management.  Based on previous work by Patrick Mochel <mochel@transmeta.com>
+ 
+ This document only covers the aspects of power management specific to PCI
+ devices.  For general description of the kernel's interfaces related to device
+-power management refer to Documentation/power/devices.txt and
++power management refer to Documentation/power/admin-guide/devices.rst and
+ Documentation/power/runtime_pm.txt.
+ 
+ ---------------------------------------------------------------------------
+@@ -417,7 +417,7 @@ pm->runtime_idle() callback.
+ 2.4. System-Wide Power Transitions
+ ----------------------------------
+ There are a few different types of system-wide power transitions, described in
+-Documentation/power/devices.txt.  Each of them requires devices to be handled
++Documentation/power/admin-guide/devices.rst.  Each of them requires devices to be handled
+ in a specific way and the PM core executes subsystem-level power management
+ callbacks for this purpose.  They are executed in phases such that each phase
+ involves executing the same subsystem-level callback for every device belonging
+@@ -623,7 +623,7 @@ System restore requires a hibernation image to be loaded into memory and the
+ pre-hibernation memory contents to be restored before the pre-hibernation system
+ activity can be resumed.
+ 
+-As described in Documentation/power/devices.txt, the hibernation image is loaded
++As described in Documentation/power/admin-guide/devices.rst, the hibernation image is loaded
+ into memory by a fresh instance of the kernel, called the boot kernel, which in
+ turn is loaded and run by a boot loader in the usual way.  After the boot kernel
+ has loaded the image, it needs to replace its own code and data with the code
+@@ -677,7 +677,7 @@ controlling the runtime power management of their devices.
+ 
+ At the time of this writing there are two ways to define power management
+ callbacks for a PCI device driver, the recommended one, based on using a
+-dev_pm_ops structure described in Documentation/power/devices.txt, and the
++dev_pm_ops structure described in Documentation/power/admin-guide/devices.rst, and the
+ "legacy" one, in which the .suspend(), .suspend_late(), .resume_early(), and
+ .resume() callbacks from struct pci_driver are used.  The legacy approach,
+ however, doesn't allow one to define runtime power management callbacks and is
+@@ -1046,5 +1046,5 @@ PCI Local Bus Specification, Rev. 3.0
+ PCI Bus Power Management Interface Specification, Rev. 1.2
+ Advanced Configuration and Power Interface (ACPI) Specification, Rev. 3.0b
+ PCI Express Base Specification, Rev. 2.0
+-Documentation/power/devices.txt
++Documentation/power/admin-guide/devices.rst
+ Documentation/power/runtime_pm.txt
+diff --git a/Documentation/power/runtime_pm.txt b/Documentation/power/runtime_pm.txt
+index 1fd1fbe9ce95..4870980e967e 100644
+--- a/Documentation/power/runtime_pm.txt
++++ b/Documentation/power/runtime_pm.txt
+@@ -674,7 +674,7 @@ left in runtime suspend.  If that happens, the PM core will not execute any
+ system suspend and resume callbacks for all of those devices, except for the
+ complete callback, which is then entirely responsible for handling the device
+ as appropriate.  This only applies to system suspend transitions that are not
+-related to hibernation (see Documentation/power/devices.txt for more
++related to hibernation (see Documentation/power/admin-guide/devices.rst for more
+ information).
+ 
+ The PM core does its best to reduce the probability of race conditions between
+diff --git a/Documentation/power/swsusp-dmcrypt.txt b/Documentation/power/swsusp-dmcrypt.txt
+index 59931b46ff7e..b802fbfd95ef 100644
+--- a/Documentation/power/swsusp-dmcrypt.txt
++++ b/Documentation/power/swsusp-dmcrypt.txt
+@@ -8,7 +8,7 @@ Some prerequisites:
+ You know how dm-crypt works. If not, visit the following web page:
+ http://www.saout.de/misc/dm-crypt/
+ You have read Documentation/power/swsusp.txt and understand it.
+-You did read Documentation/initrd.txt and know how an initrd works.
++You did read Documentation/admin-guide/initrd.rst and know how an initrd works.
+ You know how to create or how to modify an initrd.
+ 
+ Now your system is properly set up, your disk is encrypted except for
+diff --git a/Documentation/process/4.Coding.rst b/Documentation/process/4.Coding.rst
+index 9d5cef996f7f..983d628c1112 100644
+--- a/Documentation/process/4.Coding.rst
++++ b/Documentation/process/4.Coding.rst
+@@ -22,7 +22,7 @@ Coding style
+ ************
+ 
+ The kernel has long had a standard coding style, described in
+-Documentation/CodingStyle.  For much of that time, the policies described
++Documentation/process/coding-style.rst.  For much of that time, the policies described
+ in that file were taken as being, at most, advisory.  As a result, there is
+ a substantial amount of code in the kernel which does not meet the coding
+ style guidelines.  The presence of that code leads to two independent
+@@ -343,7 +343,7 @@ user-space developers to know what they are working with.  See
+ Documentation/ABI/README for a description of how this documentation should
+ be formatted and what information needs to be provided.
+ 
+-The file Documentation/kernel-parameters.txt describes all of the kernel's
++The file Documentation/admin-guide/kernel-parameters.rst describes all of the kernel's
+ boot-time parameters.  Any patch which adds new parameters should add the
+ appropriate entries to this file.
+ 
+diff --git a/Documentation/process/5.Posting.rst b/Documentation/process/5.Posting.rst
+index b511ddf7e82a..1b7728b19ea7 100644
+--- a/Documentation/process/5.Posting.rst
++++ b/Documentation/process/5.Posting.rst
+@@ -9,8 +9,8 @@ kernel.  Unsurprisingly, the kernel development community has evolved a set
+ of conventions and procedures which are used in the posting of patches;
+ following them will make life much easier for everybody involved.  This
+ document will attempt to cover these expectations in reasonable detail;
+-more information can also be found in the files SubmittingPatches,
+-SubmittingDrivers, and SubmitChecklist in the kernel documentation
++more information can also be found in the files process/submitting-patches.rst,
++process/submitting-drivers.rst, and process/submit-checklist.rst in the kernel documentation
+ directory.
+ 
+ 
+@@ -198,7 +198,7 @@ pass it to diff with the "-X" option.
+ 
+ The tags mentioned above are used to describe how various developers have
+ been associated with the development of this patch.  They are described in
+-detail in the SubmittingPatches document; what follows here is a brief
++detail in the process/submitting-patches.rst document; what follows here is a brief
+ summary.  Each of these lines has the format:
+ 
+ ::
+@@ -210,7 +210,7 @@ The tags in common use are:
+  - Signed-off-by: this is a developer's certification that he or she has
+    the right to submit the patch for inclusion into the kernel.  It is an
+    agreement to the Developer's Certificate of Origin, the full text of
+-   which can be found in Documentation/SubmittingPatches.  Code without a
++   which can be found in Documentation/process/submitting-patches.rst.  Code without a
+    proper signoff cannot be merged into the mainline.
+ 
+  - Acked-by: indicates an agreement by another developer (often a
+@@ -221,7 +221,7 @@ The tags in common use are:
+    it to work.
+ 
+  - Reviewed-by: the named developer has reviewed the patch for correctness;
+-   see the reviewer's statement in Documentation/SubmittingPatches for more
++   see the reviewer's statement in Documentation/process/submitting-patches.rst for more
+    detail.
+ 
+  - Reported-by: names a user who reported a problem which is fixed by this
+@@ -248,7 +248,7 @@ take care of:
+    be examined in any detail.  If there is any doubt at all, mail the patch
+    to yourself and convince yourself that it shows up intact.
+ 
+-   Documentation/email-clients.txt has some helpful hints on making
++   Documentation/process/email-clients.rst has some helpful hints on making
+    specific mail clients work for sending patches.
+ 
+  - Are you sure your patch is free of silly mistakes?  You should always
+diff --git a/Documentation/process/8.Conclusion.rst b/Documentation/process/8.Conclusion.rst
+index 23ec7cbc2d2b..1c7f54cd0261 100644
+--- a/Documentation/process/8.Conclusion.rst
++++ b/Documentation/process/8.Conclusion.rst
+@@ -5,9 +5,9 @@ For more information
+ 
+ There are numerous sources of information on Linux kernel development and
+ related topics.  First among those will always be the Documentation
+-directory found in the kernel source distribution.  The top-level HOWTO
+-file is an important starting point; SubmittingPatches and
+-SubmittingDrivers are also something which all kernel developers should
++directory found in the kernel source distribution.  The top-level process/howto.rst
++file is an important starting point; process/submitting-patches.rst and
++process/submitting-drivers.rst are also something which all kernel developers should
+ read.  Many internal kernel APIs are documented using the kerneldoc
+ mechanism; "make htmldocs" or "make pdfdocs" can be used to generate those
+ documents in HTML or PDF format (though the version of TeX shipped by some
+diff --git a/Documentation/process/adding-syscalls.rst b/Documentation/process/adding-syscalls.rst
+index f5b5b1aa51b3..8cc25a06f353 100644
+--- a/Documentation/process/adding-syscalls.rst
++++ b/Documentation/process/adding-syscalls.rst
+@@ -3,7 +3,7 @@ Adding a New System Call
+ 
+ This document describes what's involved in adding a new system call to the
+ Linux kernel, over and above the normal submission advice in
+-:ref:`Documentation/SubmittingPatches <submittingpatches>`.
++:ref:`Documentation/process/submitting-patches.rst <submittingpatches>`.
+ 
+ 
+ System Call Alternatives
+diff --git a/Documentation/process/coding-style.rst b/Documentation/process/coding-style.rst
+index 9c61c039ccd9..968808bec407 100644
+--- a/Documentation/process/coding-style.rst
++++ b/Documentation/process/coding-style.rst
+@@ -1058,5 +1058,5 @@ gcc internals and indent, all available from http://www.gnu.org/manual/
+ WG14 is the international standardization working group for the programming
+ language C, URL: http://www.open-std.org/JTC1/SC22/WG14/
+ 
+-Kernel CodingStyle, by greg@kroah.com at OLS 2002:
++Kernel process/coding-style.rst, by greg@kroah.com at OLS 2002:
+ http://www.kroah.com/linux/talks/ols_2002_kernel_codingstyle_talk/html/
+diff --git a/Documentation/process/howto.rst b/Documentation/process/howto.rst
+index 5f042349f987..3f66a1980726 100644
+--- a/Documentation/process/howto.rst
++++ b/Documentation/process/howto.rst
+@@ -90,19 +90,19 @@ required reading:
+     what is necessary to do to configure and build the kernel.  People
+     who are new to the kernel should start here.
+ 
+-  :ref:`Documentation/Changes <changes>`
++  :ref:`Documentation/process/changes.rst <changes>`
+     This file gives a list of the minimum levels of various software
+     packages that are necessary to build and run the kernel
+     successfully.
+ 
+-  :ref:`Documentation/CodingStyle <codingstyle>`
++  :ref:`Documentation/process/coding-style.rst <codingstyle>`
+     This describes the Linux kernel coding style, and some of the
+     rationale behind it. All new code is expected to follow the
+     guidelines in this document. Most maintainers will only accept
+     patches if these rules are followed, and many people will only
+     review code if it is in the proper style.
+ 
+-  :ref:`Documentation/SubmittingPatches <submittingpatches>` and :ref:`Documentation/SubmittingDrivers <submittingdrivers>`
++  :ref:`Documentation/process/submitting-patches.rst <submittingpatches>` and :ref:`Documentation/process/submitting-drivers.rst <submittingdrivers>`
+     These files describe in explicit detail how to successfully create
+     and send a patch, including (but not limited to):
+ 
+@@ -122,7 +122,7 @@ required reading:
+ 	"Linux kernel patch submission format"
+ 		http://linux.yyz.us/patch-format.html
+ 
+-  :ref:`Documentation/stable_api_nonsense.txt <stable_api_nonsense>`
++  :ref:`Documentation/process/stable-api-nonsense.rst <stable_api_nonsense>`
+     This file describes the rationale behind the conscious decision to
+     not have a stable API within the kernel, including things like:
+ 
+@@ -135,29 +135,29 @@ required reading:
+     philosophy and is very important for people moving to Linux from
+     development on other Operating Systems.
+ 
+-  :ref:`Documentation/SecurityBugs <securitybugs>`
++  :ref:`Documentation/admin-guide/security-bugs.rst <securitybugs>`
+     If you feel you have found a security problem in the Linux kernel,
+     please follow the steps in this document to help notify the kernel
+     developers, and help solve the issue.
+ 
+-  :ref:`Documentation/ManagementStyle <managementstyle>`
++  :ref:`Documentation/process/management-style.rst <managementstyle>`
+     This document describes how Linux kernel maintainers operate and the
+     shared ethos behind their methodologies.  This is important reading
+     for anyone new to kernel development (or anyone simply curious about
+     it), as it resolves a lot of common misconceptions and confusion
+     about the unique behavior of kernel maintainers.
+ 
+-  :ref:`Documentation/stable_kernel_rules.txt <stable_kernel_rules>`
++  :ref:`Documentation/process/stable-kernel-rules.rst <stable_kernel_rules>`
+     This file describes the rules on how the stable kernel releases
+     happen, and what to do if you want to get a change into one of these
+     releases.
+ 
+-  :ref:`Documentation/kernel-docs.txt <kernel_docs>`
++  :ref:`Documentation/process/kernel-docs.rst <kernel_docs>`
+     A list of external documentation that pertains to kernel
+     development.  Please consult this list if you do not find what you
+     are looking for within the in-kernel documentation.
+ 
+-  :ref:`Documentation/applying-patches.txt <applying_patches>`
++  :ref:`Documentation/process/applying-patches.rst <applying_patches>`
+     A good introduction describing exactly what a patch is and how to
+     apply it to the different development branches of the kernel.
+ 
+@@ -307,7 +307,7 @@ two weeks, but it can be longer if there are no pressing problems.  A
+ security-related problem, instead, can cause a release to happen almost
+ instantly.
+ 
+-The file Documentation/stable_kernel_rules.txt in the kernel tree
++The file Documentation/process/stable-kernel-rules.rst in the kernel tree
+ documents what kinds of changes are acceptable for the -stable tree, and
+ how the release process works.
+ 
+@@ -366,7 +366,7 @@ tool.  For details on how to use the kernel bugzilla, please see:
+ 
+ 	https://bugzilla.kernel.org/page.cgi?id=faq.html
+ 
+-The file REPORTING-BUGS in the main kernel source directory has a good
++The file admin-guide/reporting-bugs.rst in the main kernel source directory has a good
+ template for how to report a possible kernel bug, and details what kind
+ of information is needed by the kernel developers to help track down the
+ problem.
+@@ -440,7 +440,7 @@ add your statements between the individual quoted sections instead of
+ writing at the top of the mail.
+ 
+ If you add patches to your mail, make sure they are plain readable text
+-as stated in Documentation/SubmittingPatches.
++as stated in Documentation/process/submitting-patches.rst.
+ Kernel developers don't want to deal with
+ attachments or compressed patches; they may want to comment on
+ individual lines of your patch, which works only that way. Make sure you
+diff --git a/Documentation/process/management-style.rst b/Documentation/process/management-style.rst
+index dea2e66c9a10..45595fd8a66b 100644
+--- a/Documentation/process/management-style.rst
++++ b/Documentation/process/management-style.rst
+@@ -5,7 +5,7 @@ Linux kernel management style
+ 
+ This is a short document describing the preferred (or made up, depending
+ on who you ask) management style for the linux kernel.  It's meant to
+-mirror the CodingStyle document to some degree, and mainly written to
++mirror the process/coding-style.rst document to some degree, and mainly written to
+ avoid answering [#f1]_  the same (or similar) questions over and over again.
+ 
+ Management style is very personal and much harder to quantify than
+diff --git a/Documentation/process/stable-kernel-rules.rst b/Documentation/process/stable-kernel-rules.rst
+index 4d82e31b7958..11ec2d93a5e0 100644
+--- a/Documentation/process/stable-kernel-rules.rst
++++ b/Documentation/process/stable-kernel-rules.rst
+@@ -27,7 +27,7 @@ Rules on what kind of patches are accepted, and which ones are not, into the
+  - It cannot contain any "trivial" fixes in it (spelling changes,
+    whitespace cleanups, etc).
+  - It must follow the
+-   :ref:`Documentation/SubmittingPatches <submittingpatches>`
++   :ref:`Documentation/process/submitting-patches.rst <submittingpatches>`
+    rules.
+  - It or an equivalent fix must already exist in Linus' tree (upstream).
+ 
+@@ -40,7 +40,7 @@ Procedure for submitting patches to the -stable tree
+    Documentation/networking/netdev-FAQ.txt
+  - Security patches should not be handled (solely) by the -stable review
+    process but should follow the procedures in
+-   :ref:`Documentation/SecurityBugs <securitybugs>`.
++   :ref:`Documentation/admin-guide/security-bugs.rst <securitybugs>`.
+ 
+ For all other submissions, choose one of the following procedures
+ -----------------------------------------------------------------
+diff --git a/Documentation/process/submit-checklist.rst b/Documentation/process/submit-checklist.rst
+index 894289b22b15..a0d9d34bfb6d 100644
+--- a/Documentation/process/submit-checklist.rst
++++ b/Documentation/process/submit-checklist.rst
+@@ -7,7 +7,7 @@ Here are some basic things that developers should do if they want to see their
+ kernel patch submissions accepted more quickly.
+ 
+ These are all above and beyond the documentation that is provided in
+-:ref:`Documentation/SubmittingPatches <submittingpatches>`
++:ref:`Documentation/process/submitting-patches.rst <submittingpatches>`
+ and elsewhere regarding submitting Linux kernel patches.
+ 
+ 
+@@ -31,7 +31,7 @@ and elsewhere regarding submitting Linux kernel patches.
+    tends to use ``unsigned long`` for 64-bit quantities.
+ 
+ 5) Check your patch for general style as detailed in
+-   :ref:`Documentation/CodingStyle <codingstyle>`.
++   :ref:`Documentation/process/coding-style.rst <codingstyle>`.
+    Check for trivial violations with the patch style checker prior to
+    submission (``scripts/checkpatch.pl``).
+    You should be able to justify all violations that remain in
+@@ -78,7 +78,7 @@ and elsewhere regarding submitting Linux kernel patches.
+ 16) All new ``/proc`` entries are documented under ``Documentation/``
+ 
+ 17) All new kernel boot parameters are documented in
+-    ``Documentation/kernel-parameters.txt``.
++    ``Documentation/admin-guide/kernel-parameters.rst``.
+ 
+ 18) All new module parameters are documented with ``MODULE_PARM_DESC()``
+ 
+diff --git a/Documentation/process/submitting-drivers.rst b/Documentation/process/submitting-drivers.rst
+index 252b77a23fad..0939d018c289 100644
+--- a/Documentation/process/submitting-drivers.rst
++++ b/Documentation/process/submitting-drivers.rst
+@@ -8,7 +8,7 @@ various kernel trees. Note that if you are interested in video card drivers
+ you should probably talk to XFree86 (http://www.xfree86.org/) and/or X.Org
+ (http://x.org/) instead.
+ 
+-Also read the Documentation/SubmittingPatches document.
++Also read the Documentation/process/submitting-patches.rst document.
+ 
+ 
+ Allocating Device Numbers
+@@ -19,7 +19,7 @@ by the Linux assigned name and number authority (currently this is
+ Torben Mathiasen). The site is http://www.lanana.org/. This
+ also deals with allocating numbers for devices that are not going to
+ be submitted to the mainstream kernel.
+-See Documentation/devices.txt for more information on this.
++See Documentation/admin-guide/devices.rst for more information on this.
+ 
+ If you don't use assigned numbers then when your device is submitted it will
+ be given an assigned number even if that is different from values you may
+@@ -73,7 +73,7 @@ Interfaces:
+ 
+ Code:
+ 		Please use the Linux style of code formatting as documented
+-		in :ref:`Documentation/CodingStyle <codingStyle>`.
++		in :ref:`Documentation/process/coding-style.rst <codingStyle>`.
+ 		If you have sections of code
+ 		that need to be in other formats, for example because they
+ 		are shared with a windows driver kit and you want to
+@@ -109,7 +109,7 @@ PM support:
+ 		anything.  For the driver testing instructions see
+ 		Documentation/power/drivers-testing.txt and for a relatively
+ 		complete overview of the power management issues related to
+-		drivers see Documentation/power/devices.txt .
++		drivers see Documentation/power/admin-guide/devices.rst .
+ 
+ Control:
+ 		In general if there is active maintenance of a driver by
+diff --git a/Documentation/process/submitting-patches.rst b/Documentation/process/submitting-patches.rst
+index 4cc20b2c6df3..b4cf8f375184 100644
+--- a/Documentation/process/submitting-patches.rst
++++ b/Documentation/process/submitting-patches.rst
+@@ -11,10 +11,10 @@ can greatly increase the chances of your change being accepted.
+ This document contains a large number of suggestions in a relatively terse
+ format.  For detailed information on how the kernel development process
+ works, see :ref:`Documentation/process <development_process_main>`.
+-Also, read :ref:`Documentation/SubmitChecklist <submitchecklist>`
++Also, read :ref:`Documentation/process/submit-checklist.rst <submitchecklist>`
+ for a list of items to check before
+ submitting code.  If you are submitting a driver, also read
+-:ref:`Documentation/SubmittingDrivers <submittingdrivers>`;
++:ref:`Documentation/process/submitting-drivers.rst <submittingdrivers>`;
+ for device tree binding patches, read
+ Documentation/devicetree/bindings/submitting-patches.txt.
+ 
+@@ -238,7 +238,7 @@ then only post say 15 or so at a time and wait for review and integration.
+ 
+ Check your patch for basic style violations, details of which can be
+ found in
+-:ref:`Documentation/CodingStyle <codingstyle>`.
++:ref:`Documentation/process/coding-style.rst <codingstyle>`.
+ Failure to do so simply wastes
+ the reviewers time and will get your patch rejected, probably
+ without even being read.
+@@ -305,7 +305,7 @@ toward the stable maintainers by putting a line like this::
+ 
+ into the sign-off area of your patch (note, NOT an email recipient).  You
+ should also read
+-:ref:`Documentation/stable_kernel_rules.txt <stable_kernel_rules>`
++:ref:`Documentation/process/stable-kernel-rules.rst <stable_kernel_rules>`
+ in addition to this file.
+ 
+ Note, however, that some subsystem maintainers want to come to their own
+@@ -363,7 +363,7 @@ decreasing the likelihood of your MIME-attached change being accepted.
+ Exception:  If your mailer is mangling patches then someone may ask
+ you to re-send them using MIME.
+ 
+-See :ref:`Documentation/email-clients.txt <email_clients>`
++See :ref:`Documentation/process/email-clients.rst <email_clients>`
+ for hints about configuring your e-mail client so that it sends your patches
+ untouched.
+ 
+@@ -828,8 +828,8 @@ Greg Kroah-Hartman, "How to piss off a kernel subsystem maintainer".
+ NO!!!! No more huge patch bombs to linux-kernel@vger.kernel.org people!
+   <https://lkml.org/lkml/2005/7/11/336>
+ 
+-Kernel Documentation/CodingStyle:
+-  :ref:`Documentation/CodingStyle <codingstyle>`
++Kernel Documentation/process/coding-style.rst:
++  :ref:`Documentation/process/coding-style.rst <codingstyle>`
+ 
+ Linus Torvalds's mail on the canonical patch format:
+   <http://lkml.org/lkml/2005/4/7/183>
+diff --git a/Documentation/rfkill.txt b/Documentation/rfkill.txt
+index 1f0c27049340..8c174063b3f0 100644
+--- a/Documentation/rfkill.txt
++++ b/Documentation/rfkill.txt
+@@ -26,7 +26,7 @@ whether they can be changed or not:
+                the system software.
+ 
+ The rfkill subsystem has two parameters, rfkill.default_state and
+-rfkill.master_switch_mode, which are documented in kernel-parameters.txt.
++rfkill.master_switch_mode, which are documented in admin-guide/kernel-parameters.rst.
+ 
+ 
+ 2. Implementation details
+diff --git a/Documentation/scsi/scsi-parameters.txt b/Documentation/scsi/scsi-parameters.txt
+index 8e66dafa41e1..8477655c0e46 100644
+--- a/Documentation/scsi/scsi-parameters.txt
++++ b/Documentation/scsi/scsi-parameters.txt
+@@ -1,7 +1,7 @@
+                           SCSI Kernel Parameters
+                           ~~~~~~~~~~~~~~~~~~~~~~
+ 
+-See Documentation/kernel-parameters.txt for general information on
++See Documentation/admin-guide/kernel-parameters.rst for general information on
+ specifying module parameters.
+ 
+ This document may not be entirely up to date and comprehensive. The command
+diff --git a/Documentation/scsi/scsi_mid_low_api.txt b/Documentation/scsi/scsi_mid_low_api.txt
+index 255075157511..6338400eed73 100644
+--- a/Documentation/scsi/scsi_mid_low_api.txt
++++ b/Documentation/scsi/scsi_mid_low_api.txt
+@@ -336,7 +336,7 @@ in parallel by these functions.
+ Conventions
+ ===========
+ First, Linus Torvalds's thoughts on C coding style can be found in the
+-Documentation/CodingStyle file. 
++Documentation/process/coding-style.rst file.
+ 
+ Next, there is a movement to "outlaw" typedefs introducing synonyms for 
+ struct tags. Both can be still found in the SCSI subsystem, but
+diff --git a/Documentation/scsi/sym53c8xx_2.txt b/Documentation/scsi/sym53c8xx_2.txt
+index 6af8f7a7770f..d28186553fb0 100644
+--- a/Documentation/scsi/sym53c8xx_2.txt
++++ b/Documentation/scsi/sym53c8xx_2.txt
+@@ -427,7 +427,7 @@ Synchronous transfers frequency       (default answer: 80)
+ 10.1 Syntax
+ 
+ Setup commands can be passed to the driver either at boot time or as
+-parameters to modprobe, as described in Documentation/kernel-parameters.txt
++parameters to modprobe, as described in Documentation/admin-guide/kernel-parameters.rst
+ 
+ Example of boot setup command under lilo prompt:
+ 
+diff --git a/Documentation/sound/alsa/alsa-parameters.txt b/Documentation/sound/alsa/alsa-parameters.txt
+index 0fa40679b080..72eced86f035 100644
+--- a/Documentation/sound/alsa/alsa-parameters.txt
++++ b/Documentation/sound/alsa/alsa-parameters.txt
+@@ -1,7 +1,7 @@
+                           ALSA Kernel Parameters
+                           ~~~~~~~~~~~~~~~~~~~~~~
+ 
+-See Documentation/kernel-parameters.txt for general information on
++See Documentation/admin-guide/kernel-parameters.rst for general information on
+ specifying module parameters.
+ 
+ This document may not be entirely up to date and comprehensive. The command
+diff --git a/Documentation/sound/oss/oss-parameters.txt b/Documentation/sound/oss/oss-parameters.txt
+index 3ab391e7c295..cc675f25eee4 100644
+--- a/Documentation/sound/oss/oss-parameters.txt
++++ b/Documentation/sound/oss/oss-parameters.txt
+@@ -1,7 +1,7 @@
+                           OSS Kernel Parameters
+                           ~~~~~~~~~~~~~~~~~~~~~
+ 
+-See Documentation/kernel-parameters.txt for general information on
++See Documentation/admin-guide/kernel-parameters.rst for general information on
+ specifying module parameters.
+ 
+ This document may not be entirely up to date and comprehensive. The command
+diff --git a/Documentation/sysctl/kernel.txt b/Documentation/sysctl/kernel.txt
+index ffab8b5caa60..6bb78f872929 100644
+--- a/Documentation/sysctl/kernel.txt
++++ b/Documentation/sysctl/kernel.txt
+@@ -71,7 +71,7 @@ show up in /proc/sys/kernel:
+ - printk_ratelimit_burst
+ - pty                         ==> Documentation/filesystems/devpts.txt
+ - randomize_va_space
+-- real-root-dev               ==> Documentation/initrd.txt
++- real-root-dev               ==> Documentation/admin-guide/initrd.rst
+ - reboot-cmd                  [ SPARC only ]
+ - rtsig-max
+ - rtsig-nr
+@@ -453,7 +453,7 @@ in a KVM virtual machine. This default can be overridden by adding
+ 
+    nmi_watchdog=1
+ 
+-to the guest kernel command line (see Documentation/kernel-parameters.txt).
++to the guest kernel command line (see Documentation/admin-guide/kernel-parameters.rst).
+ 
+ ==============================================================
+ 
+diff --git a/Documentation/virtual/kvm/review-checklist.txt b/Documentation/virtual/kvm/review-checklist.txt
+index a850986ed684..a83b27635fdd 100644
+--- a/Documentation/virtual/kvm/review-checklist.txt
++++ b/Documentation/virtual/kvm/review-checklist.txt
+@@ -1,8 +1,8 @@
+ Review checklist for kvm patches
+ ================================
+ 
+-1.  The patch must follow Documentation/CodingStyle and
+-    Documentation/SubmittingPatches.
++1.  The patch must follow Documentation/process/coding-style.rst and
++    Documentation/process/submitting-patches.rst.
+ 
+ 2.  Patches should be against kvm.git master branch.
+ 
+diff --git a/Documentation/vm/numa b/Documentation/vm/numa
+index e0b58c0e6b49..a08f71647714 100644
+--- a/Documentation/vm/numa
++++ b/Documentation/vm/numa
+@@ -82,7 +82,7 @@ such as DMA or DMA32, represent relatively scarce resources.  Linux chooses
+ a default zonelist order based on the sizes of the various zone types relative
+ to the total memory of the node and the total memory of the system.  The
+ default zonelist order may be overridden using the numa_zonelist_order kernel
+-boot parameter or sysctl.  [see Documentation/kernel-parameters.txt and
++boot parameter or sysctl.  [see Documentation/admin-guide/kernel-parameters.rst and
+ Documentation/sysctl/vm.txt]
+ 
+ By default, Linux will attempt to satisfy memory allocation requests from the
+diff --git a/Documentation/watchdog/convert_drivers_to_kernel_api.txt b/Documentation/watchdog/convert_drivers_to_kernel_api.txt
+index 271b8850dde7..9fffb2958d13 100644
+--- a/Documentation/watchdog/convert_drivers_to_kernel_api.txt
++++ b/Documentation/watchdog/convert_drivers_to_kernel_api.txt
+@@ -213,6 +213,6 @@ The entry for the driver now needs to select WATCHDOG_CORE:
+ Create a patch and send it to upstream
+ --------------------------------------
+ 
+-Make sure you understood Documentation/SubmittingPatches and send your patch to
++Make sure you understood Documentation/process/submitting-patches.rst and send your patch to
+ linux-watchdog@vger.kernel.org. We are looking forward to it :)
+ 
+diff --git a/Documentation/watchdog/watchdog-parameters.txt b/Documentation/watchdog/watchdog-parameters.txt
+index a8d364227a77..e21850e270a0 100644
+--- a/Documentation/watchdog/watchdog-parameters.txt
++++ b/Documentation/watchdog/watchdog-parameters.txt
+@@ -4,7 +4,7 @@ be listed here unless the driver has its own driver-specific information
+ file.
+ 
+ 
+-See Documentation/kernel-parameters.txt for information on
++See Documentation/admin-guide/kernel-parameters.rst for information on
+ providing kernel parameters for builtin drivers versus loadable
+ modules.
+ 
+diff --git a/Documentation/x86/boot.txt b/Documentation/x86/boot.txt
+index 9da6f3512249..5e9b826b5f62 100644
+--- a/Documentation/x86/boot.txt
++++ b/Documentation/x86/boot.txt
+@@ -921,7 +921,7 @@ They should normally not be deleted from the kernel command line even
+ though not all of them are actually meaningful to the kernel.  Boot
+ loader authors who need additional command line options for the boot
+ loader itself should get them registered in
+-Documentation/kernel-parameters.txt to make sure they will not
++Documentation/admin-guide/kernel-parameters.rst to make sure they will not
+ conflict with actual kernel options now or in the future.
+ 
+   vga=<mode>
+diff --git a/Documentation/zh_CN/CodingStyle b/Documentation/zh_CN/CodingStyle
+index 12717791baac..b02738042799 100644
+--- a/Documentation/zh_CN/CodingStyle
++++ b/Documentation/zh_CN/CodingStyle
+@@ -1,4 +1,4 @@
+-Chinese translated version of Documentation/CodingStyle
++Chinese translated version of Documentation/process/coding-style.rst
+ 
+ If you have any comment or update to the content, please post to LKML directly.
+ However, if you have problem communicating in English you can also ask the
+@@ -7,7 +7,7 @@ translation is outdated or there is problem with translation.
+ 
+ Chinese maintainer: Zhang Le <r0bertz@gentoo.org>
+ ---------------------------------------------------------------------
+-Documentation/CodingStyle的中文翻译
++Documentation/process/coding-style.rst的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接发信到LKML。如果你使用英文交流有困难的话，也可
+ 以向中文版维护者求助。如果本翻译更新不及时或者翻译存在问题，请联系中文版维护者。
+@@ -809,5 +809,5 @@ GNU 手册 - 遵循 K&R 标准和此文本 - cpp, gcc, gcc internals and indent,
+ 
+ WG14是C语言的国际标准化工作组，URL: http://www.open-std.org/JTC1/SC22/WG14/
+ 
+-Kernel CodingStyle，作者 greg@kroah.com 发表于OLS 2002：
++Kernel process/coding-style.rst，作者 greg@kroah.com 发表于OLS 2002：
+ http://www.kroah.com/linux/talks/ols_2002_kernel_codingstyle_talk/html/
+diff --git a/Documentation/zh_CN/HOWTO b/Documentation/zh_CN/HOWTO
+index f0613b92e0be..11be075ba5fa 100644
+--- a/Documentation/zh_CN/HOWTO
++++ b/Documentation/zh_CN/HOWTO
+@@ -1,4 +1,4 @@
+-﻿Chinese translated version of Documentation/HOWTO
++﻿Chinese translated version of Documentation/process/howto.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -9,7 +9,7 @@ or if there is a problem with the translation.
+ Maintainer: Greg Kroah-Hartman <greg@kroah.com>
+ Chinese maintainer: Li Yang <leoli@freescale.com>
+ ---------------------------------------------------------------------
+-Documentation/HOWTO 的中文翻译
++Documentation/process/howto.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+@@ -93,16 +93,16 @@ Linux内核代码中包含有大量的文档。这些文档对于学习如何与
+     文件简要介绍了Linux内核的背景，并且描述了如何配置和编译内核。内核的
+     新用户应该从这里开始。
+ 
+-  Documentation/Changes
++  Documentation/process/changes.rst
+     文件给出了用来编译和使用内核所需要的最小软件包列表。
+ 
+-  Documentation/CodingStyle
++  Documentation/process/coding-style.rst
+     描述Linux内核的代码风格和理由。所有新代码需要遵守这篇文档中定义的规
+     范。大多数维护者只会接收符合规定的补丁，很多人也只会帮忙检查符合风格
+     的代码。
+ 
+-  Documentation/SubmittingPatches
+-  Documentation/SubmittingDrivers
++  Documentation/process/submitting-patches.rst
++  Documentation/process/submitting-drivers.rst
+     这两份文档明确描述如何创建和发送补丁，其中包括（但不仅限于)：
+        - 邮件内容
+        - 邮件格式
+@@ -116,7 +116,7 @@ Linux内核代码中包含有大量的文档。这些文档对于学习如何与
+     "Linux kernel patch submission format"
+         http://linux.yyz.us/patch-format.html
+ 
+-  Documentation/stable_api_nonsense.txt
++  Documentation/process/stable-api-nonsense.rst
+     论证内核为什么特意不包括稳定的内核内部API，也就是说不包括像这样的特
+     性：
+        - 子系统中间层（为了兼容性？）
+@@ -125,23 +125,23 @@ Linux内核代码中包含有大量的文档。这些文档对于学习如何与
+     这篇文档对于理解Linux的开发哲学至关重要。对于将开发平台从其他操作系
+     统转移到Linux的人来说也很重要。
+ 
+-  Documentation/SecurityBugs
++  Documentation/admin-guide/security-bugs.rst
+     如果你认为自己发现了Linux内核的安全性问题，请根据这篇文档中的步骤来
+     提醒其他内核开发者并帮助解决这个问题。
+ 
+-  Documentation/ManagementStyle
++  Documentation/process/management-style.rst
+     描述内核维护者的工作方法及其共有特点。这对于刚刚接触内核开发（或者对
+     它感到好奇）的人来说很重要，因为它解释了很多对于内核维护者独特行为的
+     普遍误解与迷惑。
+ 
+-  Documentation/stable_kernel_rules.txt
++  Documentation/process/stable-kernel-rules.rst
+     解释了稳定版内核发布的规则，以及如何将改动放入这些版本的步骤。
+ 
+-  Documentation/kernel-docs.txt
++  Documentation/process/kernel-docs.rst
+     有助于内核开发的外部文档列表。如果你在内核自带的文档中没有找到你想找
+     的内容，可以查看这些文档。
+ 
+-  Documentation/applying-patches.txt
++  Documentation/process/applying-patches.rst
+     关于补丁是什么以及如何将它打在不同内核开发分支上的好介绍
+ 
+ 内核还拥有大量从代码自动生成的文档。它包含内核内部API的全面介绍以及如何
+@@ -238,7 +238,7 @@ kernel.org网站的pub/linux/kernel/v2.6/目录下找到它。它的开发遵循
+ 2.6.x.y版本由“稳定版”小组（邮件地址<stable@vger.kernel.org>）维护，一般隔周发
+ 布新版本。
+ 
+-内核源码中的Documentation/stable_kernel_rules.txt文件具体描述了可被稳定
++内核源码中的Documentation/process/stable-kernel-rules.rst文件具体描述了可被稳定
+ 版内核接受的修改类型以及发布的流程。
+ 
+ 
+@@ -329,7 +329,7 @@ bugzilla.kernel.org是Linux内核开发者们用来跟踪内核Bug的网站。
+ 户在这个工具中报告找到的所有bug。如何使用内核bugzilla的细节请访问：
+ 	http://test.kernel.org/bugzilla/faq.html
+ 
+-内核源码主目录中的REPORTING-BUGS文件里有一个很好的模板。它指导用户如何报
++内核源码主目录中的admin-guide/reporting-bugs.rst文件里有一个很好的模板。它指导用户如何报
+ 告可能的内核bug以及需要提供哪些信息来帮助内核开发者们找到问题的根源。
+ 
+ 
+@@ -380,7 +380,7 @@ MAINTAINERS文件中可以找到不同话题对应的邮件列表。
+ 这几行。将你的评论加在被引用的段落之间而不要放在邮件的顶部。
+ 
+ 如果你在邮件中附带补丁，请确认它们是可以直接阅读的纯文本（如
+-Documentation/SubmittingPatches文档中所述）。内核开发者们不希望遇到附件
++Documentation/process/submitting-patches.rst文档中所述）。内核开发者们不希望遇到附件
+ 或者被压缩了的补丁。只有这样才能保证他们可以直接评论你的每行代码。请确保
+ 你使用的邮件发送程序不会修改空格和制表符。一个防范性的测试方法是先将邮件
+ 发送给自己，然后自己尝试是否可以顺利地打上收到的补丁。如果测试不成功，请
+diff --git a/Documentation/zh_CN/SecurityBugs b/Documentation/zh_CN/SecurityBugs
+index d21eb07fe943..2d0fffd122ce 100644
+--- a/Documentation/zh_CN/SecurityBugs
++++ b/Documentation/zh_CN/SecurityBugs
+@@ -1,4 +1,4 @@
+-Chinese translated version of Documentation/SecurityBugs
++Chinese translated version of Documentation/admin-guide/security-bugs.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -8,7 +8,7 @@ or if there is a problem with the translation.
+ 
+ Chinese maintainer: Harry Wei <harryxiyou@gmail.com>
+ ---------------------------------------------------------------------
+-Documentation/SecurityBugs 的中文翻译
++Documentation/admin-guide/security-bugs.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+@@ -31,7 +31,7 @@ linux内核安全团队可以通过email<security@kernel.org>来联系。这是
+ 一组独立的安全工作人员，可以帮助改善漏洞报告并且公布和取消一个修复。安
+ 全团队有可能会从部分的维护者那里引进额外的帮助来了解并且修复安全漏洞。
+ 当遇到任何漏洞，所能提供的信息越多就越能诊断和修复。如果你不清楚什么
+-是有帮助的信息，那就请重温一下REPORTING-BUGS文件中的概述过程。任
++是有帮助的信息，那就请重温一下admin-guide/reporting-bugs.rst文件中的概述过程。任
+ 何攻击性的代码都是非常有用的，未经报告者的同意不会被取消，除非它已经
+ 被公布于众。
+ 
+diff --git a/Documentation/zh_CN/SubmittingDrivers b/Documentation/zh_CN/SubmittingDrivers
+index d313f5d8448d..929385e4b194 100644
+--- a/Documentation/zh_CN/SubmittingDrivers
++++ b/Documentation/zh_CN/SubmittingDrivers
+@@ -1,4 +1,4 @@
+-﻿Chinese translated version of Documentation/SubmittingDrivers
++﻿Chinese translated version of Documentation/process/submitting-drivers.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -8,7 +8,7 @@ or if there is a problem with the translation.
+ 
+ Chinese maintainer: Li Yang <leo@zh-kernel.org>
+ ---------------------------------------------------------------------
+-Documentation/SubmittingDrivers 的中文翻译
++Documentation/process/submitting-drivers.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+@@ -30,7 +30,7 @@ Documentation/SubmittingDrivers 的中文翻译
+ 兴趣的是显卡驱动程序，你也许应该访问 XFree86 项目(http://www.xfree86.org/)
+ 和／或 X.org 项目 (http://x.org)。
+ 
+-另请参阅 Documentation/SubmittingPatches 文档。
++另请参阅 Documentation/process/submitting-patches.rst 文档。
+ 
+ 
+ 分配设备号
+@@ -39,7 +39,7 @@ Documentation/SubmittingDrivers 的中文翻译
+ 块设备和字符设备的主设备号与从设备号是由 Linux 命名编号分配权威 LANANA（
+ 现在是 Torben Mathiasen）负责分配。申请的网址是 http://www.lanana.org/。
+ 即使不准备提交到主流内核的设备驱动也需要在这里分配设备号。有关详细信息，
+-请参阅 Documentation/devices.txt。
++请参阅 Documentation/admin-guide/devices.rst。
+ 
+ 如果你使用的不是已经分配的设备号，那么当你提交设备驱动的时候，它将会被强
+ 制分配一个新的设备号，即便这个设备号和你之前发给客户的截然不同。
+@@ -81,7 +81,7 @@ Linux 2.6:
+ 		如果你需要一个 Linux 和 NT 的通用驱动接口，那么请在用
+ 		户空间实现它。
+ 
+-代码：		请使用 Documentation/CodingStyle 中所描述的 Linux 代码风
++代码：		请使用 Documentation/process/coding-style.rst 中所描述的 Linux 代码风
+ 		格。如果你的某些代码段（例如那些与 Windows 驱动程序包共
+ 		享的代码段）需要使用其他格式，而你却只希望维护一份代码，
+ 		那么请将它们很好地区分出来，并且注明原因。
+@@ -107,7 +107,7 @@ Linux 2.6:
+ 		程序测试的指导，请参阅
+ 		Documentation/power/drivers-testing.txt。有关驱动程序电
+ 		源管理问题相对全面的概述，请参阅
+-		Documentation/power/devices.txt。
++		Documentation/power/admin-guide/devices.rst。
+ 
+ 管理：		如果一个驱动程序的作者还在进行有效的维护，那么通常除了那
+ 		些明显正确且不需要任何检查的补丁以外，其他所有的补丁都会
+diff --git a/Documentation/zh_CN/SubmittingPatches b/Documentation/zh_CN/SubmittingPatches
+index 1d3a10f8746b..e9098da8f1a4 100644
+--- a/Documentation/zh_CN/SubmittingPatches
++++ b/Documentation/zh_CN/SubmittingPatches
+@@ -1,4 +1,4 @@
+-Chinese translated version of Documentation/SubmittingPatches
++Chinese translated version of Documentation/process/submitting-patches.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -8,7 +8,7 @@ or if there is a problem with the translation.
+ 
+ Chinese maintainer: TripleX Chung <triplex@zh-kernel.org>
+ ---------------------------------------------------------------------
+-Documentation/SubmittingPatches 的中文翻译
++Documentation/process/submitting-patches.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+@@ -30,9 +30,9 @@ Documentation/SubmittingPatches 的中文翻译
+ 对于想要将改动提交到 Linux 内核的个人或者公司来说，如果不熟悉“规矩”，
+ 提交的流程会让人畏惧。本文档收集了一系列建议，这些建议可以大大的提高你
+ 的改动被接受的机会。
+-阅读 Documentation/SubmitChecklist 来获得在提交代码前需要检查的项目的列
++阅读 Documentation/process/submit-checklist.rst 来获得在提交代码前需要检查的项目的列
+ 表。如果你在提交一个驱动程序，那么同时阅读一下
+-Documentation/SubmittingDrivers 。
++Documentation/process/submitting-drivers.rst 。
+ 
+ 
+ --------------------------
+@@ -338,7 +338,7 @@ e-mail 标题中的“一句话概述”扼要的描述 e-mail 中的补丁。
+ 本节包含很多和提交到内核的代码有关的通常的"规则"。事情永远有例外...但是
+ 你必须真的有好的理由这样做。你可以把本节叫做Linus的计算机科学入门课。
+ 
+-1) 读 Document/CodingStyle
++1) 读 Document/process/coding-style.rst
+ 
+ Nuff 说过，如果你的代码和这个偏离太多，那么它有可能会被拒绝，没有更多的
+ 审查，没有更多的评价。
+@@ -404,8 +404,8 @@ Greg Kroah-Hartman, "How to piss off a kernel subsystem maintainer".
+ NO!!!! No more huge patch bombs to linux-kernel@vger.kernel.org people!
+   <https://lkml.org/lkml/2005/7/11/336>
+ 
+-Kernel Documentation/CodingStyle:
+-  <http://sosdg.org/~coywolf/lxr/source/Documentation/CodingStyle>
++Kernel Documentation/process/coding-style.rst:
++  <http://sosdg.org/~coywolf/lxr/source/Documentation/process/coding-style.rst>
+ 
+ Linus Torvalds's mail on the canonical patch format:
+   <http://lkml.org/lkml/2005/4/7/183>
+diff --git a/Documentation/zh_CN/arm/Booting b/Documentation/zh_CN/arm/Booting
+index 6158a64df80c..1fe866f8218f 100644
+--- a/Documentation/zh_CN/arm/Booting
++++ b/Documentation/zh_CN/arm/Booting
+@@ -68,7 +68,7 @@ RAM，或可能使用对这个设备已知的 RAM 信息，还可能使用任何
+ 作为替代方案，引导加载程序也可以通过标签列表传递相关的'console='
+ 选项给内核以指定某个串口，而串口数据格式的选项在以下文档中描述：
+ 
+-       Documentation/kernel-parameters.txt。
++       Documentation/admin-guide/kernel-parameters.rst。
+ 
+ 
+ 3、检测机器类型
+diff --git a/Documentation/zh_CN/email-clients.txt b/Documentation/zh_CN/email-clients.txt
+index b9a1a3e6c78d..ec31d97e8d0e 100644
+--- a/Documentation/zh_CN/email-clients.txt
++++ b/Documentation/zh_CN/email-clients.txt
+@@ -1,4 +1,4 @@
+-﻿Chinese translated version of Documentation/email-clients.txt
++﻿Chinese translated version of Documentation/process/email-clients.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -8,7 +8,7 @@ or if there is a problem with the translation.
+ 
+ Chinese maintainer: Harry Wei <harryxiyou@gmail.com>
+ ---------------------------------------------------------------------
+-Documentation/email-clients.txt 的中文翻译
++Documentation/process/email-clients.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+diff --git a/Documentation/zh_CN/oops-tracing.txt b/Documentation/zh_CN/oops-tracing.txt
+index 9312608ffb8d..41ab53cc0e83 100644
+--- a/Documentation/zh_CN/oops-tracing.txt
++++ b/Documentation/zh_CN/oops-tracing.txt
+@@ -1,4 +1,4 @@
+-Chinese translated version of Documentation/oops-tracing.txt
++Chinese translated version of Documentation/admin-guide/oops-tracing.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -8,7 +8,7 @@ or if there is a problem with the translation.
+ 
+ Chinese maintainer: Dave Young <hidave.darkstar@gmail.com>
+ ---------------------------------------------------------------------
+-Documentation/oops-tracing.txt 的中文翻译
++Documentation/admin-guide/oops-tracing.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+@@ -50,7 +50,7 @@ cat /proc/kmsg > file， 然而你必须介入中止传输， kmsg是一个“
+ 息滚动到了终端的上面，你会发现以高分辩率启动（比如，vga=791）会让你读到更多的文
+ 本。（注意：这需要vesafb，所以对‘早期’的oops没有帮助）
+ 
+-（2）用串口终端启动（请参看Documentation/serial-console.txt），运行一个null
++（2）用串口终端启动（请参看Documentation/admin-guide/serial-console.rst），运行一个null
+ modem到另一台机器并用你喜欢的通讯工具获取输出。Minicom工作地很好。
+ 
+ （3）使用Kdump（请参看Documentation/kdump/kdump.txt），
+diff --git a/Documentation/zh_CN/stable_api_nonsense.txt b/Documentation/zh_CN/stable_api_nonsense.txt
+index c26a27d1ee7d..a2b27fab382c 100644
+--- a/Documentation/zh_CN/stable_api_nonsense.txt
++++ b/Documentation/zh_CN/stable_api_nonsense.txt
+@@ -1,4 +1,4 @@
+-Chinese translated version of Documentation/stable_api_nonsense.txt
++Chinese translated version of Documentation/process/stable-api-nonsense.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have problem
+@@ -9,7 +9,7 @@ is problem with translation.
+ Maintainer: Greg Kroah-Hartman <greg@kroah.com>
+ Chinese maintainer: TripleX Chung <zhongyu@18mail.cn>
+ ---------------------------------------------------------------------
+-Documentation/stable_api_nonsense.txt 的中文翻译
++Documentation/process/stable-api-nonsense.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+diff --git a/Documentation/zh_CN/stable_kernel_rules.txt b/Documentation/zh_CN/stable_kernel_rules.txt
+index 26ea5ed7cd9c..db4ba5a0c39a 100644
+--- a/Documentation/zh_CN/stable_kernel_rules.txt
++++ b/Documentation/zh_CN/stable_kernel_rules.txt
+@@ -1,4 +1,4 @@
+-Chinese translated version of Documentation/stable_kernel_rules.txt
++Chinese translated version of Documentation/process/stable-kernel-rules.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -8,7 +8,7 @@ or if there is a problem with the translation.
+ 
+ Chinese maintainer: TripleX Chung <triplex@zh-kernel.org>
+ ---------------------------------------------------------------------
+-Documentation/stable_kernel_rules.txt 的中文翻译
++Documentation/process/stable-kernel-rules.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+@@ -38,7 +38,7 @@ Documentation/stable_kernel_rules.txt 的中文翻译
+   - 没有“理论上的竞争条件”，除非能给出竞争条件如何被利用的解释。
+   - 不能存在任何的“琐碎的”修正（拼写修正，去掉多余空格之类的）。
+   - 必须被相关子系统的维护者接受。
+-  - 必须遵循Documentation/SubmittingPatches里的规则。
++  - 必须遵循Documentation/process/submitting-patches.rst里的规则。
+ 
+ 向稳定版代码树提交补丁的过程：
+ 
+diff --git a/Documentation/zh_CN/volatile-considered-harmful.txt b/Documentation/zh_CN/volatile-considered-harmful.txt
+index ba8149d2233a..475125967197 100644
+--- a/Documentation/zh_CN/volatile-considered-harmful.txt
++++ b/Documentation/zh_CN/volatile-considered-harmful.txt
+@@ -1,4 +1,4 @@
+-Chinese translated version of Documentation/volatile-considered-harmful.txt
++Chinese translated version of Documentation/process/volatile-considered-harmful.rst
+ 
+ If you have any comment or update to the content, please contact the
+ original document maintainer directly.  However, if you have a problem
+@@ -9,7 +9,7 @@ or if there is a problem with the translation.
+ Maintainer: Jonathan Corbet <corbet@lwn.net>
+ Chinese maintainer: Bryan Wu <bryan.wu@analog.com>
+ ---------------------------------------------------------------------
+-Documentation/volatile-considered-harmful.txt 的中文翻译
++Documentation/process/volatile-considered-harmful.rst 的中文翻译
+ 
+ 如果想评论或更新本文的内容，请直接联系原文档的维护者。如果你使用英文
+ 交流有困难的话，也可以向中文版维护者求助。如果本翻译更新不及时或者翻
+diff --git a/MAINTAINERS b/MAINTAINERS
+index de0451df542f..69820b75b2e0 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -35,13 +35,13 @@ trivial patch so apply some common sense.
+ 
+ 	PLEASE check your patch with the automated style checker
+ 	(scripts/checkpatch.pl) to catch trivial style violations.
+-	See Documentation/CodingStyle for guidance here.
++	See Documentation/process/coding-style.rst for guidance here.
+ 
+ 	PLEASE CC: the maintainers and mailing lists that are generated
+ 	by scripts/get_maintainer.pl.  The results returned by the
+ 	script will be best if you have git installed and are making
+ 	your changes in a branch derived from Linus' latest git tree.
+-	See Documentation/SubmittingPatches for details.
++	See Documentation/process/submitting-patches.rst for details.
+ 
+ 	PLEASE try to include any credit lines you want added with the
+ 	patch. It avoids people being missed off by mistake and makes
+@@ -54,7 +54,7 @@ trivial patch so apply some common sense.
+ 	of the Linux Foundation certificate of contribution and should
+ 	include a Signed-off-by: line.  The current version of this
+ 	"Developer's Certificate of Origin" (DCO) is listed in the file
+-	Documentation/SubmittingPatches.
++	Documentation/process/submitting-patches.rst.
+ 
+ 6.	Make sure you have the right to send any changes you make. If you
+ 	do changes at work you may find your employer owns the patch
+@@ -2924,7 +2924,7 @@ CAPELLA MICROSYSTEMS LIGHT SENSOR DRIVER
+ M:	Kevin Tsai <ktsai@capellamicro.com>
+ S:	Maintained
+ F:	drivers/iio/light/cm*
+-F:	Documentation/devicetree/bindings/i2c/trivial-devices.txt
++F:	Documentation/devicetree/bindings/i2c/trivial-admin-guide/devices.rst
+ 
+ CAVIUM I2C DRIVER
+ M:	Jan Glauber <jglauber@cavium.com>
+@@ -11438,7 +11438,7 @@ STABLE BRANCH
+ M:	Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+ L:	stable@vger.kernel.org
+ S:	Supported
+-F:	Documentation/stable_kernel_rules.txt
++F:	Documentation/process/stable-kernel-rules.rst
+ 
+ STAGING SUBSYSTEM
+ M:	Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index bada636d1065..19d237b0737d 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1525,7 +1525,7 @@ config X86_CHECK_BIOS_CORRUPTION
+ 	  line.  By default it scans the low 64k of memory every 60
+ 	  seconds; see the memory_corruption_check_size and
+ 	  memory_corruption_check_period parameters in
+-	  Documentation/kernel-parameters.txt to adjust this.
++	  Documentation/admin-guide/kernel-parameters.rst to adjust this.
+ 
+ 	  When enabled with the default parameters, this option has
+ 	  almost no overhead, as it reserves a relatively small amount
+diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+index 535e7828445a..c5f9cbe0ae21 100644
+--- a/drivers/acpi/Kconfig
++++ b/drivers/acpi/Kconfig
+@@ -342,7 +342,7 @@ config ACPI_DEBUG
+ 
+ 	  Use the acpi.debug_layer and acpi.debug_level kernel command-line
+ 	  parameters documented in Documentation/acpi/debug.txt and
+-	  Documentation/kernel-parameters.txt to control the type and
++	  Documentation/admin-guide/kernel-parameters.rst to control the type and
+ 	  amount of debug output.
+ 
+ config ACPI_PCI_SLOT
+diff --git a/drivers/ata/libata-core.c b/drivers/ata/libata-core.c
+index 223a770f78f3..59ce0dd50701 100644
+--- a/drivers/ata/libata-core.c
++++ b/drivers/ata/libata-core.c
+@@ -129,7 +129,7 @@ static int ata_force_tbl_size;
+ static char ata_force_param_buf[PAGE_SIZE] __initdata;
+ /* param_buf is thrown away after initialization, disallow read */
+ module_param_string(force, ata_force_param_buf, sizeof(ata_force_param_buf), 0);
+-MODULE_PARM_DESC(force, "Force ATA configurations including cable type, link speed and transfer mode (see Documentation/kernel-parameters.txt for details)");
++MODULE_PARM_DESC(force, "Force ATA configurations including cable type, link speed and transfer mode (see Documentation/admin-guide/kernel-parameters.rst for details)");
+ 
+ static int atapi_enabled = 1;
+ module_param(atapi_enabled, int, 0444);
+diff --git a/drivers/char/pcmcia/cm4000_cs.c b/drivers/char/pcmcia/cm4000_cs.c
+index c115217c79ae..e051fc8aa7d7 100644
+--- a/drivers/char/pcmcia/cm4000_cs.c
++++ b/drivers/char/pcmcia/cm4000_cs.c
+@@ -14,7 +14,7 @@
+   * (C) 2000,2001,2002,2003,2004 Omnikey AG
+   *
+   * (C) 2005-2006 Harald Welte <laforge@gnumonks.org>
+-  * 	- Adhere to Kernel CodingStyle
++  * 	- Adhere to Kernel process/coding-style.rst
+   * 	- Port to 2.6.13 "new" style PCMCIA
+   * 	- Check for copy_{from,to}_user return values
+   * 	- Use nonseekable_open()
+@@ -151,7 +151,7 @@ static struct pcmcia_device *dev_table[CM4000_MAX_DEV];
+ static struct class *cmm_class;
+ 
+ /* This table doesn't use spaces after the comma between fields and thus
+- * violates CodingStyle.  However, I don't really think wrapping it around will
++ * violates process/coding-style.rst.  However, I don't really think wrapping it around will
+  * make it any clearer to read -HW */
+ static unsigned char fi_di_table[10][14] = {
+ /*FI     00   01   02   03   04   05   06   07   08   09   10   11   12   13 */
+diff --git a/drivers/net/can/grcan.c b/drivers/net/can/grcan.c
+index db9538d4b358..a7be12d9a139 100644
+--- a/drivers/net/can/grcan.c
++++ b/drivers/net/can/grcan.c
+@@ -15,7 +15,7 @@
+  * See "Documentation/ABI/testing/sysfs-class-net-grcan" for information on the
+  * sysfs interface.
+  *
+- * See "Documentation/kernel-parameters.txt" for information on the module
++ * See "Documentation/admin-guide/kernel-parameters.rst" for information on the module
+  * parameters.
+  *
+  * This program is free software; you can redistribute it and/or modify it
+diff --git a/drivers/nvdimm/Kconfig b/drivers/nvdimm/Kconfig
+index 8b2b740d6679..b20ce7da1ee4 100644
+--- a/drivers/nvdimm/Kconfig
++++ b/drivers/nvdimm/Kconfig
+@@ -28,7 +28,7 @@ config BLK_DEV_PMEM
+ 	  non-standard OEM-specific E820 memory type (type-12, see
+ 	  CONFIG_X86_PMEM_LEGACY), or it is manually specified by the
+ 	  'memmap=nn[KMG]!ss[KMG]' kernel command line (see
+-	  Documentation/kernel-parameters.txt).  This driver converts
++	  Documentation/admin-guide/kernel-parameters.rst).  This driver converts
+ 	  these persistent memory ranges into block devices that are
+ 	  capable of DAX (direct-access) file system mappings.  See
+ 	  Documentation/nvdimm/nvdimm.txt for more details.
+diff --git a/drivers/staging/vme/devices/vme_user.c b/drivers/staging/vme/devices/vme_user.c
+index 5dd430f8f921..d84dffb894f4 100644
+--- a/drivers/staging/vme/devices/vme_user.c
++++ b/drivers/staging/vme/devices/vme_user.c
+@@ -47,7 +47,7 @@ static const char driver_name[] = "vme_user";
+ static int bus[VME_USER_BUS_MAX];
+ static unsigned int bus_num;
+ 
+-/* Currently Documentation/devices.txt defines the following for VME:
++/* Currently Documentation/admin-guide/devices.rst defines the following for VME:
+  *
+  * 221 char	VME bus
+  *		  0 = /dev/bus/vme/m0		First master image
+diff --git a/drivers/video/fbdev/skeletonfb.c b/drivers/video/fbdev/skeletonfb.c
+index f948baa16d82..e219a0a22077 100644
+--- a/drivers/video/fbdev/skeletonfb.c
++++ b/drivers/video/fbdev/skeletonfb.c
+@@ -836,7 +836,7 @@ static void xxxfb_remove(struct pci_dev *dev)
+  *	@dev: PCI device
+  *	@msg: the suspend event code.
+  *
+- *      See Documentation/power/devices.txt for more information
++ *      See Documentation/power/admin-guide/devices.rst for more information
+  */
+ static int xxxfb_suspend(struct pci_dev *dev, pm_message_t msg)
+ {
+@@ -851,7 +851,7 @@ static int xxxfb_suspend(struct pci_dev *dev, pm_message_t msg)
+  *	xxxfb_resume - Optional but recommended function. Resume the device.
+  *	@dev: PCI device
+  *
+- *      See Documentation/power/devices.txt for more information
++ *      See Documentation/power/admin-guide/devices.rst for more information
+  */
+ static int xxxfb_resume(struct pci_dev *dev)
+ {
+@@ -915,7 +915,7 @@ static void __exit xxxfb_exit(void)
+  *	@dev: platform device
+  *	@msg: the suspend event code.
+  *
+- *      See Documentation/power/devices.txt for more information
++ *      See Documentation/power/admin-guide/devices.rst for more information
+  */
+ static int xxxfb_suspend(struct platform_device *dev, pm_message_t msg)
+ {
+@@ -930,7 +930,7 @@ static int xxxfb_suspend(struct platform_device *dev, pm_message_t msg)
+  *	xxxfb_resume - Optional but recommended function. Resume the device.
+  *	@dev: platform device
+  *
+- *      See Documentation/power/devices.txt for more information
++ *      See Documentation/power/admin-guide/devices.rst for more information
+  */
+ static int xxxfb_resume(struct platform_dev *dev)
+ {
+diff --git a/drivers/virtio/Kconfig b/drivers/virtio/Kconfig
+index 77590320d44c..623f72334fa5 100644
+--- a/drivers/virtio/Kconfig
++++ b/drivers/virtio/Kconfig
+@@ -75,7 +75,7 @@ config VIRTIO_MMIO_CMDLINE_DEVICES
+ 	 Allow virtio-mmio devices instantiation via the kernel command line
+ 	 or module parameters. Be aware that using incorrect parameters (base
+ 	 address in particular) can crash your system - you have been warned.
+-	 See Documentation/kernel-parameters.txt for details.
++	 See Documentation/admin-guide/kernel-parameters.rst for details.
+ 
+ 	 If unsure, say 'N'.
+ 
+diff --git a/fs/Kconfig.binfmt b/fs/Kconfig.binfmt
+index 4c09d93d9569..b2f82cf6bf86 100644
+--- a/fs/Kconfig.binfmt
++++ b/fs/Kconfig.binfmt
+@@ -170,8 +170,8 @@ config BINFMT_MISC
+ 
+ 	  You can do other nice things, too. Read the file
+ 	  <file:Documentation/binfmt_misc.txt> to learn how to use this
+-	  feature, <file:Documentation/java.txt> for information about how
+-	  to include Java support. and <file:Documentation/mono.txt> for
++	  feature, <file:Documentation/admin-guide/java.rst> for information about how
++	  to include Java support. and <file:Documentation/admin-guide/mono.rst> for
+           information about how to include Mono-based .NET support.
+ 
+           To use binfmt_misc, you will need to mount it:
+diff --git a/fs/pstore/Kconfig b/fs/pstore/Kconfig
+index be40813eff52..b42e5bd6d8ff 100644
+--- a/fs/pstore/Kconfig
++++ b/fs/pstore/Kconfig
+@@ -86,4 +86,4 @@ config PSTORE_RAM
+ 	  Note that for historical reasons, the module will be named
+ 	  "ramoops.ko".
+ 
+-	  For more information, see Documentation/ramoops.txt.
++	  For more information, see Documentation/admin-guide/ramoops.rst.
+diff --git a/include/linux/device.h b/include/linux/device.h
+index bc41e87a969b..36d3a9867da9 100644
+--- a/include/linux/device.h
++++ b/include/linux/device.h
+@@ -733,7 +733,7 @@ struct device_dma_parameters {
+  * 		minimizes board-specific #ifdefs in drivers.
+  * @driver_data: Private pointer for driver specific info.
+  * @power:	For device power management.
+- * 		See Documentation/power/devices.txt for details.
++ * 		See Documentation/power/admin-guide/devices.rst for details.
+  * @pm_domain:	Provide callbacks that are executed during system suspend,
+  * 		hibernation, system resume and during runtime PM transitions
+  * 		along with subsystem-level and driver-level callbacks.
+diff --git a/include/linux/pm.h b/include/linux/pm.h
+index 06eb353182ab..efa67b2dfee9 100644
+--- a/include/linux/pm.h
++++ b/include/linux/pm.h
+@@ -258,7 +258,7 @@ typedef struct pm_message {
+  * example, if it detects that a child was unplugged while the system was
+  * asleep).
+  *
+- * Refer to Documentation/power/devices.txt for more information about the role
++ * Refer to Documentation/power/admin-guide/devices.rst for more information about the role
+  * of the above callbacks in the system suspend process.
+  *
+  * There also are callbacks related to runtime power management of devices.
+diff --git a/include/uapi/linux/major.h b/include/uapi/linux/major.h
+index 620252e69b44..19e195bee990 100644
+--- a/include/uapi/linux/major.h
++++ b/include/uapi/linux/major.h
+@@ -3,7 +3,7 @@
+ 
+ /*
+  * This file has definitions for major device numbers.
+- * For the device number assignments, see Documentation/devices.txt.
++ * For the device number assignments, see Documentation/admin-guide/devices.rst.
+  */
+ 
+ #define UNNAMED_MAJOR		0
+diff --git a/init/Kconfig b/init/Kconfig
+index 34407f15e6d3..172f80ea0d58 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1306,7 +1306,7 @@ config BLK_DEV_INITRD
+ 	  boot loader (loadlin or lilo) and that is mounted as root
+ 	  before the normal boot procedure. It is typically used to
+ 	  load modules needed to mount the "real" root file system,
+-	  etc. See <file:Documentation/initrd.txt> for details.
++	  etc. See <file:Documentation/admin-guide/initrd.rst> for details.
+ 
+ 	  If RAM disk support (BLK_DEV_RAM) is also included, this
+ 	  also enables initial RAM disk (initrd) support and adds
+diff --git a/init/main.c b/init/main.c
+index 2858be732f6d..691eb9351a83 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -980,7 +980,7 @@ static int __ref kernel_init(void *unused)
+ 		return 0;
+ 
+ 	panic("No working init found.  Try passing init= option to kernel. "
+-	      "See Linux Documentation/init.txt for guidance.");
++	      "See Linux Documentation/admin-guide/init.rst for guidance.");
+ }
+ 
+ static noinline void __init kernel_init_freeable(void)
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 33bc56cf60d7..d2df3a93284b 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -13,7 +13,7 @@ config PRINTK_TIME
+ 	  be included, not that the timestamp is recorded.
+ 
+ 	  The behavior is also controlled by the kernel command line
+-	  parameter printk.time=1. See Documentation/kernel-parameters.txt
++	  parameter printk.time=1. See Documentation/admin-guide/kernel-parameters.rst
+ 
+ config MESSAGE_LOGLEVEL_DEFAULT
+ 	int "Default message log level (1-7)"
+diff --git a/scripts/checkpatch.pl b/scripts/checkpatch.pl
+index a8368d1c4348..d0c729ccec20 100755
+--- a/scripts/checkpatch.pl
++++ b/scripts/checkpatch.pl
+@@ -2187,7 +2187,7 @@ sub process {
+ 
+ 		if ($rawline=~/^\+\+\+\s+(\S+)/) {
+ 			$setup_docs = 0;
+-			if ($1 =~ m@Documentation/kernel-parameters.txt$@) {
++			if ($1 =~ m@Documentation/admin-guide/kernel-parameters.rst$@) {
+ 				$setup_docs = 1;
+ 			}
+ 			#next;
+@@ -5102,7 +5102,7 @@ sub process {
+ 		my $asm_volatile = qr{\b(__asm__|asm)\s+(__volatile__|volatile)\b};
+ 		if ($line =~ /\bvolatile\b/ && $line !~ /$asm_volatile/) {
+ 			WARN("VOLATILE",
+-			     "Use of volatile is usually wrong: see Documentation/volatile-considered-harmful.txt\n" . $herecurr);
++			     "Use of volatile is usually wrong: see Documentation/process/volatile-considered-harmful.rst\n" . $herecurr);
+ 		}
+ 
+ # Check for user-visible strings broken across lines, which breaks the ability
+@@ -5817,7 +5817,7 @@ sub process {
+ 
+ 			if (!grep(/$name/, @setup_docs)) {
+ 				CHK("UNDOCUMENTED_SETUP",
+-				    "__setup appears un-documented -- check Documentation/kernel-parameters.txt\n" . $herecurr);
++				    "__setup appears un-documented -- check Documentation/admin-guide/kernel-parameters.rst\n" . $herecurr);
+ 			}
+ 		}
+ 
+diff --git a/tools/testing/selftests/futex/README b/tools/testing/selftests/futex/README
+index 0558bb9ce0a6..f3926c33ed4c 100644
+--- a/tools/testing/selftests/futex/README
++++ b/tools/testing/selftests/futex/README
+@@ -59,4 +59,4 @@ o FIXME: decide on a sane test naming scheme.  Currently the tests are named
+ Coding Style
+ ------------
+ o The Futex Test project adheres to the coding standards set forth by Linux
+-  kernel as defined in the Linux source Documentation/CodingStyle.
++  kernel as defined in the Linux source Documentation/process/coding-style.rst.

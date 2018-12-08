@@ -1,0 +1,64 @@
+commit d080827f850ba4df5b955d5ca8c8c0fc92fe18c0
+Merge: cbd88cd4c07f 8b63b6bfc1a5
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Jan 13 19:15:14 2016 -0800
+
+    Merge tag 'libnvdimm-for-4.5' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm
+    
+    Pull libnvdimm updates from Dan Williams:
+     "The bulk of this has appeared in -next and independently received a
+      build success notification from the kbuild robot.  The 'for-4.5/block-
+      dax' topic branch was rebased over the weekend to drop the "block
+      device end-of-life" rework that Al would like to see re-implemented
+      with a notifier, and to address bug reports against the badblocks
+      integration.
+    
+      There is pending feedback against "libnvdimm: Add a poison list and
+      export badblocks" received last week.  Linda identified some localized
+      fixups that we will handle incrementally.
+    
+      Summary:
+    
+       - Media error handling: The 'badblocks' implementation that
+         originated in md-raid is up-levelled to a generic capability of a
+         block device.  This initial implementation is limited to being
+         consulted in the pmem block-i/o path.  Later, 'badblocks' will be
+         consulted when creating dax mappings.
+    
+       - Raw block device dax: For virtualization and other cases that want
+         large contiguous mappings of persistent memory, add the capability
+         to dax-mmap a block device directly.
+    
+       - Increased /dev/mem restrictions: Add an option to treat all
+         io-memory as IORESOURCE_EXCLUSIVE, i.e. disable /dev/mem access
+         while a driver is actively using an address range.  This behavior
+         is controlled via the new CONFIG_IO_STRICT_DEVMEM option and can be
+         overridden by the existing "iomem=relaxed" kernel command line
+         option.
+    
+       - Miscellaneous fixes include a 'pfn'-device huge page alignment fix,
+         block device shutdown crash fix, and other small libnvdimm fixes"
+    
+    * tag 'libnvdimm-for-4.5' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm: (32 commits)
+      block: kill disk_{check|set|clear|alloc}_badblocks
+      libnvdimm, pmem: nvdimm_read_bytes() badblocks support
+      pmem, dax: disable dax in the presence of bad blocks
+      pmem: fail io-requests to known bad blocks
+      libnvdimm: convert to statically allocated badblocks
+      libnvdimm: don't fail init for full badblocks list
+      block, badblocks: introduce devm_init_badblocks
+      block: clarify badblocks lifetime
+      badblocks: rename badblocks_free to badblocks_exit
+      libnvdimm, pmem: move definition of nvdimm_namespace_add_poison to nd.h
+      libnvdimm: Add a poison list and export badblocks
+      nfit_test: Enable DSMs for all test NFITs
+      md: convert to use the generic badblocks code
+      block: Add badblock management for gendisks
+      badblocks: Add core badblock management code
+      block: fix del_gendisk() vs blkdev_ioctl crash
+      block: enable dax for raw block devices
+      block: introduce bdev_file_inode()
+      restrict /dev/mem to idle io memory ranges
+      arch: consolidate CONFIG_STRICT_DEVM in lib/Kconfig.debug
+      ...
+

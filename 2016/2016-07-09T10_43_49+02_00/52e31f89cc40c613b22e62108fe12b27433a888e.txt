@@ -1,0 +1,9 @@
+commit 52e31f89cc40c613b22e62108fe12b27433a888e
+Merge: 9a7e7b571826 ee40fb2948fc
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Sat Jul 9 10:43:49 2016 +0200
+
+    Merge branch 'linus' into x86/asm, to pick up fixes before merging new changes
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+

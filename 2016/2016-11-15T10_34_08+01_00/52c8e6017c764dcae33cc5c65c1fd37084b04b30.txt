@@ -1,0 +1,39 @@
+commit 52c8e6017c764dcae33cc5c65c1fd37084b04b30
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Tue Nov 15 10:15:03 2016 +0100
+
+    x86/kconfig, x86/pkeys: Move pkeys selects to X86_INTEL_MEMORY_PROTECTION_KEYS
+    
+    Move the pkeys selects from the generic x86 config section to
+    the X86_INTEL_MEMORY_PROTECTION_KEYS section.
+    
+    Reported-by: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Dave Hansen <dave.hansen@linux.intel.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: linux-kernel@vger.kernel.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 8feebec902ee..efd35b1b6806 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -170,8 +170,6 @@ config X86
+ 	select VIRT_TO_BUS
+ 	select X86_FEATURE_NAMES		if PROC_FS
+ 	select HAVE_STACK_VALIDATION		if X86_64
+-	select ARCH_USES_HIGH_VMA_FLAGS		if X86_INTEL_MEMORY_PROTECTION_KEYS
+-	select ARCH_HAS_PKEYS			if X86_INTEL_MEMORY_PROTECTION_KEYS
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+@@ -1744,6 +1742,8 @@ config X86_INTEL_MEMORY_PROTECTION_KEYS
+ 	def_bool y
+ 	# Note: only available in 64-bit mode
+ 	depends on CPU_SUP_INTEL && X86_64
++	select ARCH_USES_HIGH_VMA_FLAGS
++	select ARCH_HAS_PKEYS
+ 	---help---
+ 	  Memory Protection Keys provides a mechanism for enforcing
+ 	  page-based protections, but without requiring modification of the

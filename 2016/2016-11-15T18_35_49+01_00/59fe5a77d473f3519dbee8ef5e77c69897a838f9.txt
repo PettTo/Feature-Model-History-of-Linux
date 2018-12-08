@@ -1,0 +1,28 @@
+commit 59fe5a77d473f3519dbee8ef5e77c69897a838f9
+Author: Thomas Gleixner <tglx@linutronix.de>
+Date:   Tue Nov 15 15:17:12 2016 +0100
+
+    x86/intel_rdt: Select KERNFS when enabling INTEL_RDT_A
+    
+    arch/x86/kernel/cpu/intel_rdt_rdtgroup.c: In function 'rdtgroup_kn_lock_live':
+    arch/x86/kernel/cpu/intel_rdt_rdtgroup.c:658:2: error: implicit declaration of
+    function 'kernfs_break_active_protection' [-Werror=implicit-function-declaration]
+    
+    Reported-by: Ingo Molnar <mingo@kernel.org>
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Shaohua Li <shli@fb.com>
+    Cc: Fenghua Yu <fenghua.yu@intel.com>
+    Cc: Tony Luck <tony.luck@intel.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 770fb5f23cea..dcca4ec42770 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -411,6 +411,7 @@ config INTEL_RDT_A
+ 	bool "Intel Resource Director Technology Allocation support"
+ 	default n
+ 	depends on X86 && CPU_SUP_INTEL
++	select KERNFS
+ 	help
+ 	  Select to enable resource allocation which is a sub-feature of
+ 	  Intel Resource Director Technology(RDT). More information about

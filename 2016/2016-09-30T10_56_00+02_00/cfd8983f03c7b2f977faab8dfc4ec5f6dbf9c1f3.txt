@@ -1,0 +1,962 @@
+commit cfd8983f03c7b2f977faab8dfc4ec5f6dbf9c1f3
+Author: Peter Zijlstra <peterz@infradead.org>
+Date:   Wed May 18 20:43:02 2016 +0200
+
+    x86, locking/spinlocks: Remove ticket (spin)lock implementation
+    
+    We've unconditionally used the queued spinlock for many releases now.
+    
+    Its time to remove the old ticket lock code.
+    
+    Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Waiman Long <waiman.long@hpe.com>
+    Cc: Waiman.Long@hpe.com
+    Cc: david.vrabel@citrix.com
+    Cc: dhowells@redhat.com
+    Cc: pbonzini@redhat.com
+    Cc: xen-devel@lists.xenproject.org
+    Link: http://lkml.kernel.org/r/20160518184302.GO3193@twins.programming.kicks-ass.net
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 2a1f0ce7c59a..0cc8811af4e0 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -705,7 +705,6 @@ config PARAVIRT_DEBUG
+ config PARAVIRT_SPINLOCKS
+ 	bool "Paravirtualization layer for spinlocks"
+ 	depends on PARAVIRT && SMP
+-	select UNINLINE_SPIN_UNLOCK if !QUEUED_SPINLOCKS
+ 	---help---
+ 	  Paravirtualized spinlocks allow a pvops backend to replace the
+ 	  spinlock implementation with something virtualization-friendly
+@@ -718,7 +717,7 @@ config PARAVIRT_SPINLOCKS
+ 
+ config QUEUED_LOCK_STAT
+ 	bool "Paravirt queued spinlock statistics"
+-	depends on PARAVIRT_SPINLOCKS && DEBUG_FS && QUEUED_SPINLOCKS
++	depends on PARAVIRT_SPINLOCKS && DEBUG_FS
+ 	---help---
+ 	  Enable the collection of statistical data on the slowpath
+ 	  behavior of paravirtualized queued spinlocks and report
+diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
+index 2970d22d7766..4cd8db05301f 100644
+--- a/arch/x86/include/asm/paravirt.h
++++ b/arch/x86/include/asm/paravirt.h
+@@ -661,8 +661,6 @@ static inline void __set_fixmap(unsigned /* enum fixed_addresses */ idx,
+ 
+ #if defined(CONFIG_SMP) && defined(CONFIG_PARAVIRT_SPINLOCKS)
+ 
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+-
+ static __always_inline void pv_queued_spin_lock_slowpath(struct qspinlock *lock,
+ 							u32 val)
+ {
+@@ -684,22 +682,6 @@ static __always_inline void pv_kick(int cpu)
+ 	PVOP_VCALL1(pv_lock_ops.kick, cpu);
+ }
+ 
+-#else /* !CONFIG_QUEUED_SPINLOCKS */
+-
+-static __always_inline void __ticket_lock_spinning(struct arch_spinlock *lock,
+-							__ticket_t ticket)
+-{
+-	PVOP_VCALLEE2(pv_lock_ops.lock_spinning, lock, ticket);
+-}
+-
+-static __always_inline void __ticket_unlock_kick(struct arch_spinlock *lock,
+-							__ticket_t ticket)
+-{
+-	PVOP_VCALL2(pv_lock_ops.unlock_kick, lock, ticket);
+-}
+-
+-#endif /* CONFIG_QUEUED_SPINLOCKS */
+-
+ #endif /* SMP && PARAVIRT_SPINLOCKS */
+ 
+ #ifdef CONFIG_X86_32
+diff --git a/arch/x86/include/asm/paravirt_types.h b/arch/x86/include/asm/paravirt_types.h
+index 7fa9e7740ba3..60aac60ba25f 100644
+--- a/arch/x86/include/asm/paravirt_types.h
++++ b/arch/x86/include/asm/paravirt_types.h
+@@ -301,23 +301,16 @@ struct pv_mmu_ops {
+ struct arch_spinlock;
+ #ifdef CONFIG_SMP
+ #include <asm/spinlock_types.h>
+-#else
+-typedef u16 __ticket_t;
+ #endif
+ 
+ struct qspinlock;
+ 
+ struct pv_lock_ops {
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+ 	void (*queued_spin_lock_slowpath)(struct qspinlock *lock, u32 val);
+ 	struct paravirt_callee_save queued_spin_unlock;
+ 
+ 	void (*wait)(u8 *ptr, u8 val);
+ 	void (*kick)(int cpu);
+-#else /* !CONFIG_QUEUED_SPINLOCKS */
+-	struct paravirt_callee_save lock_spinning;
+-	void (*unlock_kick)(struct arch_spinlock *lock, __ticket_t ticket);
+-#endif /* !CONFIG_QUEUED_SPINLOCKS */
+ };
+ 
+ /* This contains all the paravirt structures: we get a convenient
+diff --git a/arch/x86/include/asm/spinlock.h b/arch/x86/include/asm/spinlock.h
+index be0a05913b91..921bea7a2708 100644
+--- a/arch/x86/include/asm/spinlock.h
++++ b/arch/x86/include/asm/spinlock.h
+@@ -20,187 +20,13 @@
+  * (the type definitions are in asm/spinlock_types.h)
+  */
+ 
+-#ifdef CONFIG_X86_32
+-# define LOCK_PTR_REG "a"
+-#else
+-# define LOCK_PTR_REG "D"
+-#endif
+-
+-#if defined(CONFIG_X86_32) && (defined(CONFIG_X86_PPRO_FENCE))
+-/*
+- * On PPro SMP, we use a locked operation to unlock
+- * (PPro errata 66, 92)
+- */
+-# define UNLOCK_LOCK_PREFIX LOCK_PREFIX
+-#else
+-# define UNLOCK_LOCK_PREFIX
+-#endif
+-
+ /* How long a lock should spin before we consider blocking */
+ #define SPIN_THRESHOLD	(1 << 15)
+ 
+ extern struct static_key paravirt_ticketlocks_enabled;
+ static __always_inline bool static_key_false(struct static_key *key);
+ 
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+ #include <asm/qspinlock.h>
+-#else
+-
+-#ifdef CONFIG_PARAVIRT_SPINLOCKS
+-
+-static inline void __ticket_enter_slowpath(arch_spinlock_t *lock)
+-{
+-	set_bit(0, (volatile unsigned long *)&lock->tickets.head);
+-}
+-
+-#else  /* !CONFIG_PARAVIRT_SPINLOCKS */
+-static __always_inline void __ticket_lock_spinning(arch_spinlock_t *lock,
+-							__ticket_t ticket)
+-{
+-}
+-static inline void __ticket_unlock_kick(arch_spinlock_t *lock,
+-							__ticket_t ticket)
+-{
+-}
+-
+-#endif /* CONFIG_PARAVIRT_SPINLOCKS */
+-static inline int  __tickets_equal(__ticket_t one, __ticket_t two)
+-{
+-	return !((one ^ two) & ~TICKET_SLOWPATH_FLAG);
+-}
+-
+-static inline void __ticket_check_and_clear_slowpath(arch_spinlock_t *lock,
+-							__ticket_t head)
+-{
+-	if (head & TICKET_SLOWPATH_FLAG) {
+-		arch_spinlock_t old, new;
+-
+-		old.tickets.head = head;
+-		new.tickets.head = head & ~TICKET_SLOWPATH_FLAG;
+-		old.tickets.tail = new.tickets.head + TICKET_LOCK_INC;
+-		new.tickets.tail = old.tickets.tail;
+-
+-		/* try to clear slowpath flag when there are no contenders */
+-		cmpxchg(&lock->head_tail, old.head_tail, new.head_tail);
+-	}
+-}
+-
+-static __always_inline int arch_spin_value_unlocked(arch_spinlock_t lock)
+-{
+-	return __tickets_equal(lock.tickets.head, lock.tickets.tail);
+-}
+-
+-/*
+- * Ticket locks are conceptually two parts, one indicating the current head of
+- * the queue, and the other indicating the current tail. The lock is acquired
+- * by atomically noting the tail and incrementing it by one (thus adding
+- * ourself to the queue and noting our position), then waiting until the head
+- * becomes equal to the the initial value of the tail.
+- *
+- * We use an xadd covering *both* parts of the lock, to increment the tail and
+- * also load the position of the head, which takes care of memory ordering
+- * issues and should be optimal for the uncontended case. Note the tail must be
+- * in the high part, because a wide xadd increment of the low part would carry
+- * up and contaminate the high part.
+- */
+-static __always_inline void arch_spin_lock(arch_spinlock_t *lock)
+-{
+-	register struct __raw_tickets inc = { .tail = TICKET_LOCK_INC };
+-
+-	inc = xadd(&lock->tickets, inc);
+-	if (likely(inc.head == inc.tail))
+-		goto out;
+-
+-	for (;;) {
+-		unsigned count = SPIN_THRESHOLD;
+-
+-		do {
+-			inc.head = READ_ONCE(lock->tickets.head);
+-			if (__tickets_equal(inc.head, inc.tail))
+-				goto clear_slowpath;
+-			cpu_relax();
+-		} while (--count);
+-		__ticket_lock_spinning(lock, inc.tail);
+-	}
+-clear_slowpath:
+-	__ticket_check_and_clear_slowpath(lock, inc.head);
+-out:
+-	barrier();	/* make sure nothing creeps before the lock is taken */
+-}
+-
+-static __always_inline int arch_spin_trylock(arch_spinlock_t *lock)
+-{
+-	arch_spinlock_t old, new;
+-
+-	old.tickets = READ_ONCE(lock->tickets);
+-	if (!__tickets_equal(old.tickets.head, old.tickets.tail))
+-		return 0;
+-
+-	new.head_tail = old.head_tail + (TICKET_LOCK_INC << TICKET_SHIFT);
+-	new.head_tail &= ~TICKET_SLOWPATH_FLAG;
+-
+-	/* cmpxchg is a full barrier, so nothing can move before it */
+-	return cmpxchg(&lock->head_tail, old.head_tail, new.head_tail) == old.head_tail;
+-}
+-
+-static __always_inline void arch_spin_unlock(arch_spinlock_t *lock)
+-{
+-	if (TICKET_SLOWPATH_FLAG &&
+-		static_key_false(&paravirt_ticketlocks_enabled)) {
+-		__ticket_t head;
+-
+-		BUILD_BUG_ON(((__ticket_t)NR_CPUS) != NR_CPUS);
+-
+-		head = xadd(&lock->tickets.head, TICKET_LOCK_INC);
+-
+-		if (unlikely(head & TICKET_SLOWPATH_FLAG)) {
+-			head &= ~TICKET_SLOWPATH_FLAG;
+-			__ticket_unlock_kick(lock, (head + TICKET_LOCK_INC));
+-		}
+-	} else
+-		__add(&lock->tickets.head, TICKET_LOCK_INC, UNLOCK_LOCK_PREFIX);
+-}
+-
+-static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+-{
+-	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
+-
+-	return !__tickets_equal(tmp.tail, tmp.head);
+-}
+-
+-static inline int arch_spin_is_contended(arch_spinlock_t *lock)
+-{
+-	struct __raw_tickets tmp = READ_ONCE(lock->tickets);
+-
+-	tmp.head &= ~TICKET_SLOWPATH_FLAG;
+-	return (__ticket_t)(tmp.tail - tmp.head) > TICKET_LOCK_INC;
+-}
+-#define arch_spin_is_contended	arch_spin_is_contended
+-
+-static __always_inline void arch_spin_lock_flags(arch_spinlock_t *lock,
+-						  unsigned long flags)
+-{
+-	arch_spin_lock(lock);
+-}
+-
+-static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
+-{
+-	__ticket_t head = READ_ONCE(lock->tickets.head);
+-
+-	for (;;) {
+-		struct __raw_tickets tmp = READ_ONCE(lock->tickets);
+-		/*
+-		 * We need to check "unlocked" in a loop, tmp.head == head
+-		 * can be false positive because of overflow.
+-		 */
+-		if (__tickets_equal(tmp.head, tmp.tail) ||
+-				!__tickets_equal(tmp.head, head))
+-			break;
+-
+-		cpu_relax();
+-	}
+-}
+-#endif /* CONFIG_QUEUED_SPINLOCKS */
+ 
+ /*
+  * Read-write spinlocks, allowing multiple readers
+diff --git a/arch/x86/include/asm/spinlock_types.h b/arch/x86/include/asm/spinlock_types.h
+index 65c3e37f879a..25311ebb446c 100644
+--- a/arch/x86/include/asm/spinlock_types.h
++++ b/arch/x86/include/asm/spinlock_types.h
+@@ -23,20 +23,7 @@ typedef u32 __ticketpair_t;
+ 
+ #define TICKET_SHIFT	(sizeof(__ticket_t) * 8)
+ 
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+ #include <asm-generic/qspinlock_types.h>
+-#else
+-typedef struct arch_spinlock {
+-	union {
+-		__ticketpair_t head_tail;
+-		struct __raw_tickets {
+-			__ticket_t head, tail;
+-		} tickets;
+-	};
+-} arch_spinlock_t;
+-
+-#define __ARCH_SPIN_LOCK_UNLOCKED	{ { 0 } }
+-#endif /* CONFIG_QUEUED_SPINLOCKS */
+ 
+ #include <asm-generic/qrwlock_types.h>
+ 
+diff --git a/arch/x86/kernel/kvm.c b/arch/x86/kernel/kvm.c
+index 1726c4c12336..865058d087ac 100644
+--- a/arch/x86/kernel/kvm.c
++++ b/arch/x86/kernel/kvm.c
+@@ -575,9 +575,6 @@ static void kvm_kick_cpu(int cpu)
+ 	kvm_hypercall2(KVM_HC_KICK_CPU, flags, apicid);
+ }
+ 
+-
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+-
+ #include <asm/qspinlock.h>
+ 
+ static void kvm_wait(u8 *ptr, u8 val)
+@@ -606,243 +603,6 @@ static void kvm_wait(u8 *ptr, u8 val)
+ 	local_irq_restore(flags);
+ }
+ 
+-#else /* !CONFIG_QUEUED_SPINLOCKS */
+-
+-enum kvm_contention_stat {
+-	TAKEN_SLOW,
+-	TAKEN_SLOW_PICKUP,
+-	RELEASED_SLOW,
+-	RELEASED_SLOW_KICKED,
+-	NR_CONTENTION_STATS
+-};
+-
+-#ifdef CONFIG_KVM_DEBUG_FS
+-#define HISTO_BUCKETS	30
+-
+-static struct kvm_spinlock_stats
+-{
+-	u32 contention_stats[NR_CONTENTION_STATS];
+-	u32 histo_spin_blocked[HISTO_BUCKETS+1];
+-	u64 time_blocked;
+-} spinlock_stats;
+-
+-static u8 zero_stats;
+-
+-static inline void check_zero(void)
+-{
+-	u8 ret;
+-	u8 old;
+-
+-	old = READ_ONCE(zero_stats);
+-	if (unlikely(old)) {
+-		ret = cmpxchg(&zero_stats, old, 0);
+-		/* This ensures only one fellow resets the stat */
+-		if (ret == old)
+-			memset(&spinlock_stats, 0, sizeof(spinlock_stats));
+-	}
+-}
+-
+-static inline void add_stats(enum kvm_contention_stat var, u32 val)
+-{
+-	check_zero();
+-	spinlock_stats.contention_stats[var] += val;
+-}
+-
+-
+-static inline u64 spin_time_start(void)
+-{
+-	return sched_clock();
+-}
+-
+-static void __spin_time_accum(u64 delta, u32 *array)
+-{
+-	unsigned index;
+-
+-	index = ilog2(delta);
+-	check_zero();
+-
+-	if (index < HISTO_BUCKETS)
+-		array[index]++;
+-	else
+-		array[HISTO_BUCKETS]++;
+-}
+-
+-static inline void spin_time_accum_blocked(u64 start)
+-{
+-	u32 delta;
+-
+-	delta = sched_clock() - start;
+-	__spin_time_accum(delta, spinlock_stats.histo_spin_blocked);
+-	spinlock_stats.time_blocked += delta;
+-}
+-
+-static struct dentry *d_spin_debug;
+-static struct dentry *d_kvm_debug;
+-
+-static struct dentry *kvm_init_debugfs(void)
+-{
+-	d_kvm_debug = debugfs_create_dir("kvm-guest", NULL);
+-	if (!d_kvm_debug)
+-		printk(KERN_WARNING "Could not create 'kvm' debugfs directory\n");
+-
+-	return d_kvm_debug;
+-}
+-
+-static int __init kvm_spinlock_debugfs(void)
+-{
+-	struct dentry *d_kvm;
+-
+-	d_kvm = kvm_init_debugfs();
+-	if (d_kvm == NULL)
+-		return -ENOMEM;
+-
+-	d_spin_debug = debugfs_create_dir("spinlocks", d_kvm);
+-
+-	debugfs_create_u8("zero_stats", 0644, d_spin_debug, &zero_stats);
+-
+-	debugfs_create_u32("taken_slow", 0444, d_spin_debug,
+-		   &spinlock_stats.contention_stats[TAKEN_SLOW]);
+-	debugfs_create_u32("taken_slow_pickup", 0444, d_spin_debug,
+-		   &spinlock_stats.contention_stats[TAKEN_SLOW_PICKUP]);
+-
+-	debugfs_create_u32("released_slow", 0444, d_spin_debug,
+-		   &spinlock_stats.contention_stats[RELEASED_SLOW]);
+-	debugfs_create_u32("released_slow_kicked", 0444, d_spin_debug,
+-		   &spinlock_stats.contention_stats[RELEASED_SLOW_KICKED]);
+-
+-	debugfs_create_u64("time_blocked", 0444, d_spin_debug,
+-			   &spinlock_stats.time_blocked);
+-
+-	debugfs_create_u32_array("histo_blocked", 0444, d_spin_debug,
+-		     spinlock_stats.histo_spin_blocked, HISTO_BUCKETS + 1);
+-
+-	return 0;
+-}
+-fs_initcall(kvm_spinlock_debugfs);
+-#else  /* !CONFIG_KVM_DEBUG_FS */
+-static inline void add_stats(enum kvm_contention_stat var, u32 val)
+-{
+-}
+-
+-static inline u64 spin_time_start(void)
+-{
+-	return 0;
+-}
+-
+-static inline void spin_time_accum_blocked(u64 start)
+-{
+-}
+-#endif  /* CONFIG_KVM_DEBUG_FS */
+-
+-struct kvm_lock_waiting {
+-	struct arch_spinlock *lock;
+-	__ticket_t want;
+-};
+-
+-/* cpus 'waiting' on a spinlock to become available */
+-static cpumask_t waiting_cpus;
+-
+-/* Track spinlock on which a cpu is waiting */
+-static DEFINE_PER_CPU(struct kvm_lock_waiting, klock_waiting);
+-
+-__visible void kvm_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
+-{
+-	struct kvm_lock_waiting *w;
+-	int cpu;
+-	u64 start;
+-	unsigned long flags;
+-	__ticket_t head;
+-
+-	if (in_nmi())
+-		return;
+-
+-	w = this_cpu_ptr(&klock_waiting);
+-	cpu = smp_processor_id();
+-	start = spin_time_start();
+-
+-	/*
+-	 * Make sure an interrupt handler can't upset things in a
+-	 * partially setup state.
+-	 */
+-	local_irq_save(flags);
+-
+-	/*
+-	 * The ordering protocol on this is that the "lock" pointer
+-	 * may only be set non-NULL if the "want" ticket is correct.
+-	 * If we're updating "want", we must first clear "lock".
+-	 */
+-	w->lock = NULL;
+-	smp_wmb();
+-	w->want = want;
+-	smp_wmb();
+-	w->lock = lock;
+-
+-	add_stats(TAKEN_SLOW, 1);
+-
+-	/*
+-	 * This uses set_bit, which is atomic but we should not rely on its
+-	 * reordering gurantees. So barrier is needed after this call.
+-	 */
+-	cpumask_set_cpu(cpu, &waiting_cpus);
+-
+-	barrier();
+-
+-	/*
+-	 * Mark entry to slowpath before doing the pickup test to make
+-	 * sure we don't deadlock with an unlocker.
+-	 */
+-	__ticket_enter_slowpath(lock);
+-
+-	/* make sure enter_slowpath, which is atomic does not cross the read */
+-	smp_mb__after_atomic();
+-
+-	/*
+-	 * check again make sure it didn't become free while
+-	 * we weren't looking.
+-	 */
+-	head = READ_ONCE(lock->tickets.head);
+-	if (__tickets_equal(head, want)) {
+-		add_stats(TAKEN_SLOW_PICKUP, 1);
+-		goto out;
+-	}
+-
+-	/*
+-	 * halt until it's our turn and kicked. Note that we do safe halt
+-	 * for irq enabled case to avoid hang when lock info is overwritten
+-	 * in irq spinlock slowpath and no spurious interrupt occur to save us.
+-	 */
+-	if (arch_irqs_disabled_flags(flags))
+-		halt();
+-	else
+-		safe_halt();
+-
+-out:
+-	cpumask_clear_cpu(cpu, &waiting_cpus);
+-	w->lock = NULL;
+-	local_irq_restore(flags);
+-	spin_time_accum_blocked(start);
+-}
+-PV_CALLEE_SAVE_REGS_THUNK(kvm_lock_spinning);
+-
+-/* Kick vcpu waiting on @lock->head to reach value @ticket */
+-static void kvm_unlock_kick(struct arch_spinlock *lock, __ticket_t ticket)
+-{
+-	int cpu;
+-
+-	add_stats(RELEASED_SLOW, 1);
+-	for_each_cpu(cpu, &waiting_cpus) {
+-		const struct kvm_lock_waiting *w = &per_cpu(klock_waiting, cpu);
+-		if (READ_ONCE(w->lock) == lock &&
+-		    READ_ONCE(w->want) == ticket) {
+-			add_stats(RELEASED_SLOW_KICKED, 1);
+-			kvm_kick_cpu(cpu);
+-			break;
+-		}
+-	}
+-}
+-
+-#endif /* !CONFIG_QUEUED_SPINLOCKS */
+-
+ /*
+  * Setup pv_lock_ops to exploit KVM_FEATURE_PV_UNHALT if present.
+  */
+@@ -854,16 +614,11 @@ void __init kvm_spinlock_init(void)
+ 	if (!kvm_para_has_feature(KVM_FEATURE_PV_UNHALT))
+ 		return;
+ 
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+ 	__pv_init_lock_hash();
+ 	pv_lock_ops.queued_spin_lock_slowpath = __pv_queued_spin_lock_slowpath;
+ 	pv_lock_ops.queued_spin_unlock = PV_CALLEE_SAVE(__pv_queued_spin_unlock);
+ 	pv_lock_ops.wait = kvm_wait;
+ 	pv_lock_ops.kick = kvm_kick_cpu;
+-#else /* !CONFIG_QUEUED_SPINLOCKS */
+-	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(kvm_lock_spinning);
+-	pv_lock_ops.unlock_kick = kvm_unlock_kick;
+-#endif
+ }
+ 
+ static __init int kvm_spinlock_init_jump(void)
+diff --git a/arch/x86/kernel/paravirt-spinlocks.c b/arch/x86/kernel/paravirt-spinlocks.c
+index 1939a0269377..2c55a003b793 100644
+--- a/arch/x86/kernel/paravirt-spinlocks.c
++++ b/arch/x86/kernel/paravirt-spinlocks.c
+@@ -8,7 +8,6 @@
+ 
+ #include <asm/paravirt.h>
+ 
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+ __visible void __native_queued_spin_unlock(struct qspinlock *lock)
+ {
+ 	native_queued_spin_unlock(lock);
+@@ -21,19 +20,13 @@ bool pv_is_native_spin_unlock(void)
+ 	return pv_lock_ops.queued_spin_unlock.func ==
+ 		__raw_callee_save___native_queued_spin_unlock;
+ }
+-#endif
+ 
+ struct pv_lock_ops pv_lock_ops = {
+ #ifdef CONFIG_SMP
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+ 	.queued_spin_lock_slowpath = native_queued_spin_lock_slowpath,
+ 	.queued_spin_unlock = PV_CALLEE_SAVE(__native_queued_spin_unlock),
+ 	.wait = paravirt_nop,
+ 	.kick = paravirt_nop,
+-#else /* !CONFIG_QUEUED_SPINLOCKS */
+-	.lock_spinning = __PV_IS_CALLEE_SAVE(paravirt_nop),
+-	.unlock_kick = paravirt_nop,
+-#endif /* !CONFIG_QUEUED_SPINLOCKS */
+ #endif /* SMP */
+ };
+ EXPORT_SYMBOL(pv_lock_ops);
+diff --git a/arch/x86/kernel/paravirt_patch_32.c b/arch/x86/kernel/paravirt_patch_32.c
+index 158dc0650d5d..920c6ae08592 100644
+--- a/arch/x86/kernel/paravirt_patch_32.c
++++ b/arch/x86/kernel/paravirt_patch_32.c
+@@ -10,7 +10,7 @@ DEF_NATIVE(pv_mmu_ops, write_cr3, "mov %eax, %cr3");
+ DEF_NATIVE(pv_mmu_ops, read_cr3, "mov %cr3, %eax");
+ DEF_NATIVE(pv_cpu_ops, clts, "clts");
+ 
+-#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUED_SPINLOCKS)
++#if defined(CONFIG_PARAVIRT_SPINLOCKS)
+ DEF_NATIVE(pv_lock_ops, queued_spin_unlock, "movb $0, (%eax)");
+ #endif
+ 
+@@ -49,7 +49,7 @@ unsigned native_patch(u8 type, u16 clobbers, void *ibuf,
+ 		PATCH_SITE(pv_mmu_ops, read_cr3);
+ 		PATCH_SITE(pv_mmu_ops, write_cr3);
+ 		PATCH_SITE(pv_cpu_ops, clts);
+-#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUED_SPINLOCKS)
++#if defined(CONFIG_PARAVIRT_SPINLOCKS)
+ 		case PARAVIRT_PATCH(pv_lock_ops.queued_spin_unlock):
+ 			if (pv_is_native_spin_unlock()) {
+ 				start = start_pv_lock_ops_queued_spin_unlock;
+diff --git a/arch/x86/kernel/paravirt_patch_64.c b/arch/x86/kernel/paravirt_patch_64.c
+index e70087a04cc8..bb3840cedb4f 100644
+--- a/arch/x86/kernel/paravirt_patch_64.c
++++ b/arch/x86/kernel/paravirt_patch_64.c
+@@ -19,7 +19,7 @@ DEF_NATIVE(pv_cpu_ops, swapgs, "swapgs");
+ DEF_NATIVE(, mov32, "mov %edi, %eax");
+ DEF_NATIVE(, mov64, "mov %rdi, %rax");
+ 
+-#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUED_SPINLOCKS)
++#if defined(CONFIG_PARAVIRT_SPINLOCKS)
+ DEF_NATIVE(pv_lock_ops, queued_spin_unlock, "movb $0, (%rdi)");
+ #endif
+ 
+@@ -61,7 +61,7 @@ unsigned native_patch(u8 type, u16 clobbers, void *ibuf,
+ 		PATCH_SITE(pv_cpu_ops, clts);
+ 		PATCH_SITE(pv_mmu_ops, flush_tlb_single);
+ 		PATCH_SITE(pv_cpu_ops, wbinvd);
+-#if defined(CONFIG_PARAVIRT_SPINLOCKS) && defined(CONFIG_QUEUED_SPINLOCKS)
++#if defined(CONFIG_PARAVIRT_SPINLOCKS)
+ 		case PARAVIRT_PATCH(pv_lock_ops.queued_spin_unlock):
+ 			if (pv_is_native_spin_unlock()) {
+ 				start = start_pv_lock_ops_queued_spin_unlock;
+diff --git a/arch/x86/xen/spinlock.c b/arch/x86/xen/spinlock.c
+index f42e78de1e10..3d6e0064cbfc 100644
+--- a/arch/x86/xen/spinlock.c
++++ b/arch/x86/xen/spinlock.c
+@@ -21,8 +21,6 @@ static DEFINE_PER_CPU(int, lock_kicker_irq) = -1;
+ static DEFINE_PER_CPU(char *, irq_name);
+ static bool xen_pvspin = true;
+ 
+-#ifdef CONFIG_QUEUED_SPINLOCKS
+-
+ #include <asm/qspinlock.h>
+ 
+ static void xen_qlock_kick(int cpu)
+@@ -71,207 +69,6 @@ static void xen_qlock_wait(u8 *byte, u8 val)
+ 	xen_poll_irq(irq);
+ }
+ 
+-#else /* CONFIG_QUEUED_SPINLOCKS */
+-
+-enum xen_contention_stat {
+-	TAKEN_SLOW,
+-	TAKEN_SLOW_PICKUP,
+-	TAKEN_SLOW_SPURIOUS,
+-	RELEASED_SLOW,
+-	RELEASED_SLOW_KICKED,
+-	NR_CONTENTION_STATS
+-};
+-
+-
+-#ifdef CONFIG_XEN_DEBUG_FS
+-#define HISTO_BUCKETS	30
+-static struct xen_spinlock_stats
+-{
+-	u32 contention_stats[NR_CONTENTION_STATS];
+-	u32 histo_spin_blocked[HISTO_BUCKETS+1];
+-	u64 time_blocked;
+-} spinlock_stats;
+-
+-static u8 zero_stats;
+-
+-static inline void check_zero(void)
+-{
+-	u8 ret;
+-	u8 old = READ_ONCE(zero_stats);
+-	if (unlikely(old)) {
+-		ret = cmpxchg(&zero_stats, old, 0);
+-		/* This ensures only one fellow resets the stat */
+-		if (ret == old)
+-			memset(&spinlock_stats, 0, sizeof(spinlock_stats));
+-	}
+-}
+-
+-static inline void add_stats(enum xen_contention_stat var, u32 val)
+-{
+-	check_zero();
+-	spinlock_stats.contention_stats[var] += val;
+-}
+-
+-static inline u64 spin_time_start(void)
+-{
+-	return xen_clocksource_read();
+-}
+-
+-static void __spin_time_accum(u64 delta, u32 *array)
+-{
+-	unsigned index = ilog2(delta);
+-
+-	check_zero();
+-
+-	if (index < HISTO_BUCKETS)
+-		array[index]++;
+-	else
+-		array[HISTO_BUCKETS]++;
+-}
+-
+-static inline void spin_time_accum_blocked(u64 start)
+-{
+-	u32 delta = xen_clocksource_read() - start;
+-
+-	__spin_time_accum(delta, spinlock_stats.histo_spin_blocked);
+-	spinlock_stats.time_blocked += delta;
+-}
+-#else  /* !CONFIG_XEN_DEBUG_FS */
+-static inline void add_stats(enum xen_contention_stat var, u32 val)
+-{
+-}
+-
+-static inline u64 spin_time_start(void)
+-{
+-	return 0;
+-}
+-
+-static inline void spin_time_accum_blocked(u64 start)
+-{
+-}
+-#endif  /* CONFIG_XEN_DEBUG_FS */
+-
+-struct xen_lock_waiting {
+-	struct arch_spinlock *lock;
+-	__ticket_t want;
+-};
+-
+-static DEFINE_PER_CPU(struct xen_lock_waiting, lock_waiting);
+-static cpumask_t waiting_cpus;
+-
+-__visible void xen_lock_spinning(struct arch_spinlock *lock, __ticket_t want)
+-{
+-	int irq = __this_cpu_read(lock_kicker_irq);
+-	struct xen_lock_waiting *w = this_cpu_ptr(&lock_waiting);
+-	int cpu = smp_processor_id();
+-	u64 start;
+-	__ticket_t head;
+-	unsigned long flags;
+-
+-	/* If kicker interrupts not initialized yet, just spin */
+-	if (irq == -1)
+-		return;
+-
+-	start = spin_time_start();
+-
+-	/*
+-	 * Make sure an interrupt handler can't upset things in a
+-	 * partially setup state.
+-	 */
+-	local_irq_save(flags);
+-	/*
+-	 * We don't really care if we're overwriting some other
+-	 * (lock,want) pair, as that would mean that we're currently
+-	 * in an interrupt context, and the outer context had
+-	 * interrupts enabled.  That has already kicked the VCPU out
+-	 * of xen_poll_irq(), so it will just return spuriously and
+-	 * retry with newly setup (lock,want).
+-	 *
+-	 * The ordering protocol on this is that the "lock" pointer
+-	 * may only be set non-NULL if the "want" ticket is correct.
+-	 * If we're updating "want", we must first clear "lock".
+-	 */
+-	w->lock = NULL;
+-	smp_wmb();
+-	w->want = want;
+-	smp_wmb();
+-	w->lock = lock;
+-
+-	/* This uses set_bit, which atomic and therefore a barrier */
+-	cpumask_set_cpu(cpu, &waiting_cpus);
+-	add_stats(TAKEN_SLOW, 1);
+-
+-	/* clear pending */
+-	xen_clear_irq_pending(irq);
+-
+-	/* Only check lock once pending cleared */
+-	barrier();
+-
+-	/*
+-	 * Mark entry to slowpath before doing the pickup test to make
+-	 * sure we don't deadlock with an unlocker.
+-	 */
+-	__ticket_enter_slowpath(lock);
+-
+-	/* make sure enter_slowpath, which is atomic does not cross the read */
+-	smp_mb__after_atomic();
+-
+-	/*
+-	 * check again make sure it didn't become free while
+-	 * we weren't looking
+-	 */
+-	head = READ_ONCE(lock->tickets.head);
+-	if (__tickets_equal(head, want)) {
+-		add_stats(TAKEN_SLOW_PICKUP, 1);
+-		goto out;
+-	}
+-
+-	/* Allow interrupts while blocked */
+-	local_irq_restore(flags);
+-
+-	/*
+-	 * If an interrupt happens here, it will leave the wakeup irq
+-	 * pending, which will cause xen_poll_irq() to return
+-	 * immediately.
+-	 */
+-
+-	/* Block until irq becomes pending (or perhaps a spurious wakeup) */
+-	xen_poll_irq(irq);
+-	add_stats(TAKEN_SLOW_SPURIOUS, !xen_test_irq_pending(irq));
+-
+-	local_irq_save(flags);
+-
+-	kstat_incr_irq_this_cpu(irq);
+-out:
+-	cpumask_clear_cpu(cpu, &waiting_cpus);
+-	w->lock = NULL;
+-
+-	local_irq_restore(flags);
+-
+-	spin_time_accum_blocked(start);
+-}
+-PV_CALLEE_SAVE_REGS_THUNK(xen_lock_spinning);
+-
+-static void xen_unlock_kick(struct arch_spinlock *lock, __ticket_t next)
+-{
+-	int cpu;
+-
+-	add_stats(RELEASED_SLOW, 1);
+-
+-	for_each_cpu(cpu, &waiting_cpus) {
+-		const struct xen_lock_waiting *w = &per_cpu(lock_waiting, cpu);
+-
+-		/* Make sure we read lock before want */
+-		if (READ_ONCE(w->lock) == lock &&
+-		    READ_ONCE(w->want) == next) {
+-			add_stats(RELEASED_SLOW_KICKED, 1);
+-			xen_send_IPI_one(cpu, XEN_SPIN_UNLOCK_VECTOR);
+-			break;
+-		}
+-	}
+-}
+-#endif /* CONFIG_QUEUED_SPINLOCKS */
+-
+ static irqreturn_t dummy_handler(int irq, void *dev_id)
+ {
+ 	BUG();
+@@ -334,16 +131,12 @@ void __init xen_init_spinlocks(void)
+ 		return;
+ 	}
+ 	printk(KERN_DEBUG "xen: PV spinlocks enabled\n");
+-#ifdef CONFIG_QUEUED_SPINLOCKS
++
+ 	__pv_init_lock_hash();
+ 	pv_lock_ops.queued_spin_lock_slowpath = __pv_queued_spin_lock_slowpath;
+ 	pv_lock_ops.queued_spin_unlock = PV_CALLEE_SAVE(__pv_queued_spin_unlock);
+ 	pv_lock_ops.wait = xen_qlock_wait;
+ 	pv_lock_ops.kick = xen_qlock_kick;
+-#else
+-	pv_lock_ops.lock_spinning = PV_CALLEE_SAVE(xen_lock_spinning);
+-	pv_lock_ops.unlock_kick = xen_unlock_kick;
+-#endif
+ }
+ 
+ /*
+@@ -372,44 +165,3 @@ static __init int xen_parse_nopvspin(char *arg)
+ }
+ early_param("xen_nopvspin", xen_parse_nopvspin);
+ 
+-#if defined(CONFIG_XEN_DEBUG_FS) && !defined(CONFIG_QUEUED_SPINLOCKS)
+-
+-static struct dentry *d_spin_debug;
+-
+-static int __init xen_spinlock_debugfs(void)
+-{
+-	struct dentry *d_xen = xen_init_debugfs();
+-
+-	if (d_xen == NULL)
+-		return -ENOMEM;
+-
+-	if (!xen_pvspin)
+-		return 0;
+-
+-	d_spin_debug = debugfs_create_dir("spinlocks", d_xen);
+-
+-	debugfs_create_u8("zero_stats", 0644, d_spin_debug, &zero_stats);
+-
+-	debugfs_create_u32("taken_slow", 0444, d_spin_debug,
+-			   &spinlock_stats.contention_stats[TAKEN_SLOW]);
+-	debugfs_create_u32("taken_slow_pickup", 0444, d_spin_debug,
+-			   &spinlock_stats.contention_stats[TAKEN_SLOW_PICKUP]);
+-	debugfs_create_u32("taken_slow_spurious", 0444, d_spin_debug,
+-			   &spinlock_stats.contention_stats[TAKEN_SLOW_SPURIOUS]);
+-
+-	debugfs_create_u32("released_slow", 0444, d_spin_debug,
+-			   &spinlock_stats.contention_stats[RELEASED_SLOW]);
+-	debugfs_create_u32("released_slow_kicked", 0444, d_spin_debug,
+-			   &spinlock_stats.contention_stats[RELEASED_SLOW_KICKED]);
+-
+-	debugfs_create_u64("time_blocked", 0444, d_spin_debug,
+-			   &spinlock_stats.time_blocked);
+-
+-	debugfs_create_u32_array("histo_blocked", 0444, d_spin_debug,
+-				spinlock_stats.histo_spin_blocked, HISTO_BUCKETS + 1);
+-
+-	return 0;
+-}
+-fs_initcall(xen_spinlock_debugfs);
+-
+-#endif	/* CONFIG_XEN_DEBUG_FS */

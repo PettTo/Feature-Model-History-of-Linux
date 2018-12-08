@@ -1,0 +1,15 @@
+commit c265cc5c3cb2e950910437a846ef59e3a5c2df51
+Merge: 80f09cf5c140 cf2cf0f50c14
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jul 25 18:06:00 2016 -0700
+
+    Merge branch 'x86-cleanups-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 cleanups from Ingo Molnar:
+     "Three small cleanups"
+    
+    * 'x86-cleanups-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      lguest: Read offset of device_cap later
+      lguest: Read length of device_cap later
+      x86: Do away with ARCH_[WANT_OPTIONAL|REQUIRE]_GPIOLIB
+

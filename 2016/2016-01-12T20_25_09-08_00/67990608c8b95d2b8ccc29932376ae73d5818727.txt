@@ -1,0 +1,186 @@
+commit 67990608c8b95d2b8ccc29932376ae73d5818727
+Merge: c17488d06666 a889f766dbb7
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Jan 12 20:25:09 2016 -0800
+
+    Merge tag 'pm+acpi-4.5-rc1-1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm
+    
+    Pull oower management and ACPI updates from Rafael Wysocki:
+     "As far as the number of commits goes, ACPICA takes the lead this time,
+      followed by cpufreq and the device properties framework changes.
+    
+      The most significant new feature is the debugfs-based interface to the
+      ACPICA's AML debugger added in the previous cycle and a new user space
+      tool for accessing it.
+    
+      On the cpufreq front, the core is updated to handle governors more
+      efficiently, particularly on systems where a single cpufreq policy
+      object is shared between multiple CPUs, and there are quite a few
+      changes in drivers (intel_pstate, cpufreq-dt etc).
+    
+      The device properties framework is updated to handle built-in (ie
+      included in the kernel itself) device properties better, among other
+      things by adding a fallback mechanism that will allow drivers to
+      provide default properties to be used in case the plaform firmware
+      doesn't provide the properties expected by them.
+    
+      The Operating Performance Points (OPP) framework gets new DT bindings
+      and debugfs support.
+    
+      A new cpufreq driver for ST platforms is added and the ACPI driver for
+      AMD SoCs will now support the APM X-Gene ACPI I2C device.
+    
+      The rest is mostly fixes and cleanups all over.
+    
+      Specifics:
+    
+       - Add a debugfs-based interface for interacting with the ACPICA's AML
+         debugger introduced in the previous cycle and a new user space tool
+         for that, fix some bugs related to the AML debugger and clean up
+         the code in question (Lv Zheng, Dan Carpenter, Colin Ian King,
+         Markus Elfring).
+    
+       - Update ACPICA to upstream revision 20151218 including a number of
+         fixes and cleanups in the ACPICA core (Bob Moore, Lv Zheng, Labbe
+         Corentin, Prarit Bhargava, Colin Ian King, David E Box, Rafael
+         Wysocki).
+    
+         In particular, the previously added erroneous support for the _SUB
+         object is dropped, the concatenate operator will support all ACPI
+         objects now, the Debug Object handling is improved, the SuperName
+         handling of parameters being control methods is fixed, the
+         ObjectType operator handling is updated to follow ACPI 5.0A and the
+         handling of CondRefOf and RefOf is updated accordingly, module-
+         level code will be executed after loading each ACPI table now
+         (instead of being run once after all tables containing AML have
+         been loaded), the Operation Region handlers management is updated
+         to fix some reported problems and a the ACPICA code in the kernel
+         is more in line with the upstream now.
+    
+       - Update the ACPI backlight driver to provide information on whether
+         or not it will generate key-presses for brightness change hotkeys
+         and update some platform drivers (dell-wmi, thinkpad_acpi) to use
+         that information to avoid sending double key-events to users pace
+         for these, add new ACPI backlight quirks (Hans de Goede, Aaron Lu,
+         Adrien Schildknecht).
+    
+       - Improve the ACPI handling of interrupt GPIOs (Christophe Ricard).
+    
+       - Fix the handling of the list of device IDs of device objects found
+         in the ACPI namespace and add a helper for checking if there is a
+         device object for a given device ID (Lukas Wunner).
+    
+       - Change the logic in the ACPI namespace scanning code to create
+         struct acpi_device objects for all ACPI device objects found in the
+         namespace even if _STA fails for them which helps to avoid device
+         enumeration problems on Microsoft Surface 3 (Aaron Lu).
+    
+       - Add support for the APM X-Gene ACPI I2C device to the ACPI driver
+         for AMD SoCs (Loc Ho).
+    
+       - Fix the long-standing issue with the DMA controller on Intel SoCs
+         where ACPI tables have no power management support for the DMA
+         controller itself, but it can be powered off automatically when the
+         last (other) device on the SoC is powered off via ACPI and clean up
+         the ACPI driver for Intel SoCs (acpi-lpss) after previous attempts
+         to fix that problem (Andy Shevchenko).
+    
+       - Assorted ACPI fixes and cleanups (Andy Lutomirski, Colin Ian King,
+         Javier Martinez Canillas, Ken Xue, Mathias Krause, Rafael Wysocki,
+         Sinan Kaya).
+    
+       - Update the device properties framework for better handling of
+         built-in properties, add support for built-in properties to the
+         platform bus type, update the MFD subsystem's handling of device
+         properties and add support for passing default configuration data
+         as device properties to the intel-lpss MFD drivers, convert the
+         designware I2C driver to use the unified device properties API and
+         add a fallback mechanism for using default built-in properties if
+         the platform firmware fails to provide the properties as expected
+         by drivers (Andy Shevchenko, Mika Westerberg, Heikki Krogerus,
+         Andrew Morton).
+    
+       - Add new Device Tree bindings to the Operating Performance Points
+         (OPP) framework and update the exynos4412 DT binding accordingly,
+         introduce debugfs support for the OPP framework (Viresh Kumar,
+         Bartlomiej Zolnierkiewicz).
+    
+       - Migrate the mt8173 cpufreq driver to the new OPP bindings (Pi-Cheng
+         Chen).
+    
+       - Update the cpufreq core to make the handling of governors more
+         efficient, especially on systems where policy objects are shared
+         between multiple CPUs (Viresh Kumar, Rafael Wysocki).
+    
+       - Fix cpufreq governor handling on configurations with
+         CONFIG_HZ_PERIODIC set (Chen Yu).
+    
+       - Clean up the cpufreq core code related to the boost sysfs knob
+         support and update the ACPI cpufreq driver accordingly (Rafael
+         Wysocki).
+    
+       - Add a new cpufreq driver for ST platforms and corresponding Device
+         Tree bindings (Lee Jones).
+    
+       - Update the intel_pstate driver to allow the P-state selection
+         algorithm used by it to depend on the CPU ID of the processor it is
+         running on, make it use a special P-state selection algorithm (with
+         an IO wait time compensation tweak) on Atom CPUs based on the
+         Airmont and Silvermont cores so as to reduce their energy
+         consumption and improve intel_pstate documentation (Philippe
+         Longepe, Srinivas Pandruvada).
+    
+       - Update the cpufreq-dt driver to support registering cooling devices
+         that use the (P * V^2 * f) dynamic power draw formula where V is
+         the voltage, f is the frequency and P is a constant coefficient
+         provided by Device Tree and update the arm_big_little cpufreq
+         driver to use that support (Punit Agrawal).
+    
+       - Assorted cpufreq driver (cpufreq-dt, qoriq, pcc-cpufreq,
+         blackfin-cpufreq) updates (Andrzej Hajda, Hongtao Jia, Jacob
+         Tanenbaum, Markus Elfring).
+    
+       - cpuidle core tweaks related to polling and measured_us calculation
+         (Rik van Riel).
+    
+       - Removal of modularity from a few cpuidle drivers (clps711x, ux500,
+         exynos) that cannot be built as modules in practice (Paul
+         Gortmaker).
+    
+       - PM core update to prevent devices from being probed during system
+         suspend/resume which is generally problematic and may lead to
+         inconsistent behavior (Grygorii Strashko).
+    
+       - Assorted updates of the PM core and related code (Julia Lawall,
+         Manuel Pégourié-Gonnard, Maruthi Bayyavarapu, Rafael Wysocki, Ulf
+         Hansson).
+    
+       - PNP bus type updates (Christophe Le Roy, Heiner Kallweit).
+    
+       - PCI PM code cleanups (Jarkko Nikula, Julia Lawall).
+    
+       - cpupower tool updates (Jacob Tanenbaum, Thomas Renninger)"
+    
+    * tag 'pm+acpi-4.5-rc1-1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm: (177 commits)
+      PM / clk: don't leave clocks enabled when driver not bound
+      i2c: dw: Add APM X-Gene ACPI I2C device support
+      ACPI / APD: Add APM X-Gene ACPI I2C device support
+      ACPI / LPSS: change 'does not have' to 'has' in comment
+      Revert "dmaengine: dw: platform: provide platform data for Intel"
+      dmaengine: dw: return immediately from IRQ when DMA isn't in use
+      dmaengine: dw: platform: power on device on shutdown
+      ACPI / LPSS: override power state for LPSS DMA device
+      PM / OPP: Use snprintf() instead of sprintf()
+      Documentation: cpufreq: intel_pstate: enhance documentation
+      ACPI, PCI, irq: remove redundant check for null string pointer
+      ACPI / video: driver must be registered before checking for keypresses
+      cpufreq-dt: fix handling regulator_get_voltage() result
+      cpufreq: governor: Fix negative idle_time when configured with CONFIG_HZ_PERIODIC
+      PM / sleep: Add support for read-only sysfs attributes
+      ACPI: Fix white space in a structure definition
+      ACPI / SBS: fix inconsistent indenting inside if statement
+      PNP: respect PNP_DRIVER_RES_DO_NOT_CHANGE when detaching
+      ACPI / PNP: constify device IDs
+      ACPI / PCI: Simplify acpi_penalize_isa_irq()
+      ...
+

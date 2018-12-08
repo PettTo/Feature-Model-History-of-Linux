@@ -1,0 +1,58 @@
+commit f716a85cd6045c994011268223706642cff7e485
+Merge: 221bb8a46e23 a519167e753e
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Aug 2 16:37:12 2016 -0400
+
+    Merge branch 'kbuild' of git://git.kernel.org/pub/scm/linux/kernel/git/mmarek/kbuild
+    
+    Pull kbuild updates from Michal Marek:
+    
+     - GCC plugin support by Emese Revfy from grsecurity, with a fixup from
+       Kees Cook.  The plugins are meant to be used for static analysis of
+       the kernel code.  Two plugins are provided already.
+    
+     - reduction of the gcc commandline by Arnd Bergmann.
+    
+     - IS_ENABLED / IS_REACHABLE macro enhancements by Masahiro Yamada
+    
+     - bin2c fix by Michael Tautschnig
+    
+     - setlocalversion fix by Wolfram Sang
+    
+    * 'kbuild' of git://git.kernel.org/pub/scm/linux/kernel/git/mmarek/kbuild:
+      gcc-plugins: disable under COMPILE_TEST
+      kbuild: Abort build on bad stack protector flag
+      scripts: Fix size mismatch of kexec_purgatory_size
+      kbuild: make samples depend on headers_install
+      Kbuild: don't add obj tree in additional includes
+      Kbuild: arch: look for generated headers in obtree
+      Kbuild: always prefix objtree in LINUXINCLUDE
+      Kbuild: avoid duplicate include path
+      Kbuild: don't add ../../ to include path
+      vmlinux.lds.h: replace config_enabled() with IS_ENABLED()
+      kconfig.h: allow to use IS_{ENABLE,REACHABLE} in macro expansion
+      kconfig.h: use already defined macros for IS_REACHABLE() define
+      export.h: use __is_defined() to check if __KSYM_* is defined
+      kconfig.h: use __is_defined() to check if MODULE is defined
+      kbuild: setlocalversion: print error to STDERR
+      Add sancov plugin
+      Add Cyclomatic complexity GCC plugin
+      GCC plugin infrastructure
+      Shared library support
+
+diff --cc Makefile
+index 393b6159ae92,08aac0a7c85f..d6d401bf9d95
+--- a/Makefile
++++ b/Makefile
+@@@ -369,9 -368,8 +369,9 @@@ AFLAGS_MODULE   
+  LDFLAGS_MODULE  =
+  CFLAGS_KERNEL	=
+  AFLAGS_KERNEL	=
+ -CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage -fno-tree-loop-im -Wno-maybe-uninitialized
+ +LDFLAGS_vmlinux =
+ +CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage -fno-tree-loop-im
+- CFLAGS_KCOV	= -fsanitize-coverage=trace-pc
++ CFLAGS_KCOV	:= $(call cc-option,-fsanitize-coverage=trace-pc,)
+  
+  
+  # Use USERINCLUDE when you must reference the UAPI directories only.

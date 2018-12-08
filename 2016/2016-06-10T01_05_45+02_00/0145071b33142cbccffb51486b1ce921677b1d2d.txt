@@ -1,0 +1,47 @@
+commit 0145071b33142cbccffb51486b1ce921677b1d2d
+Author: Linus Walleij <linus.walleij@linaro.org>
+Date:   Thu Jun 2 14:20:18 2016 +0200
+
+    x86: Do away with ARCH_[WANT_OPTIONAL|REQUIRE]_GPIOLIB
+    
+    This replaces:
+    
+    - "select ARCH_REQUIRE_GPIOLIB" with "select GPIOLIB" as this can
+      now be selected directly.
+    
+    - "select ARCH_WANT_OPTIONAL_GPIOLIB" with no dependency: GPIOLIB
+      is now selectable by everyone, so we need not declare our
+      intent to select it.
+    
+    When ordering the symbols the following rationale was used:
+    if the selects were in alphabetical order, I moved select GPIOLIB
+    to be in alphabetical order, but if the selects were not
+    maintained in alphabetical order, I just replaced
+    "select ARCH_REQUIRE_GPIOLIB" with "select GPIOLIB".
+    
+    Signed-off-by: Linus Walleij <linus.walleij@linaro.org>
+    Cc: Michael Büsch <m@bues.ch>
+    Link: http://lkml.kernel.org/r/1464870018-8281-1-git-send-email-linus.walleij@linaro.org
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0a7b885964ba..607382b95372 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -49,7 +49,6 @@ config X86
+ 	select ARCH_WANTS_DYNAMIC_TASK_STRUCT
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select ARCH_WANT_IPC_PARSE_VERSION	if X86_32
+-	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select BUILDTIME_EXTABLE_SORT
+ 	select CLKEVT_I8253
+ 	select CLKSRC_I8253			if X86_32
+@@ -643,7 +642,7 @@ config STA2X11
+ 	select X86_DMA_REMAP
+ 	select SWIOTLB
+ 	select MFD_STA2X11
+-	select ARCH_REQUIRE_GPIOLIB
++	select GPIOLIB
+ 	default n
+ 	---help---
+ 	  This adds support for boards based on the STA2X11 IO-Hub,

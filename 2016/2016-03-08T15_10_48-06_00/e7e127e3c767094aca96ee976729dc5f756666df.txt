@@ -1,0 +1,198 @@
+commit e7e127e3c767094aca96ee976729dc5f756666df
+Author: Bjorn Helgaas <bhelgaas@google.com>
+Date:   Tue Mar 8 14:57:21 2016 -0600
+
+    PCI: Include pci/hotplug Kconfig directly from pci/Kconfig
+    
+    Include pci/hotplug/Kconfig directly from pci/Kconfig, so arches don't
+    have to source both pci/Kconfig and pci/hotplug/Kconfig.
+    
+    Note that this effectively adds pci/hotplug/Kconfig to the following
+    arches, because they already sourced drivers/pci/Kconfig but they
+    previously did not source drivers/pci/hotplug/Kconfig:
+    
+      alpha
+      arm
+      avr32
+      frv
+      m68k
+      microblaze
+      mn10300
+      sparc
+      unicore32
+    
+    Inspired-by-patch-from: Bogicevic Sasa <brutallesale@gmail.com>
+    Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 128ec3c8d475..fc8089db20b1 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -235,7 +235,6 @@ config PCI_SYSCALL
+ 	def_bool PCI
+ 
+ source "drivers/pci/Kconfig"
+-source "drivers/pci/hotplug/Kconfig"
+ 
+ endmenu
+ 
+diff --git a/arch/blackfin/Kconfig b/arch/blackfin/Kconfig
+index af76634f8d98..a63c12259e77 100644
+--- a/arch/blackfin/Kconfig
++++ b/arch/blackfin/Kconfig
+@@ -1233,8 +1233,6 @@ source "drivers/pci/Kconfig"
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ endmenu
+ 
+ menu "Executable file formats"
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 1bc4b5add65c..b534ebab36ea 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -576,8 +576,6 @@ config PCI_SYSCALL
+ 
+ source "drivers/pci/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ source "drivers/pcmcia/Kconfig"
+ 
+ endmenu
+diff --git a/arch/m32r/Kconfig b/arch/m32r/Kconfig
+index 836ac5a963c8..e1b123664815 100644
+--- a/arch/m32r/Kconfig
++++ b/arch/m32r/Kconfig
+@@ -386,8 +386,6 @@ config ISA
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ endmenu
+ 
+ 
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index d21eec746afb..d16204d8b926 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -2935,8 +2935,6 @@ config ZONE_DMA32
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ config RAPIDIO
+ 	tristate "RapidIO support"
+ 	depends on PCI
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 247a09f01608..e28f86ee41b8 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -832,8 +832,6 @@ source "drivers/pci/Kconfig"
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ config HAS_RAPIDIO
+ 	bool
+ 	default n
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 991843342005..e70d49837fb0 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -605,7 +605,6 @@ config PCI_NR_MSI
+ 	  PCI devices.
+ 
+ source "drivers/pci/Kconfig"
+-source "drivers/pci/hotplug/Kconfig"
+ 
+ endif	# PCI
+ 
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index ce52af9ca6ba..17a4f1593d65 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -851,8 +851,6 @@ source "drivers/pci/Kconfig"
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ endmenu
+ 
+ menu "Executable file formats"
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 0c95266d102b..81719302b056 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -455,7 +455,6 @@ config TILE_PCI_IO
+ 
+ source "drivers/pci/Kconfig"
+ 
+-
+ config TILE_USB
+ 	tristate "Tilera USB host adapter support"
+ 	default y
+@@ -466,8 +465,6 @@ config TILE_USB
+ 	  Provides USB host adapter support for the built-in EHCI and OHCI
+ 	  interfaces on TILE-Gx chips.
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ endmenu
+ 
+ menu "Executable file formats"
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ff7fe2dc881c..1912637d6178 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2586,8 +2586,6 @@ config AMD_NB
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ config RAPIDIO
+ 	tristate "RapidIO support"
+ 	depends on PCI
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index e9df1567d778..7e9464b0fc00 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -413,8 +413,6 @@ config FORCE_MAX_ZONEORDER
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ config PLATFORM_WANT_DEFAULT_MEM
+ 	def_bool n
+ 
+diff --git a/drivers/parisc/Kconfig b/drivers/parisc/Kconfig
+index 592de566e72f..3a102a84d637 100644
+--- a/drivers/parisc/Kconfig
++++ b/drivers/parisc/Kconfig
+@@ -110,8 +110,6 @@ config IOMMU_HELPER
+ 
+ source "drivers/pcmcia/Kconfig"
+ 
+-source "drivers/pci/hotplug/Kconfig"
+-
+ endmenu
+ 
+ menu "PA-RISC specific drivers"
+diff --git a/drivers/pci/Kconfig b/drivers/pci/Kconfig
+index 04e00923d178..616165d72a17 100644
+--- a/drivers/pci/Kconfig
++++ b/drivers/pci/Kconfig
+@@ -121,4 +121,5 @@ config PCI_LABEL
+ 	def_bool y if (DMI || ACPI)
+ 	select NLS
+ 
++source "drivers/pci/hotplug/Kconfig"
+ source "drivers/pci/host/Kconfig"

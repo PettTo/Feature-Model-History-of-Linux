@@ -1,0 +1,121 @@
+commit 0f60a8efe4005ab5e65ce000724b04d4ca04a199
+Author: Kees Cook <keescook@chromium.org>
+Date:   Tue Jul 12 16:19:48 2016 -0700
+
+    mm: Implement stack frame object validation
+    
+    This creates per-architecture function arch_within_stack_frames() that
+    should validate if a given object is contained by a kernel stack frame.
+    Initial implementation is on x86.
+    
+    This is based on code from PaX.
+    
+    Signed-off-by: Kees Cook <keescook@chromium.org>
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 15996290fed4..ef86cded5402 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -424,6 +424,15 @@ config CC_STACKPROTECTOR_STRONG
+ 
+ endchoice
+ 
++config HAVE_ARCH_WITHIN_STACK_FRAMES
++	bool
++	help
++	  An architecture should select this if it can walk the kernel stack
++	  frames to determine if an object is part of either the arguments
++	  or local variables (i.e. that it excludes saved return addresses,
++	  and similar) by implementing an inline arch_within_stack_frames(),
++	  which is used by CONFIG_HARDENED_USERCOPY.
++
+ config HAVE_CONTEXT_TRACKING
+ 	bool
+ 	help
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d9a94da0c29f..a2865ddfc1ff 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -91,6 +91,7 @@ config X86
+ 	select HAVE_ARCH_SOFT_DIRTY		if X86_64
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
++	select HAVE_ARCH_WITHIN_STACK_FRAMES
+ 	select HAVE_EBPF_JIT			if X86_64
+ 	select HAVE_CC_STACKPROTECTOR
+ 	select HAVE_CMPXCHG_DOUBLE
+diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+index 30c133ac05cd..ab386f1336f2 100644
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -180,6 +180,50 @@ static inline unsigned long current_stack_pointer(void)
+ 	return sp;
+ }
+ 
++/*
++ * Walks up the stack frames to make sure that the specified object is
++ * entirely contained by a single stack frame.
++ *
++ * Returns:
++ *		 1 if within a frame
++ *		-1 if placed across a frame boundary (or outside stack)
++ *		 0 unable to determine (no frame pointers, etc)
++ */
++static inline int arch_within_stack_frames(const void * const stack,
++					   const void * const stackend,
++					   const void *obj, unsigned long len)
++{
++#if defined(CONFIG_FRAME_POINTER)
++	const void *frame = NULL;
++	const void *oldframe;
++
++	oldframe = __builtin_frame_address(1);
++	if (oldframe)
++		frame = __builtin_frame_address(2);
++	/*
++	 * low ----------------------------------------------> high
++	 * [saved bp][saved ip][args][local vars][saved bp][saved ip]
++	 *                     ^----------------^
++	 *               allow copies only within here
++	 */
++	while (stack <= frame && frame < stackend) {
++		/*
++		 * If obj + len extends past the last frame, this
++		 * check won't pass and the next frame will be 0,
++		 * causing us to bail out and correctly report
++		 * the copy as invalid.
++		 */
++		if (obj + len <= frame)
++			return obj >= oldframe + 2 * sizeof(void *) ? 1 : -1;
++		oldframe = frame;
++		frame = *(const void * const *)frame;
++	}
++	return -1;
++#else
++	return 0;
++#endif
++}
++
+ #else /* !__ASSEMBLY__ */
+ 
+ #ifdef CONFIG_X86_64
+diff --git a/include/linux/thread_info.h b/include/linux/thread_info.h
+index b4c2a485b28a..3d5c80b4391d 100644
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@ -146,6 +146,15 @@ static inline bool test_and_clear_restore_sigmask(void)
+ #error "no set_restore_sigmask() provided and default one won't work"
+ #endif
+ 
++#ifndef CONFIG_HAVE_ARCH_WITHIN_STACK_FRAMES
++static inline int arch_within_stack_frames(const void * const stack,
++					   const void * const stackend,
++					   const void *obj, unsigned long len)
++{
++	return 0;
++}
++#endif
++
+ #endif	/* __KERNEL__ */
+ 
+ #endif /* _LINUX_THREAD_INFO_H */

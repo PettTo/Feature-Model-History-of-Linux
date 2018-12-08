@@ -1,0 +1,77 @@
+commit 461a7184320a1b4d2c12ad538354062fef4ee0f1
+Author: Yisheng Xie <xieyisheng1@huawei.com>
+Date:   Fri Oct 7 17:01:46 2016 -0700
+
+    mm/hugetlb: introduce ARCH_HAS_GIGANTIC_PAGE
+    
+    Avoid making ifdef get pretty unwieldy if many ARCHs support gigantic
+    page.  No functional change with this patch.
+    
+    Link: http://lkml.kernel.org/r/1475227569-63446-2-git-send-email-xieyisheng1@huawei.com
+    Signed-off-by: Yisheng Xie <xieyisheng1@huawei.com>
+    Suggested-by: Michal Hocko <mhocko@suse.com>
+    Acked-by: Michal Hocko <mhocko@suse.com>
+    Acked-by: Naoya Horiguchi <n-horiguchi@ah.jp.nec.com>
+    Acked-by: Hillf Danton <hillf.zj@alibaba-inc.com>
+    Cc: Hanjun Guo <guohanjun@huawei.com>
+    Cc: Will Deacon <will.deacon@arm.com>
+    Cc: Dave Hansen <dave.hansen@intel.com>
+    Cc: Sudeep Holla <sudeep.holla@arm.com>
+    Cc: Catalin Marinas <catalin.marinas@arm.com>
+    Cc: Mark Rutland <mark.rutland@arm.com>
+    Cc: Rob Herring <robh+dt@kernel.org>
+    Cc: Mike Kravetz <mike.kravetz@oracle.com>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index deeadfa291ba..fb538031569a 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -71,6 +71,7 @@ config S390
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
++	select ARCH_HAS_GIGANTIC_PAGE
+ 	select ARCH_HAS_KCOV
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAS_UBSAN_SANITIZE_ALL
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 58bec8f9641a..827273c56ae9 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -28,6 +28,7 @@ config X86
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FAST_MULTIPLIER
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
++	select ARCH_HAS_GIGANTIC_PAGE		if X86_64
+ 	select ARCH_HAS_KCOV			if X86_64
+ 	select ARCH_HAS_PMEM_API		if X86_64
+ 	select ARCH_HAS_MMIO_FLUSH
+diff --git a/fs/Kconfig b/fs/Kconfig
+index 3ef62bad8f2b..4bd03a2b0518 100644
+--- a/fs/Kconfig
++++ b/fs/Kconfig
+@@ -200,6 +200,9 @@ config HUGETLBFS
+ config HUGETLB_PAGE
+ 	def_bool HUGETLBFS
+ 
++config ARCH_HAS_GIGANTIC_PAGE
++	bool
++
+ source "fs/configfs/Kconfig"
+ source "fs/efivarfs/Kconfig"
+ 
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index 770d83eb3f48..e4a4500758f2 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -1022,7 +1022,7 @@ static int hstate_next_node_to_free(struct hstate *h, nodemask_t *nodes_allowed)
+ 		((node = hstate_next_node_to_free(hs, mask)) || 1);	\
+ 		nr_nodes--)
+ 
+-#if (defined(CONFIG_X86_64) || defined(CONFIG_S390)) && \
++#if defined(CONFIG_ARCH_HAS_GIGANTIC_PAGE) && \
+ 	((defined(CONFIG_MEMORY_ISOLATION) && defined(CONFIG_COMPACTION)) || \
+ 	defined(CONFIG_CMA))
+ static void destroy_compound_gigantic_page(struct page *page,

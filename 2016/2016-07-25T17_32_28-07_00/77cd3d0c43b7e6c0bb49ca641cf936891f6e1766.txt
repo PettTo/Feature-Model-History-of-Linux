@@ -1,0 +1,79 @@
+commit 77cd3d0c43b7e6c0bb49ca641cf936891f6e1766
+Merge: 0f657262d5f9 6a79296cb15d
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jul 25 17:32:28 2016 -0700
+
+    Merge branch 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 boot updates from Ingo Molnar:
+     "The main changes:
+    
+       - add initial commits to randomize kernel memory section virtual
+         addresses, enabled via a new kernel option: RANDOMIZE_MEMORY
+         (Thomas Garnier, Kees Cook, Baoquan He, Yinghai Lu)
+    
+       - enhance KASLR (RANDOMIZE_BASE) physical memory randomization (Kees
+         Cook)
+    
+       - EBDA/BIOS region boot quirk cleanups (Andy Lutomirski, Ingo Molnar)
+    
+       - misc cleanups/fixes"
+    
+    * 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/boot: Simplify EBDA-vs-BIOS reservation logic
+      x86/boot: Clarify what x86_legacy_features.reserve_bios_regions does
+      x86/boot: Reorganize and clean up the BIOS area reservation code
+      x86/mm: Do not reference phys addr beyond kernel
+      x86/mm: Add memory hotplug support for KASLR memory randomization
+      x86/mm: Enable KASLR for vmalloc memory regions
+      x86/mm: Enable KASLR for physical mapping memory regions
+      x86/mm: Implement ASLR for kernel memory regions
+      x86/mm: Separate variable for trampoline PGD
+      x86/mm: Add PUD VA support for physical mapping
+      x86/mm: Update physical mapping variable names
+      x86/mm: Refactor KASLR entropy functions
+      x86/KASLR: Fix boot crash with certain memory configurations
+      x86/boot/64: Add forgotten end of function marker
+      x86/KASLR: Allow randomization below the load address
+      x86/KASLR: Extend kernel image physical address randomization to addresses larger than 4G
+      x86/KASLR: Randomize virtual address separately
+      x86/KASLR: Clarify identity map interface
+      x86/boot: Refuse to build with data relocations
+      x86/KASLR, x86/power: Remove x86 hibernation restrictions
+
+diff --cc arch/x86/lib/Makefile
+index ec969cc3eb20,cfa6d076f4f2..34a74131a12c
+--- a/arch/x86/lib/Makefile
++++ b/arch/x86/lib/Makefile
+@@@ -24,8 -24,9 +24,9 @@@ lib-y += usercopy_$(BITS).o usercopy.o 
+  lib-y += memcpy_$(BITS).o
+  lib-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += rwsem.o
+  lib-$(CONFIG_INSTRUCTION_DECODER) += insn.o inat.o
++ lib-$(CONFIG_RANDOMIZE_BASE) += kaslr.o
+  
+ -obj-y += msr.o msr-reg.o msr-reg-export.o
+ +obj-y += msr.o msr-reg.o msr-reg-export.o hweight.o
+  
+  ifeq ($(CONFIG_X86_32),y)
+          obj-y += atomic64_32.o
+diff --cc arch/x86/mm/init_64.c
+index e14f87057c3f,7bf1ddb54537..53cc2256cf23
+--- a/arch/x86/mm/init_64.c
++++ b/arch/x86/mm/init_64.c
+@@@ -470,11 -497,13 +497,13 @@@ phys_pud_init(pud_t *pud_page, unsigne
+  			continue;
+  		}
+  
+ -		if (pud_val(*pud)) {
+ +		if (!pud_none(*pud)) {
+  			if (!pud_large(*pud)) {
+  				pmd = pmd_offset(pud, 0);
+- 				last_map_addr = phys_pmd_init(pmd, addr, end,
+- 							 page_size_mask, prot);
++ 				paddr_last = phys_pmd_init(pmd, paddr,
++ 							   paddr_end,
++ 							   page_size_mask,
++ 							   prot);
+  				__flush_tlb_all();
+  				continue;
+  			}

@@ -1,0 +1,40 @@
+commit 9a45f036af363aec1efec08827c825d69c115a9a
+Merge: 168f1a7163b3 d2d3462f9f08
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon May 16 15:54:01 2016 -0700
+
+    Merge branch 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 boot updates from Ingo Molnar:
+     "The biggest changes in this cycle were:
+    
+       - prepare for more KASLR related changes, by restructuring, cleaning
+         up and fixing the existing boot code.  (Kees Cook, Baoquan He,
+         Yinghai Lu)
+    
+       - simplifly/concentrate subarch handling code, eliminate
+         paravirt_enabled() usage.  (Luis R Rodriguez)"
+    
+    * 'x86-boot-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (50 commits)
+      x86/KASLR: Clarify purpose of each get_random_long()
+      x86/KASLR: Add virtual address choosing function
+      x86/KASLR: Return earliest overlap when avoiding regions
+      x86/KASLR: Add 'struct slot_area' to manage random_addr slots
+      x86/boot: Add missing file header comments
+      x86/KASLR: Initialize mapping_info every time
+      x86/boot: Comment what finalize_identity_maps() does
+      x86/KASLR: Build identity mappings on demand
+      x86/boot: Split out kernel_ident_mapping_init()
+      x86/boot: Clean up indenting for asm/boot.h
+      x86/KASLR: Improve comments around the mem_avoid[] logic
+      x86/boot: Simplify pointer casting in choose_random_location()
+      x86/KASLR: Consolidate mem_avoid[] entries
+      x86/boot: Clean up pointer casting
+      x86/boot: Warn on future overlapping memcpy() use
+      x86/boot: Extract error reporting functions
+      x86/boot: Correctly bounds-check relocations
+      x86/KASLR: Clean up unused code from old 'run_size' and rename it to 'kernel_total_size'
+      x86/boot: Fix "run_size" calculation
+      x86/boot: Calculate decompression size during boot not build
+      ...
+

@@ -1,0 +1,40 @@
+commit 3fa2fe2ce09c5a16be69c5319eb3347271a99735
+Merge: d88f48e12821 05f5ece76a88
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Mar 24 10:02:14 2016 -0700
+
+    Merge branch 'perf-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull perf fixes from Ingo Molnar:
+     "This tree contains various perf fixes on the kernel side, plus three
+      hw/event-enablement late additions:
+    
+       - Intel Memory Bandwidth Monitoring events and handling
+       - the AMD Accumulated Power Mechanism reporting facility
+       - more IOMMU events
+    
+      ... and a final round of perf tooling updates/fixes"
+    
+    * 'perf-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (44 commits)
+      perf llvm: Use strerror_r instead of the thread unsafe strerror one
+      perf llvm: Use realpath to canonicalize paths
+      perf tools: Unexport some methods unused outside strbuf.c
+      perf probe: No need to use formatting strbuf method
+      perf help: Use asprintf instead of adhoc equivalents
+      perf tools: Remove unused perf_pathdup, xstrdup functions
+      perf tools: Do not include stringify.h from the kernel sources
+      tools include: Copy linux/stringify.h from the kernel
+      tools lib traceevent: Remove redundant CPU output
+      perf tools: Remove needless 'extern' from function prototypes
+      perf tools: Simplify die() mechanism
+      perf tools: Remove unused DIE_IF macro
+      perf script: Remove lots of unused arguments
+      perf thread: Rename perf_event__preprocess_sample_addr to thread__resolve
+      perf machine: Rename perf_event__preprocess_sample to machine__resolve
+      perf tools: Add cpumode to struct perf_sample
+      perf tests: Forward the perf_sample in the dwarf unwind test
+      perf tools: Remove misplaced __maybe_unused
+      perf list: Fix documentation of :ppp
+      perf bench numa: Fix assertion for nodes bitfield
+      ...
+

@@ -1,0 +1,42 @@
+commit 91dda51a115770fb9f24634fb09a502ad7bda5c6
+Author: Aleksey Makarov <aleksey.makarov@linaro.org>
+Date:   Mon Jun 20 13:56:12 2016 +0300
+
+    ACPI / tables: introduce ARCH_HAS_ACPI_TABLE_UPGRADE
+    
+    We want to use the table upgrade feature in ARM64.
+    Introduce a new configuration option that allows that.
+    
+    Signed-off-by: Aleksey Makarov <aleksey.makarov@linaro.org>
+    Signed-off-by: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d9a94da0c29f..f1a62447928c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -22,6 +22,7 @@ config X86
+ 	select ANON_INODES
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select ARCH_DISCARD_MEMBLOCK
++	select ARCH_HAS_ACPI_TABLE_UPGRADE if ACPI
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+diff --git a/drivers/acpi/Kconfig b/drivers/acpi/Kconfig
+index b7e2e776397d..0a8e41a52d09 100644
+--- a/drivers/acpi/Kconfig
++++ b/drivers/acpi/Kconfig
+@@ -311,9 +311,12 @@ config ACPI_CUSTOM_DSDT
+ 	bool
+ 	default ACPI_CUSTOM_DSDT_FILE != ""
+ 
++config ARCH_HAS_ACPI_TABLE_UPGRADE
++	def_bool n
++
+ config ACPI_TABLE_UPGRADE
+ 	bool "Allow upgrading ACPI tables via initrd"
+-	depends on BLK_DEV_INITRD && X86
++	depends on BLK_DEV_INITRD && ARCH_HAS_ACPI_TABLE_UPGRADE
+ 	default y
+ 	help
+ 	  This option provides functionality to upgrade arbitrary ACPI tables

@@ -1,0 +1,43 @@
+commit 8421c60446290c0fef1858a806261871a40ebf76
+Merge: f7dd3b1734ea 83da6b59919a
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Dec 18 15:45:33 2016 -0800
+
+    Merge tag 'platform-drivers-x86-v4.10-2' of git://git.infradead.org/users/dvhart/linux-platform-drivers-x86
+    
+    Pull more x86 platform driver updates from Darren Hart:
+     "Move and add registration for the mlx-platform driver. Introduce
+      button and lid drivers for the surface3 (different from the
+      surface3-pro). Add BXT PMIC TMU support. Add Y700 to existing
+      ideapad-laptop quirk.
+    
+      Summary:
+    
+      ideapad-laptop:
+       - Add Y700 15-ACZ to no_hw_rfkill DMI list
+    
+      surface3_button:
+       - Introduce button support for the Surface 3
+    
+      surface3-wmi:
+       - Add custom surface3 platform device for controlling LID
+       - Balance locking on error path
+    
+      mlx-platform:
+       - Add mlxcpld-hotplug driver registration
+       - Fix semicolon.cocci warnings
+       - Move module from arch/x86
+    
+      platform/x86:
+       - Add Whiskey Cove PMIC TMU support"
+    
+    * tag 'platform-drivers-x86-v4.10-2' of git://git.infradead.org/users/dvhart/linux-platform-drivers-x86:
+      platform/x86: surface3-wmi: Balance locking on error path
+      platform/x86: Add Whiskey Cove PMIC TMU support
+      platform/x86: ideapad-laptop: Add Y700 15-ACZ to no_hw_rfkill DMI list
+      platform/x86: Introduce button support for the Surface 3
+      platform/x86: Add custom surface3 platform device for controlling LID
+      platform/x86: mlx-platform: Add mlxcpld-hotplug driver registration
+      platform/x86: mlx-platform: Fix semicolon.cocci warnings
+      platform/x86: mlx-platform: Move module from arch/x86
+

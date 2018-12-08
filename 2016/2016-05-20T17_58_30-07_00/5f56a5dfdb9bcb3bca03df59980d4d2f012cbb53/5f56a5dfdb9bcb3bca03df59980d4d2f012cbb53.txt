@@ -1,0 +1,632 @@
+commit 5f56a5dfdb9bcb3bca03df59980d4d2f012cbb53
+Author: Jiri Slaby <jslaby@suse.cz>
+Date:   Fri May 20 17:00:16 2016 -0700
+
+    exit_thread: remove empty bodies
+    
+    Define HAVE_EXIT_THREAD for archs which want to do something in
+    exit_thread. For others, let's define exit_thread as an empty inline.
+    
+    This is a cleanup before we change the prototype of exit_thread to
+    accept a task parameter.
+    
+    [akpm@linux-foundation.org: fix mips]
+    Signed-off-by: Jiri Slaby <jslaby@suse.cz>
+    Cc: "David S. Miller" <davem@davemloft.net>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+    Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+    Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+    Cc: Catalin Marinas <catalin.marinas@arm.com>
+    Cc: Chen Liqin <liqin.linux@gmail.com>
+    Cc: Chris Metcalf <cmetcalf@mellanox.com>
+    Cc: Chris Zankel <chris@zankel.net>
+    Cc: David Howells <dhowells@redhat.com>
+    Cc: Fenghua Yu <fenghua.yu@intel.com>
+    Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+    Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+    Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+    Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+    Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+    Cc: Helge Deller <deller@gmx.de>
+    Cc: Ingo Molnar <mingo@redhat.com>
+    Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+    Cc: James Hogan <james.hogan@imgtec.com>
+    Cc: Jeff Dike <jdike@addtoit.com>
+    Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+    Cc: Jiri Slaby <jslaby@suse.cz>
+    Cc: Jonas Bonn <jonas@southpole.se>
+    Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+    Cc: Lennox Wu <lennox.wu@gmail.com>
+    Cc: Ley Foon Tan <lftan@altera.com>
+    Cc: Mark Salter <msalter@redhat.com>
+    Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+    Cc: Matt Turner <mattst88@gmail.com>
+    Cc: Max Filippov <jcmvbkbc@gmail.com>
+    Cc: Michael Ellerman <mpe@ellerman.id.au>
+    Cc: Michal Simek <monstr@monstr.eu>
+    Cc: Mikael Starvik <starvik@axis.com>
+    Cc: Paul Mackerras <paulus@samba.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Ralf Baechle <ralf@linux-mips.org>
+    Cc: Rich Felker <dalias@libc.org>
+    Cc: Richard Henderson <rth@twiddle.net>
+    Cc: Richard Kuo <rkuo@codeaurora.org>
+    Cc: Richard Weinberger <richard@nod.at>
+    Cc: Russell King <linux@arm.linux.org.uk>
+    Cc: Steven Miao <realmz6@gmail.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Cc: Vineet Gupta <vgupta@synopsys.com>
+    Cc: Will Deacon <will.deacon@arm.com>
+    Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 81869a5e7e17..0f298f9123dc 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -517,6 +517,11 @@ config HAVE_ARCH_MMAP_RND_BITS
+ 	  - ARCH_MMAP_RND_BITS_MIN
+ 	  - ARCH_MMAP_RND_BITS_MAX
+ 
++config HAVE_EXIT_THREAD
++	bool
++	help
++	  An architecture implements exit_thread.
++
+ config ARCH_MMAP_RND_BITS_MIN
+ 	int
+ 
+diff --git a/arch/alpha/kernel/process.c b/arch/alpha/kernel/process.c
+index 84d13263ce46..b483156698d5 100644
+--- a/arch/alpha/kernel/process.c
++++ b/arch/alpha/kernel/process.c
+@@ -210,14 +210,6 @@ start_thread(struct pt_regs * regs, unsigned long pc, unsigned long sp)
+ }
+ EXPORT_SYMBOL(start_thread);
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-void
+-exit_thread(void)
+-{
+-}
+-
+ void
+ flush_thread(void)
+ {
+diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
+index a3f750e76b68..b5db9e7fd649 100644
+--- a/arch/arc/kernel/process.c
++++ b/arch/arc/kernel/process.c
+@@ -183,13 +183,6 @@ void flush_thread(void)
+ {
+ }
+ 
+-/*
+- * Free any architecture-specific thread data structures, etc.
+- */
+-void exit_thread(void)
+-{
+-}
+-
+ int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
+ {
+ 	return 0;
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index b99d25b4133e..956d3575426c 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -50,6 +50,7 @@ config ARM
+ 	select HAVE_DMA_CONTIGUOUS if MMU
+ 	select HAVE_DYNAMIC_FTRACE if (!XIP_KERNEL) && !CPU_ENDIAN_BE32 && MMU
+ 	select HAVE_EFFICIENT_UNALIGNED_ACCESS if (CPU_V6 || CPU_V6K || CPU_V7) && MMU
++	select HAVE_EXIT_THREAD
+ 	select HAVE_FTRACE_MCOUNT_RECORD if (!XIP_KERNEL)
+ 	select HAVE_FUNCTION_GRAPH_TRACER if (!THUMB2_KERNEL)
+ 	select HAVE_FUNCTION_TRACER if (!XIP_KERNEL)
+diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
+index 48eea6866c67..6cd2612236dc 100644
+--- a/arch/arm64/kernel/process.c
++++ b/arch/arm64/kernel/process.c
+@@ -200,13 +200,6 @@ void show_regs(struct pt_regs * regs)
+ 	__show_regs(regs);
+ }
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-void exit_thread(void)
+-{
+-}
+-
+ static void tls_thread_flush(void)
+ {
+ 	asm ("msr tpidr_el0, xzr");
+diff --git a/arch/avr32/Kconfig b/arch/avr32/Kconfig
+index 18b88779e701..e43519a2ca89 100644
+--- a/arch/avr32/Kconfig
++++ b/arch/avr32/Kconfig
+@@ -4,6 +4,7 @@ config AVR32
+ 	# that we usually don't need on AVR32.
+ 	select EXPERT
+ 	select HAVE_CLK
++	select HAVE_EXIT_THREAD
+ 	select HAVE_OPROFILE
+ 	select HAVE_KPROBES
+ 	select VIRT_TO_BUS
+diff --git a/arch/blackfin/include/asm/processor.h b/arch/blackfin/include/asm/processor.h
+index 7acd46653df3..0c265aba94ad 100644
+--- a/arch/blackfin/include/asm/processor.h
++++ b/arch/blackfin/include/asm/processor.h
+@@ -75,13 +75,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ {
+ }
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-static inline void exit_thread(void)
+-{
+-}
+-
+ /*
+  * Return saved PC of a blocked thread.
+  */
+diff --git a/arch/c6x/kernel/process.c b/arch/c6x/kernel/process.c
+index 3ae9f5a166a0..0ee7686a78f3 100644
+--- a/arch/c6x/kernel/process.c
++++ b/arch/c6x/kernel/process.c
+@@ -82,10 +82,6 @@ void flush_thread(void)
+ {
+ }
+ 
+-void exit_thread(void)
+-{
+-}
+-
+ /*
+  * Do necessary setup to start up a newly executed thread.
+  */
+diff --git a/arch/cris/Kconfig b/arch/cris/Kconfig
+index 99bda1ba3d2f..5c0ca8ae9293 100644
+--- a/arch/cris/Kconfig
++++ b/arch/cris/Kconfig
+@@ -59,6 +59,7 @@ config CRIS
+ 	select GENERIC_IOMAP
+ 	select MODULES_USE_ELF_RELA
+ 	select CLONE_BACKWARDS2
++	select HAVE_EXIT_THREAD if ETRAX_ARCH_V32
+ 	select OLD_SIGSUSPEND
+ 	select OLD_SIGACTION
+ 	select GPIOLIB
+diff --git a/arch/cris/arch-v10/kernel/process.c b/arch/cris/arch-v10/kernel/process.c
+index 02b783457be0..96e5afef6b47 100644
+--- a/arch/cris/arch-v10/kernel/process.c
++++ b/arch/cris/arch-v10/kernel/process.c
+@@ -35,15 +35,6 @@ void default_idle(void)
+ 	local_irq_enable();
+ }
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-
+-void exit_thread(void)
+-{
+-	/* Nothing needs to be done.  */
+-}
+-
+ /* if the watchdog is enabled, we can simply disable interrupts and go
+  * into an eternal loop, and the watchdog will reset the CPU after 0.1s
+  * if on the other hand the watchdog wasn't enabled, we just enable it and wait
+diff --git a/arch/frv/include/asm/processor.h b/arch/frv/include/asm/processor.h
+index ae8d423e79d9..73f0a79ad8e6 100644
+--- a/arch/frv/include/asm/processor.h
++++ b/arch/frv/include/asm/processor.h
+@@ -96,13 +96,6 @@ extern asmlinkage void *restore_user_regs(const struct user_context *target, ...
+ #define release_segments(mm)		do { } while (0)
+ #define forget_segments()		do { } while (0)
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-static inline void exit_thread(void)
+-{
+-}
+-
+ /*
+  * Return saved PC of a blocked thread.
+  */
+diff --git a/arch/h8300/include/asm/processor.h b/arch/h8300/include/asm/processor.h
+index 54e3fd83c336..111df7397ac7 100644
+--- a/arch/h8300/include/asm/processor.h
++++ b/arch/h8300/include/asm/processor.h
+@@ -110,13 +110,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ {
+ }
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-static inline void exit_thread(void)
+-{
+-}
+-
+ /*
+  * Return saved PC of a blocked thread.
+  */
+diff --git a/arch/hexagon/kernel/process.c b/arch/hexagon/kernel/process.c
+index a9ebd471823a..d9edfd3fc52a 100644
+--- a/arch/hexagon/kernel/process.c
++++ b/arch/hexagon/kernel/process.c
+@@ -136,13 +136,6 @@ void release_thread(struct task_struct *dead_task)
+ {
+ }
+ 
+-/*
+- * Free any architecture-specific thread data structures, etc.
+- */
+-void exit_thread(void)
+-{
+-}
+-
+ /*
+  * Some archs flush debug and FPU info here
+  */
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index b534ebab36ea..f80758cb7157 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -18,6 +18,7 @@ config IA64
+ 	select ACPI_SYSTEM_POWER_STATES_SUPPORT if ACPI
+ 	select ARCH_MIGHT_HAVE_ACPI_PDC if ACPI
+ 	select HAVE_UNSTABLE_SCHED_CLOCK
++	select HAVE_EXIT_THREAD
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+ 	select HAVE_KPROBES
+diff --git a/arch/m32r/kernel/process.c b/arch/m32r/kernel/process.c
+index e69221d581d5..a88b1f01e91f 100644
+--- a/arch/m32r/kernel/process.c
++++ b/arch/m32r/kernel/process.c
+@@ -101,15 +101,6 @@ void show_regs(struct pt_regs * regs)
+ #endif
+ }
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-void exit_thread(void)
+-{
+-	/* Nothing to do. */
+-	DPRINTK("pid = %d\n", current->pid);
+-}
+-
+ void flush_thread(void)
+ {
+ 	DPRINTK("pid = %d\n", current->pid);
+diff --git a/arch/m68k/include/asm/processor.h b/arch/m68k/include/asm/processor.h
+index 20dda1d4b860..a6ce2ec8d693 100644
+--- a/arch/m68k/include/asm/processor.h
++++ b/arch/m68k/include/asm/processor.h
+@@ -153,13 +153,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ {
+ }
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-static inline void exit_thread(void)
+-{
+-}
+-
+ extern unsigned long thread_saved_pc(struct task_struct *tsk);
+ 
+ unsigned long get_wchan(struct task_struct *p);
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index a0fa88da3e31..e47a08d72819 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -11,6 +11,7 @@ config METAG
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DEBUG_STACKOVERFLOW
+ 	select HAVE_DYNAMIC_FTRACE
++	select HAVE_EXIT_THREAD
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_KERNEL_BZIP2
+diff --git a/arch/metag/include/asm/processor.h b/arch/metag/include/asm/processor.h
+index 0838ca699764..a0333ebcac35 100644
+--- a/arch/metag/include/asm/processor.h
++++ b/arch/metag/include/asm/processor.h
+@@ -134,8 +134,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ #define copy_segments(tsk, mm)		do { } while (0)
+ #define release_segments(mm)		do { } while (0)
+ 
+-extern void exit_thread(void);
+-
+ /*
+  * Return saved PC of a blocked thread.
+  */
+diff --git a/arch/microblaze/include/asm/processor.h b/arch/microblaze/include/asm/processor.h
+index 497a988d79c2..c38d0dd91134 100644
+--- a/arch/microblaze/include/asm/processor.h
++++ b/arch/microblaze/include/asm/processor.h
+@@ -70,11 +70,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ {
+ }
+ 
+-/* Free all resources held by a thread. */
+-static inline void exit_thread(void)
+-{
+-}
+-
+ extern unsigned long thread_saved_pc(struct task_struct *t);
+ 
+ extern unsigned long get_wchan(struct task_struct *p);
+@@ -127,11 +122,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ {
+ }
+ 
+-/* Free current thread data structures etc.  */
+-static inline void exit_thread(void)
+-{
+-}
+-
+ /* Return saved (kernel) PC of a blocked thread.  */
+ #  define thread_saved_pc(tsk)	\
+ 	((tsk)->thread.regs ? (tsk)->thread.regs->r15 : 0)
+diff --git a/arch/mips/kernel/process.c b/arch/mips/kernel/process.c
+index a6b3dc54260a..411c971e3417 100644
+--- a/arch/mips/kernel/process.c
++++ b/arch/mips/kernel/process.c
+@@ -73,10 +73,6 @@ void start_thread(struct pt_regs * regs, unsigned long pc, unsigned long sp)
+ 	regs->regs[29] = sp;
+ }
+ 
+-void exit_thread(void)
+-{
+-}
+-
+ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
+ {
+ 	/*
+diff --git a/arch/mn10300/Kconfig b/arch/mn10300/Kconfig
+index 06ddb5501ab1..9627e81a6cbb 100644
+--- a/arch/mn10300/Kconfig
++++ b/arch/mn10300/Kconfig
+@@ -1,5 +1,6 @@
+ config MN10300
+ 	def_bool y
++	select HAVE_EXIT_THREAD
+ 	select HAVE_OPROFILE
+ 	select HAVE_UID16
+ 	select GENERIC_IRQ_SHOW
+diff --git a/arch/nios2/include/asm/processor.h b/arch/nios2/include/asm/processor.h
+index c2ba45c159c7..1c953f0cadbf 100644
+--- a/arch/nios2/include/asm/processor.h
++++ b/arch/nios2/include/asm/processor.h
+@@ -75,11 +75,6 @@ static inline void release_thread(struct task_struct *dead_task)
+ {
+ }
+ 
+-/* Free current thread data structures etc.. */
+-static inline void exit_thread(void)
+-{
+-}
+-
+ /* Return saved PC of a blocked thread. */
+ #define thread_saved_pc(tsk)	((tsk)->thread.kregs->ea)
+ 
+diff --git a/arch/openrisc/include/asm/processor.h b/arch/openrisc/include/asm/processor.h
+index 4d235e3d2534..70334c9f7d24 100644
+--- a/arch/openrisc/include/asm/processor.h
++++ b/arch/openrisc/include/asm/processor.h
+@@ -84,15 +84,6 @@ void start_thread(struct pt_regs *regs, unsigned long nip, unsigned long sp);
+ void release_thread(struct task_struct *);
+ unsigned long get_wchan(struct task_struct *p);
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-
+-extern inline void exit_thread(void)
+-{
+-	/* Nothing needs to be done.  */
+-}
+-
+ /*
+  * Return saved PC of a blocked thread. For now, this is the "user" PC
+  */
+diff --git a/arch/parisc/kernel/process.c b/arch/parisc/kernel/process.c
+index 809905a811ed..40639439d8b3 100644
+--- a/arch/parisc/kernel/process.c
++++ b/arch/parisc/kernel/process.c
+@@ -144,13 +144,6 @@ void machine_power_off(void)
+ void (*pm_power_off)(void) = machine_power_off;
+ EXPORT_SYMBOL(pm_power_off);
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-void exit_thread(void)
+-{
+-}
+-
+ void flush_thread(void)
+ {
+ 	/* Only needs to handle fpu stuff or perf monitors.
+diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
+index ea8a28fd6f31..e2f12cbcade9 100644
+--- a/arch/powerpc/kernel/process.c
++++ b/arch/powerpc/kernel/process.c
+@@ -1329,10 +1329,6 @@ void show_regs(struct pt_regs * regs)
+ 		show_instructions(regs);
+ }
+ 
+-void exit_thread(void)
+-{
+-}
+-
+ void flush_thread(void)
+ {
+ #ifdef CONFIG_HAVE_HW_BREAKPOINT
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index de0fcc08dff5..e2c9aaaf64b2 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -134,6 +134,7 @@ config S390
+ 	select HAVE_DMA_API_DEBUG
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
++	select HAVE_EXIT_THREAD
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_FUNCTION_TRACER
+diff --git a/arch/score/kernel/process.c b/arch/score/kernel/process.c
+index a1519ad3d49d..aae9480706c2 100644
+--- a/arch/score/kernel/process.c
++++ b/arch/score/kernel/process.c
+@@ -56,8 +56,6 @@ void start_thread(struct pt_regs *regs, unsigned long pc, unsigned long sp)
+ 	regs->regs[0] = sp;
+ }
+ 
+-void exit_thread(void) {}
+-
+ /*
+  * When a process does an "exec", machine state like FPU and debug
+  * registers need to be reset.  This is a hook function for that.
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index 7ed20fc3fc81..cb93af8f8017 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -71,6 +71,7 @@ config SUPERH32
+ 
+ config SUPERH64
+ 	def_bool ARCH = "sh64"
++	select HAVE_EXIT_THREAD
+ 	select KALLSYMS
+ 
+ config ARCH_DEFCONFIG
+diff --git a/arch/sh/kernel/process_32.c b/arch/sh/kernel/process_32.c
+index 2885fc9d9dcd..ee12e9451874 100644
+--- a/arch/sh/kernel/process_32.c
++++ b/arch/sh/kernel/process_32.c
+@@ -76,13 +76,6 @@ void start_thread(struct pt_regs *regs, unsigned long new_pc,
+ }
+ EXPORT_SYMBOL(start_thread);
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-void exit_thread(void)
+-{
+-}
+-
+ void flush_thread(void)
+ {
+ 	struct task_struct *tsk = current;
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index db0a26cffa97..27b3a0ad40a0 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -20,6 +20,7 @@ config SPARC
+ 	select HAVE_OPROFILE
+ 	select HAVE_ARCH_KGDB if !SMP || SPARC64
+ 	select HAVE_ARCH_TRACEHOOK
++	select HAVE_EXIT_THREAD
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ 	select RTC_CLASS
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 81719302b056..174746225577 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -3,6 +3,7 @@
+ 
+ config TILE
+ 	def_bool y
++	select HAVE_EXIT_THREAD
+ 	select HAVE_PERF_EVENTS
+ 	select USE_PMC if PERF_EVENTS
+ 	select HAVE_DMA_API_DEBUG
+diff --git a/arch/um/kernel/process.c b/arch/um/kernel/process.c
+index 48af59aae129..0b04711f1f18 100644
+--- a/arch/um/kernel/process.c
++++ b/arch/um/kernel/process.c
+@@ -103,10 +103,6 @@ void interrupt_end(void)
+ 		tracehook_notify_resume(regs);
+ }
+ 
+-void exit_thread(void)
+-{
+-}
+-
+ int get_current_pid(void)
+ {
+ 	return task_pid_nr(current);
+diff --git a/arch/unicore32/kernel/process.c b/arch/unicore32/kernel/process.c
+index b008e9961465..00299c927852 100644
+--- a/arch/unicore32/kernel/process.c
++++ b/arch/unicore32/kernel/process.c
+@@ -201,13 +201,6 @@ void show_regs(struct pt_regs *regs)
+ 	__backtrace();
+ }
+ 
+-/*
+- * Free current thread data structures etc..
+- */
+-void exit_thread(void)
+-{
+-}
+-
+ void flush_thread(void)
+ {
+ 	struct thread_info *thread = current_thread_info();
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ace79d2da2c3..8ff5b3be95d4 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -105,6 +105,7 @@ config X86
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+ 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
++	select HAVE_EXIT_THREAD
+ 	select HAVE_FENTRY			if X86_64
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_FUNCTION_GRAPH_FP_TEST
+diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
+index 85257afe71c3..64336f666fb6 100644
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -14,6 +14,7 @@ config XTENSA
+ 	select GENERIC_PCI_IOMAP
+ 	select GENERIC_SCHED_CLOCK
+ 	select HAVE_DMA_API_DEBUG
++	select HAVE_EXIT_THREAD
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_FUTEX_CMPXCHG if !MMU
+ 	select HAVE_HW_BREAKPOINT if PERF_EVENTS
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 6b3213d96da6..167c0d4bf3fa 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -2769,7 +2769,14 @@ static inline int copy_thread_tls(
+ }
+ #endif
+ extern void flush_thread(void);
++
++#ifdef CONFIG_HAVE_EXIT_THREAD
+ extern void exit_thread(void);
++#else
++static inline void exit_thread(void)
++{
++}
++#endif
+ 
+ extern void exit_files(struct task_struct *);
+ extern void __cleanup_sighand(struct sighand_struct *);

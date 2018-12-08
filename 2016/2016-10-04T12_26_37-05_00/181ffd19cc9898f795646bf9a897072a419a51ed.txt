@@ -1,0 +1,93 @@
+commit 181ffd19cc9898f795646bf9a897072a419a51ed
+Author: Keith Busch <keith.busch@intel.com>
+Date:   Tue Oct 4 12:26:37 2016 -0500
+
+    x86/PCI: VMD: Move VMD driver to drivers/pci/host
+    
+    Move the driver source and Kconfig to the PCI host bridge drivers directory
+    and move the config option to a more appropriate sub-menu instead of
+    occupying the top-level location.
+    
+    Update the Kconfig option with the X86_64 dependency that was implicitly
+    included from the previous location, and add information about the module
+    name when built as a loadable module.
+    
+    Signed-off-by: Keith Busch <keith.busch@intel.com>
+    Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+    CC: Jon Derrick <jonathan.derrick@intel.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5c6e7471b732..c32083808f27 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2744,19 +2744,6 @@ config PMC_ATOM
+ 	def_bool y
+         depends on PCI
+ 
+-config VMD
+-	depends on PCI_MSI
+-	tristate "Volume Management Device Driver"
+-	default N
+-	---help---
+-	  Adds support for the Intel Volume Management Device (VMD). VMD is a
+-	  secondary PCI host bridge that allows PCI Express root ports,
+-	  and devices attached to them, to be removed from the default
+-	  PCI domain and placed within the VMD domain. This provides
+-	  more bus resources than are otherwise possible with a
+-	  single domain. If you know your system provides one of these and
+-	  has devices attached to it, say Y; if you are not sure, say N.
+-
+ source "net/Kconfig"
+ 
+ source "drivers/Kconfig"
+diff --git a/arch/x86/pci/Makefile b/arch/x86/pci/Makefile
+index 97062a635b77..5c6fc3577a49 100644
+--- a/arch/x86/pci/Makefile
++++ b/arch/x86/pci/Makefile
+@@ -23,8 +23,6 @@ obj-y				+= bus_numa.o
+ obj-$(CONFIG_AMD_NB)		+= amd_bus.o
+ obj-$(CONFIG_PCI_CNB20LE_QUIRK)	+= broadcom_bus.o
+ 
+-obj-$(CONFIG_VMD) += vmd.o
+-
+ ifeq ($(CONFIG_PCI_DEBUG),y)
+ EXTRA_CFLAGS += -DDEBUG
+ endif
+diff --git a/drivers/pci/host/Kconfig b/drivers/pci/host/Kconfig
+index 9b485d873b0d..93865eb2c4c8 100644
+--- a/drivers/pci/host/Kconfig
++++ b/drivers/pci/host/Kconfig
+@@ -274,4 +274,20 @@ config PCIE_ARTPEC6
+ 	  Say Y here to enable PCIe controller support on Axis ARTPEC-6
+ 	  SoCs.  This PCIe controller uses the DesignWare core.
+ 
++config VMD
++	depends on PCI_MSI && X86_64
++	tristate "Intel Volume Management Device Driver"
++	default N
++	---help---
++	  Adds support for the Intel Volume Management Device (VMD). VMD is a
++	  secondary PCI host bridge that allows PCI Express root ports,
++	  and devices attached to them, to be removed from the default
++	  PCI domain and placed within the VMD domain. This provides
++	  more bus resources than are otherwise possible with a
++	  single domain. If you know your system provides one of these and
++	  has devices attached to it, say Y; if you are not sure, say N.
++
++	  To compile this driver as a module, choose M here: the
++	  module will be called vmd.
++
+ endmenu
+diff --git a/drivers/pci/host/Makefile b/drivers/pci/host/Makefile
+index 88434101e4c4..afea1c61e45a 100644
+--- a/drivers/pci/host/Makefile
++++ b/drivers/pci/host/Makefile
+@@ -31,3 +31,4 @@ obj-$(CONFIG_PCI_HOST_THUNDER_ECAM) += pci-thunder-ecam.o
+ obj-$(CONFIG_PCI_HOST_THUNDER_PEM) += pci-thunder-pem.o
+ obj-$(CONFIG_PCIE_ARMADA_8K) += pcie-armada8k.o
+ obj-$(CONFIG_PCIE_ARTPEC6) += pcie-artpec6.o
++obj-$(CONFIG_VMD) += vmd.o
+diff --git a/arch/x86/pci/vmd.c b/drivers/pci/host/vmd.c
+similarity index 100%
+rename from arch/x86/pci/vmd.c
+rename to drivers/pci/host/vmd.c

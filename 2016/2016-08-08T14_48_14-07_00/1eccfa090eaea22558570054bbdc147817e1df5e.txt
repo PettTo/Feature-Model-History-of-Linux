@@ -1,0 +1,164 @@
+commit 1eccfa090eaea22558570054bbdc147817e1df5e
+Merge: 1bd4403d86a1 ed18adc1cdd0
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Aug 8 14:48:14 2016 -0700
+
+    Merge tag 'usercopy-v4.8' of git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux
+    
+    Pull usercopy protection from Kees Cook:
+     "Tbhis implements HARDENED_USERCOPY verification of copy_to_user and
+      copy_from_user bounds checking for most architectures on SLAB and
+      SLUB"
+    
+    * tag 'usercopy-v4.8' of git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux:
+      mm: SLUB hardened usercopy support
+      mm: SLAB hardened usercopy support
+      s390/uaccess: Enable hardened usercopy
+      sparc/uaccess: Enable hardened usercopy
+      powerpc/uaccess: Enable hardened usercopy
+      ia64/uaccess: Enable hardened usercopy
+      arm64/uaccess: Enable hardened usercopy
+      ARM: uaccess: Enable hardened usercopy
+      x86/uaccess: Enable hardened usercopy
+      mm: Hardened usercopy
+      mm: Implement stack frame object validation
+      mm: Add is_migrate_cma_page
+
+diff --cc arch/arm64/include/asm/uaccess.h
+index 5e834d10b291,92848b00e3cd..c47257c91b77
+--- a/arch/arm64/include/asm/uaccess.h
++++ b/arch/arm64/include/asm/uaccess.h
+@@@ -264,33 -263,32 +264,38 @@@ extern unsigned long __must_check __cle
+  
+  static inline unsigned long __must_check __copy_from_user(void *to, const void __user *from, unsigned long n)
+  {
+ +	kasan_check_write(to, n);
+- 	return  __arch_copy_from_user(to, from, n);
++ 	check_object_size(to, n, false);
++ 	return __arch_copy_from_user(to, from, n);
+  }
+  
+  static inline unsigned long __must_check __copy_to_user(void __user *to, const void *from, unsigned long n)
+  {
+ +	kasan_check_read(from, n);
+- 	return  __arch_copy_to_user(to, from, n);
++ 	check_object_size(from, n, true);
++ 	return __arch_copy_to_user(to, from, n);
+  }
+  
+  static inline unsigned long __must_check copy_from_user(void *to, const void __user *from, unsigned long n)
+  {
+ +	kasan_check_write(to, n);
+ +
+- 	if (access_ok(VERIFY_READ, from, n))
++ 	if (access_ok(VERIFY_READ, from, n)) {
++ 		check_object_size(to, n, false);
+  		n = __arch_copy_from_user(to, from, n);
+- 	else /* security hole - plug it */
++ 	} else /* security hole - plug it */
+  		memset(to, 0, n);
+  	return n;
+  }
+  
+  static inline unsigned long __must_check copy_to_user(void __user *to, const void *from, unsigned long n)
+  {
+ +	kasan_check_read(from, n);
+ +
+- 	if (access_ok(VERIFY_WRITE, to, n))
++ 	if (access_ok(VERIFY_WRITE, to, n)) {
++ 		check_object_size(from, n, true);
+  		n = __arch_copy_to_user(to, from, n);
++ 	}
+  	return n;
+  }
+  
+diff --cc arch/powerpc/Kconfig
+index ec4047e170a0,0ac48a81632d..927d2ab2ce08
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@@ -164,8 -164,7 +164,9 @@@ config PP
+  	select ARCH_HAS_UBSAN_SANITIZE_ALL
+  	select ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
+  	select HAVE_LIVEPATCH if HAVE_DYNAMIC_FTRACE_WITH_REGS
+ +	select GENERIC_CPU_AUTOPROBE
+ +	select HAVE_VIRT_CPU_ACCOUNTING
++ 	select HAVE_ARCH_HARDENED_USERCOPY
+  
+  config GENERIC_CSUM
+  	def_bool CPU_LITTLE_ENDIAN
+diff --cc include/linux/thread_info.h
+index 352b1542f5cc,f24b99eac969..cbd8990e2e77
+--- a/include/linux/thread_info.h
++++ b/include/linux/thread_info.h
+@@@ -105,6 -105,71 +105,30 @@@ static inline int test_ti_thread_flag(s
+  
+  #define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
+  
+ -#if defined TIF_RESTORE_SIGMASK && !defined HAVE_SET_RESTORE_SIGMASK
+ -/*
+ - * An arch can define its own version of set_restore_sigmask() to get the
+ - * job done however works, with or without TIF_RESTORE_SIGMASK.
+ - */
+ -#define HAVE_SET_RESTORE_SIGMASK	1
+ -
+ -/**
+ - * set_restore_sigmask() - make sure saved_sigmask processing gets done
+ - *
+ - * This sets TIF_RESTORE_SIGMASK and ensures that the arch signal code
+ - * will run before returning to user mode, to process the flag.  For
+ - * all callers, TIF_SIGPENDING is already set or it's no harm to set
+ - * it.  TIF_RESTORE_SIGMASK need not be in the set of bits that the
+ - * arch code will notice on return to user mode, in case those bits
+ - * are scarce.  We set TIF_SIGPENDING here to ensure that the arch
+ - * signal code always gets run when TIF_RESTORE_SIGMASK is set.
+ - */
+ -static inline void set_restore_sigmask(void)
+ -{
+ -	set_thread_flag(TIF_RESTORE_SIGMASK);
+ -	WARN_ON(!test_thread_flag(TIF_SIGPENDING));
+ -}
+ -static inline void clear_restore_sigmask(void)
+ -{
+ -	clear_thread_flag(TIF_RESTORE_SIGMASK);
+ -}
+ -static inline bool test_restore_sigmask(void)
+ -{
+ -	return test_thread_flag(TIF_RESTORE_SIGMASK);
+ -}
+ -static inline bool test_and_clear_restore_sigmask(void)
+ -{
+ -	return test_and_clear_thread_flag(TIF_RESTORE_SIGMASK);
+ -}
+ -#endif	/* TIF_RESTORE_SIGMASK && !HAVE_SET_RESTORE_SIGMASK */
+ -
+ -#ifndef HAVE_SET_RESTORE_SIGMASK
+ -#error "no set_restore_sigmask() provided and default one won't work"
+ -#endif
+ -
++ #ifndef CONFIG_HAVE_ARCH_WITHIN_STACK_FRAMES
++ static inline int arch_within_stack_frames(const void * const stack,
++ 					   const void * const stackend,
++ 					   const void *obj, unsigned long len)
++ {
++ 	return 0;
++ }
++ #endif
++ 
++ #ifdef CONFIG_HARDENED_USERCOPY
++ extern void __check_object_size(const void *ptr, unsigned long n,
++ 					bool to_user);
++ 
++ static inline void check_object_size(const void *ptr, unsigned long n,
++ 				     bool to_user)
++ {
++ 	__check_object_size(ptr, n, to_user);
++ }
++ #else
++ static inline void check_object_size(const void *ptr, unsigned long n,
++ 				     bool to_user)
++ { }
++ #endif /* CONFIG_HARDENED_USERCOPY */
++ 
+  #endif	/* __KERNEL__ */
+  
+  #endif /* _LINUX_THREAD_INFO_H */

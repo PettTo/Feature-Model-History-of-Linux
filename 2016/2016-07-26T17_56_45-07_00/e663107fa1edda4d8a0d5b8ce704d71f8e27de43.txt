@@ -1,0 +1,105 @@
+commit e663107fa1edda4d8a0d5b8ce704d71f8e27de43
+Merge: 6453dbdda304 54d0b14ad7cc
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Jul 26 17:56:45 2016 -0700
+
+    Merge tag 'acpi-4.8-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm
+    
+    Pull ACPI updates from Rafael Wysocki:
+     "The new feaures here are the support for ACPI overlays (allowing ACPI
+      tables to be loaded at any time from EFI variables or via configfs)
+      and the LPI (Low-Power Idle) support.  Also notable is the ACPI-based
+      NUMA support for ARM64.
+    
+      Apart from that we have two new drivers, for the DPTF (Dynamic Power
+      and Thermal Framework) power participant device and for the Intel
+      Broxton WhiskeyCove PMIC, some more PMIC-related changes, support for
+      the Boot Error Record Table (BERT) in APEI and support for
+      platform-initiated graceful shutdown.
+    
+      Plus two new pieces of documentation and usual assorted fixes and
+      cleanups in quite a few places.
+    
+      Specifics:
+    
+       - Support for ACPI SSDT overlays allowing Secondary System
+         Description Tables (SSDTs) to be loaded at any time from EFI
+         variables or via configfs (Octavian Purdila, Mika Westerberg).
+    
+       - Support for the ACPI LPI (Low-Power Idle) feature introduced in
+         ACPI 6.0 and allowing processor idle states to be represented in
+         ACPI tables in a hierarchical way (with the help of Processor
+         Container objects) and support for ACPI idle states management on
+         ARM64, based on LPI (Sudeep Holla).
+    
+       - General improvements of ACPI support for NUMA and ARM64 support for
+         ACPI-based NUMA (Hanjun Guo, David Daney, Robert Richter).
+    
+       - General improvements of the ACPI table upgrade mechanism and ARM64
+         support for that feature (Aleksey Makarov, Jon Masters).
+    
+       - Support for the Boot Error Record Table (BERT) in APEI and
+         improvements of kernel messages printed by the error injection code
+         (Huang Ying, Borislav Petkov).
+    
+       - New driver for the Intel Broxton WhiskeyCove PMIC operation region
+         and support for the REGS operation region on Broxton, PMIC code
+         cleanups (Bin Gao, Felipe Balbi, Paul Gortmaker).
+    
+       - New driver for the power participant device which is part of the
+         Dynamic Power and Thermal Framework (DPTF) and DPTF-related code
+         reorganization (Srinivas Pandruvada).
+    
+       - Support for the platform-initiated graceful shutdown feature
+         introduced in ACPI 6.1 (Prashanth Prakash).
+    
+       - ACPI button driver update related to lid input events generated
+         automatically on initialization and system resume that have been
+         problematic for some time (Lv Zheng).
+    
+       - ACPI EC driver cleanups (Lv Zheng).
+    
+       - Documentation of the ACPICA release automation process and the
+         in-kernel ACPI AML debugger (Lv Zheng).
+    
+       - New blacklist entry and two fixes for the ACPI backlight driver
+         (Alex Hung, Arvind Yadav, Ralf Gerbig).
+    
+       - Cleanups of the ACPI pci_slot driver (Joe Perches, Paul Gortmaker).
+    
+       - ACPI CPPC code changes to make it more robust against possible
+         defects in ACPI tables and new symbol definitions for PCC (Hoan
+         Tran).
+    
+       - System reboot code modification to execute the ACPI _PTS (Prepare
+         To Sleep) method in addition to _TTS (Ocean He).
+    
+       - ACPICA-related change to carry out lock ordering checks in ACPICA
+         if ACPICA debug is enabled in the kernel (Lv Zheng).
+    
+       - Assorted minor fixes and cleanups (Andy Shevchenko, Baoquan He,
+         Bhaktipriya Shridhar, Paul Gortmaker, Rafael Wysocki)"
+    
+    * tag 'acpi-4.8-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm: (71 commits)
+      ACPI: enable ACPI_PROCESSOR_IDLE on ARM64
+      arm64: add support for ACPI Low Power Idle(LPI)
+      drivers: firmware: psci: initialise idle states using ACPI LPI
+      cpuidle: introduce CPU_PM_CPU_IDLE_ENTER macro for ARM{32, 64}
+      arm64: cpuidle: drop __init section marker to arm_cpuidle_init
+      ACPI / processor_idle: Add support for Low Power Idle(LPI) states
+      ACPI / processor_idle: introduce ACPI_PROCESSOR_CSTATE
+      ACPI / DPTF: move int340x_thermal.c to the DPTF folder
+      ACPI / DPTF: Add DPTF power participant driver
+      ACPI / lpat: make it explicitly non-modular
+      ACPI / dock: make dock explicitly non-modular
+      ACPI / PCI: make pci_slot explicitly non-modular
+      ACPI / PMIC: remove modular references from non-modular code
+      ACPICA: Linux: Enable ACPI_MUTEX_DEBUG for Linux kernel
+      ACPI: Rename configfs.c to acpi_configfs.c to prevent link error
+      ACPI / debugger: Add AML debugger documentation
+      ACPI: Add documentation describing ACPICA release automation
+      ACPI: add support for loading SSDTs via configfs
+      ACPI: add support for configfs
+      efi / ACPI: load SSTDs from EFI variables
+      ...
+

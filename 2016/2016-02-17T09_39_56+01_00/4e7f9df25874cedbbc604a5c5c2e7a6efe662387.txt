@@ -1,0 +1,65 @@
+commit 4e7f9df25874cedbbc604a5c5c2e7a6efe662387
+Author: Michael S. Tsirkin <mst@redhat.com>
+Date:   Thu Feb 11 01:05:01 2016 +0200
+
+    hpet: Drop stale URLs
+    
+    Looks like the HPET spec at intel.com got moved.
+    It isn't hard to find so drop the link, just mention
+    the revision assumed.
+    
+    Suggested-by: Thomas Gleixner <tglx@linutronix.de>
+    Signed-off-by: Michael S. Tsirkin <mst@redhat.com>
+    Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+    Cc: Arnd Bergmann <arnd@arndb.de>
+    Cc: Clemens Ladisch <clemens@ladisch.de>
+    Cc: Jonathan Corbet <corbet@lwn.net>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: linux-doc@vger.kernel.org
+    Link: http://lkml.kernel.org/r/1455145462-3877-1-git-send-email-mst@redhat.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/Documentation/timers/hpet.txt b/Documentation/timers/hpet.txt
+index 767392ffd31e..a484d2c109d7 100644
+--- a/Documentation/timers/hpet.txt
++++ b/Documentation/timers/hpet.txt
+@@ -1,9 +1,7 @@
+ 		High Precision Event Timer Driver for Linux
+ 
+ The High Precision Event Timer (HPET) hardware follows a specification
+-by Intel and Microsoft which can be found at
+-
+-	http://www.intel.com/hardwaredesign/hpetspec_1.pdf
++by Intel and Microsoft, revision 1.
+ 
+ Each HPET has one fixed-rate counter (at 10+ MHz, hence "High Precision")
+ and up to 32 comparators.  Normally three or more comparators are provided,
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ab2ed5328f0a..c46662f64c39 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -778,8 +778,8 @@ config HPET_TIMER
+ 	  HPET is the next generation timer replacing legacy 8254s.
+ 	  The HPET provides a stable time base on SMP
+ 	  systems, unlike the TSC, but it is more expensive to access,
+-	  as it is off-chip.  You can find the HPET spec at
+-	  <http://www.intel.com/hardwaredesign/hpetspec_1.pdf>.
++	  as it is off-chip.  The interface used is documented
++	  in the HPET spec, revision 1.
+ 
+ 	  You can safely choose Y here.  However, HPET will only be
+ 	  activated if the platform and the BIOS support this feature.
+diff --git a/drivers/char/hpet.c b/drivers/char/hpet.c
+index 240b6cf1d97c..be54e5331a45 100644
+--- a/drivers/char/hpet.c
++++ b/drivers/char/hpet.c
+@@ -42,7 +42,7 @@
+ /*
+  * The High Precision Event Timer driver.
+  * This driver is closely modelled after the rtc.c driver.
+- * http://www.intel.com/hardwaredesign/hpetspec_1.pdf
++ * See HPET spec revision 1.
+  */
+ #define	HPET_USER_FREQ	(64)
+ #define	HPET_DRIFT	(500)

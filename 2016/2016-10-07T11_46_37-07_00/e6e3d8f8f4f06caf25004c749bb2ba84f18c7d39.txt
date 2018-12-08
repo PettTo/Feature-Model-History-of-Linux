@@ -1,0 +1,196 @@
+commit e6e3d8f8f4f06caf25004c749bb2ba84f18c7d39
+Merge: fbbea3899014 bdf530984d10
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Oct 7 11:46:37 2016 -0700
+
+    Merge tag 'pci-v4.9-changes' of git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci
+    
+    Pull PCI updates from Bjorn Helgaas:
+     "Summary of PCI changes for the v4.9 merge window:
+    
+      Enumeration:
+       - microblaze: Add multidomain support for procfs (Bharat Kumar Gogada)
+    
+      Resource management:
+       - Ignore requested alignment for PROBE_ONLY and fixed resources (Yongji Xie)
+       - Ignore requested alignment for VF BARs (Yongji Xie)
+    
+      PCI device hotplug:
+       - Make core explicitly non-modular (Paul Gortmaker)
+    
+      PCIe native device hotplug:
+       - Rename pcie_isr() locals for clarity (Bjorn Helgaas)
+       - Return IRQ_NONE when we can't read interrupt status (Bjorn Helgaas)
+       - Remove unnecessary guard (Bjorn Helgaas)
+       - Clean up dmesg "Slot(%s)" messages (Bjorn Helgaas)
+       - Remove useless pciehp_get_latch_status() calls (Bjorn Helgaas)
+       - Clear attention LED on device add (Keith Busch)
+       - Allow exclusive userspace control of indicators (Keith Busch)
+       - Process all hotplug events before looking for new ones (Mayurkumar Patel)
+       - Don't re-read Slot Status when queuing hotplug event (Mayurkumar Patel)
+       - Don't re-read Slot Status when handling surprise event (Mayurkumar Patel)
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      Power management:
+       - Afford direct-complete to devices with non-standard PM (Lukas Wunner)
+       - Query platform firmware for device power state (Lukas Wunner)
+       - Recognize D3cold in pci_update_current_state() (Lukas Wunner)
+       - Avoid unnecessary resume after direct-complete (Lukas Wunner)
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      Virtualization:
+       - Mark Atheros AR9580 to avoid bus reset (Maik Broemme)
+       - Check for pci_setup_device() failure in pci_iov_add_virtfn() (Po Liu)
+    
+      MSI:
+       - Enable PCI_MSI_IRQ_DOMAIN support for ARC (Joao Pinto)
+    
+      AER:
+       - Remove aerdriver.nosourceid kernel parameter (Bjorn Helgaas)
+       - Remove aerdriver.forceload kernel parameter (Bjorn Helgaas)
+       - Fix aer_probe() kernel-doc comment (Cao jin)
+       - Add bus flag to skip source ID matching (Jon Derrick)
+       - Avoid memory allocation in interrupt handling path (Jon Derrick)
+       - Cache capability position (Keith Busch)
+       - Make explicitly non-modular (Paul Gortmaker)
+       - Remove duplicate AER severity translation (Tyler Baicar)
+       - Send correct severity to calculate AER severity (Tyler Baicar)
+    
+      Precision Time Measurement:
+       - Add Precision Time Measurement (PTM) support (Jonathan Yong)
+       - Add PTM clock granularity information (Bjorn Helgaas)
+       - Add pci_enable_ptm() for drivers to enable PTM on endpoints (Bjorn Helgaas)
+    
+      Generic host bridge driver:
+       - Fix pci_remap_iospace() failure path (Lorenzo Pieralisi)
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      Altera host bridge driver:
+       - Remove redundant platform_get_resource() return value check (Bjorn Helgaas)
+       - Poll for link training status after retraining the link (Ley Foon Tan)
+       - Rework config accessors for use without a struct pci_bus (Ley Foon Tan)
+       - Move retrain from fixup to altera_pcie_host_init() (Ley Foon Tan)
+       - Make MSI explicitly non-modular (Paul Gortmaker)
+       - Make explicitly non-modular (Paul Gortmaker)
+       - Relax device number checking to allow SR-IOV (Po Liu)
+    
+      ARM Versatile host bridge driver:
+       - Fix pci_remap_iospace() failure path (Lorenzo Pieralisi)
+    
+      Axis ARTPEC-6 host bridge driver:
+       - Drop __init from artpec6_add_pcie_port() (Niklas Cassel)
+    
+      Freescale i.MX6 host bridge driver:
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      Intel VMD host bridge driver:
+       - Add quirk for AER to ignore source ID (Jon Derrick)
+       - Allocate IRQ lists with correct MSI-X count (Jon Derrick)
+       - Convert to use pci_alloc_irq_vectors() API (Jon Derrick)
+       - Eliminate vmd_vector member from list type (Jon Derrick)
+       - Eliminate index member from IRQ list (Jon Derrick)
+       - Synchronize with RCU freeing MSI IRQ descs (Keith Busch)
+       - Request userspace control of PCIe hotplug indicators (Keith Busch)
+       - Move VMD driver to drivers/pci/host (Keith Busch)
+    
+      Marvell Aardvark host bridge driver:
+       - Fix pci_remap_iospace() failure path (Lorenzo Pieralisi)
+       - Remove redundant dev_err call in advk_pcie_probe() (Wei Yongjun)
+    
+      Microsoft Hyper-V host bridge driver:
+       - Use zero-length array in struct pci_packet (Dexuan Cui)
+       - Use pci_function_description[0] in struct definitions (Dexuan Cui)
+       - Remove the unused 'wrk' in struct hv_pcibus_device (Dexuan Cui)
+       - Handle vmbus_sendpacket() failure in hv_compose_msi_msg() (Dexuan Cui)
+       - Handle hv_pci_generic_compl() error case (Dexuan Cui)
+       - Use list_move_tail() instead of list_del() + list_add_tail() (Wei Yongjun)
+    
+      NVIDIA Tegra host bridge driver:
+       - Fix pci_remap_iospace() failure path (Lorenzo Pieralisi)
+       - Remove redundant _data suffix (Thierry Reding)
+       - Use of_device_get_match_data() (Thierry Reding)
+    
+      Qualcomm host bridge driver:
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      Renesas R-Car host bridge driver:
+       - Consolidate register space lookup and ioremap (Bjorn Helgaas)
+       - Don't disable/unprepare clocks on prepare/enable failure (Geert Uytterhoeven)
+       - Add multi-MSI support (Grigory Kletsko)
+       - Fix pci_remap_iospace() failure path (Lorenzo Pieralisi)
+       - Fix some checkpatch warnings (Sergei Shtylyov)
+       - Try increasing PCIe link speed to 5 GT/s at boot (Sergei Shtylyov)
+    
+      Rockchip host bridge driver:
+       - Add DT bindings for Rockchip PCIe controller (Shawn Lin)
+       - Add Rockchip PCIe controller support (Shawn Lin)
+       - Improve the deassert sequence of four reset pins (Shawn Lin)
+       - Fix wrong transmitted FTS count (Shawn Lin)
+       - Increase the Max Credit update interval (Rajat Jain)
+    
+      Samsung Exynos host bridge driver:
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      ST Microelectronics SPEAr13xx host bridge driver:
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      Synopsys DesignWare host bridge driver:
+       - Return data directly from dw_pcie_readl_rc() (Bjorn Helgaas)
+       - Exchange viewport of `MEMORYs' and `CFGs/IOs' (Dong Bo)
+       - Check LTSSM training bit before deciding link is up (Jisheng Zhang)
+       - Move link wait definitions to .c file (Joao Pinto)
+       - Wait for iATU enable (Joao Pinto)
+       - Add iATU Unroll feature (Joao Pinto)
+       - Fix pci_remap_iospace() failure path (Lorenzo Pieralisi)
+       - Make explicitly non-modular (Paul Gortmaker)
+       - Relax device number checking to allow SR-IOV (Po Liu)
+       - Keep viewport fixed for IO transaction if num_viewport > 2 (Pratyush Anand)
+       - Remove redundant platform_get_resource() return value check (Wei Yongjun)
+    
+      TI DRA7xx host bridge driver:
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      TI Keystone host bridge driver:
+       - Propagate request_irq() failure (Wei Yongjun)
+    
+      Xilinx AXI host bridge driver:
+       - Keep both legacy and MSI interrupt domain references (Bharat Kumar Gogada)
+       - Clear interrupt register for invalid interrupt (Bharat Kumar Gogada)
+       - Clear correct MSI set bit (Bharat Kumar Gogada)
+       - Dispose of MSI virtual IRQ (Bharat Kumar Gogada)
+       - Make explicitly non-modular (Paul Gortmaker)
+       - Relax device number checking to allow SR-IOV (Po Liu)
+    
+      Xilinx NWL host bridge driver:
+       - Expand error logging (Bharat Kumar Gogada)
+       - Enable all MSI interrupts using MSI mask (Bharat Kumar Gogada)
+       - Make explicitly non-modular (Paul Gortmaker)
+    
+      Miscellaneous:
+       - Drop CONFIG_KEXEC_CORE ifdeffery (Lukas Wunner)
+       - portdrv: Make explicitly non-modular (Paul Gortmaker)
+       - Make DPC explicitly non-modular (Paul Gortmaker)"
+    
+    * tag 'pci-v4.9-changes' of git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci: (105 commits)
+      x86/PCI: VMD: Move VMD driver to drivers/pci/host
+      PCI: rockchip: Fix wrong transmitted FTS count
+      PCI: rockchip: Improve the deassert sequence of four reset pins
+      PCI: rockchip: Increase the Max Credit update interval
+      PCI: rcar: Try increasing PCIe link speed to 5 GT/s at boot
+      PCI/AER: Fix aer_probe() kernel-doc comment
+      PCI: Ignore requested alignment for VF BARs
+      PCI: Ignore requested alignment for PROBE_ONLY and fixed resources
+      PCI: Avoid unnecessary resume after direct-complete
+      PCI: Recognize D3cold in pci_update_current_state()
+      PCI: Query platform firmware for device power state
+      PCI: Afford direct-complete to devices with non-standard PM
+      PCI/AER: Cache capability position
+      PCI/AER: Avoid memory allocation in interrupt handling path
+      x86/PCI: VMD: Request userspace control of PCIe hotplug indicators
+      PCI: pciehp: Allow exclusive userspace control of indicators
+      ACPI / APEI: Send correct severity to calculate AER severity
+      PCI/AER: Remove duplicate AER severity translation
+      x86/PCI: VMD: Synchronize with RCU freeing MSI IRQ descs
+      x86/PCI: VMD: Eliminate index member from IRQ list
+      ...
+

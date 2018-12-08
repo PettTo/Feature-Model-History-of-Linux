@@ -1,0 +1,62 @@
+commit eae21770b4fed5597623aad0d618190fa60426ff
+Merge: e9f57ebcba56 9f273c24ec5f
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Jan 21 12:32:08 2016 -0800
+
+    Merge branch 'akpm' (patches from Andrew)
+    
+    Merge third patch-bomb from Andrew Morton:
+     "I'm pretty much done for -rc1 now:
+    
+       - the rest of MM, basically
+    
+       - lib/ updates
+    
+       - checkpatch, epoll, hfs, fatfs, ptrace, coredump, exit
+    
+       - cpu_mask simplifications
+    
+       - kexec, rapidio, MAINTAINERS etc, etc.
+    
+       - more dma-mapping cleanups/simplifications from hch"
+    
+    * emailed patches from Andrew Morton <akpm@linux-foundation.org>: (109 commits)
+      MAINTAINERS: add/fix git URLs for various subsystems
+      mm: memcontrol: add "sock" to cgroup2 memory.stat
+      mm: memcontrol: basic memory statistics in cgroup2 memory controller
+      mm: memcontrol: do not uncharge old page in page cache replacement
+      Documentation: cgroup: add memory.swap.{current,max} description
+      mm: free swap cache aggressively if memcg swap is full
+      mm: vmscan: do not scan anon pages if memcg swap limit is hit
+      swap.h: move memcg related stuff to the end of the file
+      mm: memcontrol: replace mem_cgroup_lruvec_online with mem_cgroup_online
+      mm: vmscan: pass memcg to get_scan_count()
+      mm: memcontrol: charge swap to cgroup2
+      mm: memcontrol: clean up alloc, online, offline, free functions
+      mm: memcontrol: flatten struct cg_proto
+      mm: memcontrol: rein in the CONFIG space madness
+      net: drop tcp_memcontrol.c
+      mm: memcontrol: introduce CONFIG_MEMCG_LEGACY_KMEM
+      mm: memcontrol: allow to disable kmem accounting for cgroup2
+      mm: memcontrol: account "kmem" consumers in cgroup2 memory controller
+      mm: memcontrol: move kmem accounting code to CONFIG_MEMCG
+      mm: memcontrol: separate kmem code from legacy tcp accounting code
+      ...
+
+diff --cc arch/h8300/Kconfig
+index cd1f754c1336,8c7c82586da0..986ea84caaed
+--- a/arch/h8300/Kconfig
++++ b/arch/h8300/Kconfig
+@@@ -15,12 -15,8 +15,11 @@@ config H830
+  	select OF_IRQ
+  	select OF_EARLY_FLATTREE
+  	select HAVE_MEMBLOCK
+- 	select HAVE_DMA_ATTRS
+  	select CLKSRC_OF
+  	select H8300_TMR8
+ +	select HAVE_KERNEL_GZIP
+ +	select HAVE_KERNEL_LZO
+ +	select HAVE_ARCH_KGDB
+  
+  config RWSEM_GENERIC_SPINLOCK
+  	def_bool y

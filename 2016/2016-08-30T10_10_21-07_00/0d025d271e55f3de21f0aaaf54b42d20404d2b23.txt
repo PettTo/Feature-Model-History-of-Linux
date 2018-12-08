@@ -1,0 +1,520 @@
+commit 0d025d271e55f3de21f0aaaf54b42d20404d2b23
+Author: Josh Poimboeuf <jpoimboe@redhat.com>
+Date:   Tue Aug 30 08:04:16 2016 -0500
+
+    mm/usercopy: get rid of CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+    
+    There are three usercopy warnings which are currently being silenced for
+    gcc 4.6 and newer:
+    
+    1) "copy_from_user() buffer size is too small" compile warning/error
+    
+       This is a static warning which happens when object size and copy size
+       are both const, and copy size > object size.  I didn't see any false
+       positives for this one.  So the function warning attribute seems to
+       be working fine here.
+    
+       Note this scenario is always a bug and so I think it should be
+       changed to *always* be an error, regardless of
+       CONFIG_DEBUG_STRICT_USER_COPY_CHECKS.
+    
+    2) "copy_from_user() buffer size is not provably correct" compile warning
+    
+       This is another static warning which happens when I enable
+       __compiletime_object_size() for new compilers (and
+       CONFIG_DEBUG_STRICT_USER_COPY_CHECKS).  It happens when object size
+       is const, but copy size is *not*.  In this case there's no way to
+       compare the two at build time, so it gives the warning.  (Note the
+       warning is a byproduct of the fact that gcc has no way of knowing
+       whether the overflow function will be called, so the call isn't dead
+       code and the warning attribute is activated.)
+    
+       So this warning seems to only indicate "this is an unusual pattern,
+       maybe you should check it out" rather than "this is a bug".
+    
+       I get 102(!) of these warnings with allyesconfig and the
+       __compiletime_object_size() gcc check removed.  I don't know if there
+       are any real bugs hiding in there, but from looking at a small
+       sample, I didn't see any.  According to Kees, it does sometimes find
+       real bugs.  But the false positive rate seems high.
+    
+    3) "Buffer overflow detected" runtime warning
+    
+       This is a runtime warning where object size is const, and copy size >
+       object size.
+    
+    All three warnings (both static and runtime) were completely disabled
+    for gcc 4.6 with the following commit:
+    
+      2fb0815c9ee6 ("gcc4: disable __compiletime_object_size for GCC 4.6+")
+    
+    That commit mistakenly assumed that the false positives were caused by a
+    gcc bug in __compiletime_object_size().  But in fact,
+    __compiletime_object_size() seems to be working fine.  The false
+    positives were instead triggered by #2 above.  (Though I don't have an
+    explanation for why the warnings supposedly only started showing up in
+    gcc 4.6.)
+    
+    So remove warning #2 to get rid of all the false positives, and re-enable
+    warnings #1 and #3 by reverting the above commit.
+    
+    Furthermore, since #1 is a real bug which is detected at compile time,
+    upgrade it to always be an error.
+    
+    Having done all that, CONFIG_DEBUG_STRICT_USER_COPY_CHECKS is no longer
+    needed.
+    
+    Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Ingo Molnar <mingo@kernel.org>
+    Cc: "H . Peter Anvin" <hpa@zytor.com>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Steven Rostedt <rostedt@goodmis.org>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Frederic Weisbecker <fweisbec@gmail.com>
+    Cc: Byungchul Park <byungchul.park@lge.com>
+    Cc: Nilay Vaish <nilayvaish@gmail.com>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
+index cd8778103165..af12c2db9bb8 100644
+--- a/arch/parisc/Kconfig
++++ b/arch/parisc/Kconfig
+@@ -1,6 +1,5 @@
+ config PARISC
+ 	def_bool y
+-	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select HAVE_IDE
+ 	select HAVE_OPROFILE
+diff --git a/arch/parisc/configs/c8000_defconfig b/arch/parisc/configs/c8000_defconfig
+index 1a8f6f95689e..f6a4c016304b 100644
+--- a/arch/parisc/configs/c8000_defconfig
++++ b/arch/parisc/configs/c8000_defconfig
+@@ -245,7 +245,6 @@ CONFIG_DEBUG_RT_MUTEXES=y
+ CONFIG_PROVE_RCU_DELAY=y
+ CONFIG_DEBUG_BLOCK_EXT_DEVT=y
+ CONFIG_LATENCYTOP=y
+-CONFIG_DEBUG_STRICT_USER_COPY_CHECKS=y
+ CONFIG_KEYS=y
+ # CONFIG_CRYPTO_HW is not set
+ CONFIG_FONTS=y
+diff --git a/arch/parisc/configs/generic-64bit_defconfig b/arch/parisc/configs/generic-64bit_defconfig
+index 7e0792658952..c564e6e1fa23 100644
+--- a/arch/parisc/configs/generic-64bit_defconfig
++++ b/arch/parisc/configs/generic-64bit_defconfig
+@@ -291,7 +291,6 @@ CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC=y
+ CONFIG_BOOTPARAM_HUNG_TASK_PANIC=y
+ # CONFIG_SCHED_DEBUG is not set
+ CONFIG_TIMER_STATS=y
+-CONFIG_DEBUG_STRICT_USER_COPY_CHECKS=y
+ CONFIG_CRYPTO_MANAGER=y
+ CONFIG_CRYPTO_ECB=m
+ CONFIG_CRYPTO_PCBC=m
+diff --git a/arch/parisc/include/asm/uaccess.h b/arch/parisc/include/asm/uaccess.h
+index 0f59fd9ca205..e9150487e20d 100644
+--- a/arch/parisc/include/asm/uaccess.h
++++ b/arch/parisc/include/asm/uaccess.h
+@@ -208,13 +208,13 @@ unsigned long copy_in_user(void __user *dst, const void __user *src, unsigned lo
+ #define __copy_to_user_inatomic __copy_to_user
+ #define __copy_from_user_inatomic __copy_from_user
+ 
+-extern void copy_from_user_overflow(void)
+-#ifdef CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+-        __compiletime_error("copy_from_user() buffer size is not provably correct")
+-#else
+-        __compiletime_warning("copy_from_user() buffer size is not provably correct")
+-#endif
+-;
++extern void __compiletime_error("usercopy buffer size is too small")
++__bad_copy_user(void);
++
++static inline void copy_user_overflow(int size, unsigned long count)
++{
++	WARN(1, "Buffer overflow detected (%d < %lu)!\n", size, count);
++}
+ 
+ static inline unsigned long __must_check copy_from_user(void *to,
+                                           const void __user *from,
+@@ -223,10 +223,12 @@ static inline unsigned long __must_check copy_from_user(void *to,
+         int sz = __compiletime_object_size(to);
+         int ret = -EFAULT;
+ 
+-        if (likely(sz == -1 || !__builtin_constant_p(n) || sz >= n))
++        if (likely(sz == -1 || sz >= n))
+                 ret = __copy_from_user(to, from, n);
+-        else
+-                copy_from_user_overflow();
++        else if (!__builtin_constant_p(n))
++		copy_user_overflow(sz, n);
++	else
++                __bad_copy_user();
+ 
+         return ret;
+ }
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index e751fe25d6ab..c109f073d454 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -68,7 +68,6 @@ config DEBUG_RODATA
+ config S390
+ 	def_bool y
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+-	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+diff --git a/arch/s390/configs/default_defconfig b/arch/s390/configs/default_defconfig
+index 26e0c7f08814..412b1bd21029 100644
+--- a/arch/s390/configs/default_defconfig
++++ b/arch/s390/configs/default_defconfig
+@@ -602,7 +602,6 @@ CONFIG_FAIL_FUTEX=y
+ CONFIG_FAULT_INJECTION_DEBUG_FS=y
+ CONFIG_FAULT_INJECTION_STACKTRACE_FILTER=y
+ CONFIG_LATENCYTOP=y
+-CONFIG_DEBUG_STRICT_USER_COPY_CHECKS=y
+ CONFIG_IRQSOFF_TRACER=y
+ CONFIG_PREEMPT_TRACER=y
+ CONFIG_SCHED_TRACER=y
+diff --git a/arch/s390/configs/gcov_defconfig b/arch/s390/configs/gcov_defconfig
+index 24879dab47bc..bec279eb4b93 100644
+--- a/arch/s390/configs/gcov_defconfig
++++ b/arch/s390/configs/gcov_defconfig
+@@ -552,7 +552,6 @@ CONFIG_NOTIFIER_ERROR_INJECTION=m
+ CONFIG_CPU_NOTIFIER_ERROR_INJECT=m
+ CONFIG_PM_NOTIFIER_ERROR_INJECT=m
+ CONFIG_LATENCYTOP=y
+-CONFIG_DEBUG_STRICT_USER_COPY_CHECKS=y
+ CONFIG_BLK_DEV_IO_TRACE=y
+ # CONFIG_KPROBE_EVENT is not set
+ CONFIG_TRACE_ENUM_MAP_FILE=y
+diff --git a/arch/s390/configs/performance_defconfig b/arch/s390/configs/performance_defconfig
+index a5c1e5f2a0ca..1751446a5bbb 100644
+--- a/arch/s390/configs/performance_defconfig
++++ b/arch/s390/configs/performance_defconfig
+@@ -549,7 +549,6 @@ CONFIG_TIMER_STATS=y
+ CONFIG_RCU_TORTURE_TEST=m
+ CONFIG_RCU_CPU_STALL_TIMEOUT=60
+ CONFIG_LATENCYTOP=y
+-CONFIG_DEBUG_STRICT_USER_COPY_CHECKS=y
+ CONFIG_SCHED_TRACER=y
+ CONFIG_FTRACE_SYSCALLS=y
+ CONFIG_STACK_TRACER=y
+diff --git a/arch/s390/defconfig b/arch/s390/defconfig
+index 73610f2e3b4f..2d40ef0a6295 100644
+--- a/arch/s390/defconfig
++++ b/arch/s390/defconfig
+@@ -172,7 +172,6 @@ CONFIG_DEBUG_NOTIFIERS=y
+ CONFIG_RCU_CPU_STALL_TIMEOUT=60
+ CONFIG_RCU_TRACE=y
+ CONFIG_LATENCYTOP=y
+-CONFIG_DEBUG_STRICT_USER_COPY_CHECKS=y
+ CONFIG_SCHED_TRACER=y
+ CONFIG_FTRACE_SYSCALLS=y
+ CONFIG_TRACER_SNAPSHOT_PER_CPU_SWAP=y
+diff --git a/arch/s390/include/asm/uaccess.h b/arch/s390/include/asm/uaccess.h
+index 9b49cf1daa8f..95aefdba4be2 100644
+--- a/arch/s390/include/asm/uaccess.h
++++ b/arch/s390/include/asm/uaccess.h
+@@ -311,6 +311,14 @@ int __get_user_bad(void) __attribute__((noreturn));
+ #define __put_user_unaligned __put_user
+ #define __get_user_unaligned __get_user
+ 
++extern void __compiletime_error("usercopy buffer size is too small")
++__bad_copy_user(void);
++
++static inline void copy_user_overflow(int size, unsigned long count)
++{
++	WARN(1, "Buffer overflow detected (%d < %lu)!\n", size, count);
++}
++
+ /**
+  * copy_to_user: - Copy a block of data into user space.
+  * @to:   Destination address, in user space.
+@@ -332,12 +340,6 @@ copy_to_user(void __user *to, const void *from, unsigned long n)
+ 	return __copy_to_user(to, from, n);
+ }
+ 
+-void copy_from_user_overflow(void)
+-#ifdef CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+-__compiletime_warning("copy_from_user() buffer size is not provably correct")
+-#endif
+-;
+-
+ /**
+  * copy_from_user: - Copy a block of data from user space.
+  * @to:   Destination address, in kernel space.
+@@ -362,7 +364,10 @@ copy_from_user(void *to, const void __user *from, unsigned long n)
+ 
+ 	might_fault();
+ 	if (unlikely(sz != -1 && sz < n)) {
+-		copy_from_user_overflow();
++		if (!__builtin_constant_p(n))
++			copy_user_overflow(sz, n);
++		else
++			__bad_copy_user();
+ 		return n;
+ 	}
+ 	return __copy_from_user(to, from, n);
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index 4820a02838ac..78da75b670bc 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -4,7 +4,6 @@
+ config TILE
+ 	def_bool y
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+-	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select ARCH_WANT_FRAME_POINTERS
+diff --git a/arch/tile/include/asm/uaccess.h b/arch/tile/include/asm/uaccess.h
+index 0a9c4265763b..a77369e91e54 100644
+--- a/arch/tile/include/asm/uaccess.h
++++ b/arch/tile/include/asm/uaccess.h
+@@ -416,14 +416,13 @@ _copy_from_user(void *to, const void __user *from, unsigned long n)
+ 	return n;
+ }
+ 
+-#ifdef CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+-/*
+- * There are still unprovable places in the generic code as of 2.6.34, so this
+- * option is not really compatible with -Werror, which is more useful in
+- * general.
+- */
+-extern void copy_from_user_overflow(void)
+-	__compiletime_warning("copy_from_user() size is not provably correct");
++extern void __compiletime_error("usercopy buffer size is too small")
++__bad_copy_user(void);
++
++static inline void copy_user_overflow(int size, unsigned long count)
++{
++	WARN(1, "Buffer overflow detected (%d < %lu)!\n", size, count);
++}
+ 
+ static inline unsigned long __must_check copy_from_user(void *to,
+ 					  const void __user *from,
+@@ -433,14 +432,13 @@ static inline unsigned long __must_check copy_from_user(void *to,
+ 
+ 	if (likely(sz == -1 || sz >= n))
+ 		n = _copy_from_user(to, from, n);
++	else if (!__builtin_constant_p(n))
++		copy_user_overflow(sz, n);
+ 	else
+-		copy_from_user_overflow();
++		__bad_copy_user();
+ 
+ 	return n;
+ }
+-#else
+-#define copy_from_user _copy_from_user
+-#endif
+ 
+ #ifdef __tilegx__
+ /**
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c580d8c33562..2a1f0ce7c59a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -24,7 +24,6 @@ config X86
+ 	select ARCH_DISCARD_MEMBLOCK
+ 	select ARCH_HAS_ACPI_TABLE_UPGRADE if ACPI
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+-	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ 	select ARCH_HAS_DEVMEM_IS_ALLOWED
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FAST_MULTIPLIER
+diff --git a/arch/x86/include/asm/uaccess.h b/arch/x86/include/asm/uaccess.h
+index a0ae610b9280..c3f291195294 100644
+--- a/arch/x86/include/asm/uaccess.h
++++ b/arch/x86/include/asm/uaccess.h
+@@ -697,43 +697,14 @@ unsigned long __must_check _copy_from_user(void *to, const void __user *from,
+ unsigned long __must_check _copy_to_user(void __user *to, const void *from,
+ 					 unsigned n);
+ 
+-#ifdef CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+-# define copy_user_diag __compiletime_error
+-#else
+-# define copy_user_diag __compiletime_warning
+-#endif
+-
+-extern void copy_user_diag("copy_from_user() buffer size is too small")
+-copy_from_user_overflow(void);
+-extern void copy_user_diag("copy_to_user() buffer size is too small")
+-copy_to_user_overflow(void) __asm__("copy_from_user_overflow");
+-
+-#undef copy_user_diag
+-
+-#ifdef CONFIG_DEBUG_STRICT_USER_COPY_CHECKS
+-
+-extern void
+-__compiletime_warning("copy_from_user() buffer size is not provably correct")
+-__copy_from_user_overflow(void) __asm__("copy_from_user_overflow");
+-#define __copy_from_user_overflow(size, count) __copy_from_user_overflow()
+-
+-extern void
+-__compiletime_warning("copy_to_user() buffer size is not provably correct")
+-__copy_to_user_overflow(void) __asm__("copy_from_user_overflow");
+-#define __copy_to_user_overflow(size, count) __copy_to_user_overflow()
+-
+-#else
++extern void __compiletime_error("usercopy buffer size is too small")
++__bad_copy_user(void);
+ 
+-static inline void
+-__copy_from_user_overflow(int size, unsigned long count)
++static inline void copy_user_overflow(int size, unsigned long count)
+ {
+ 	WARN(1, "Buffer overflow detected (%d < %lu)!\n", size, count);
+ }
+ 
+-#define __copy_to_user_overflow __copy_from_user_overflow
+-
+-#endif
+-
+ static inline unsigned long __must_check
+ copy_from_user(void *to, const void __user *from, unsigned long n)
+ {
+@@ -743,31 +714,13 @@ copy_from_user(void *to, const void __user *from, unsigned long n)
+ 
+ 	kasan_check_write(to, n);
+ 
+-	/*
+-	 * While we would like to have the compiler do the checking for us
+-	 * even in the non-constant size case, any false positives there are
+-	 * a problem (especially when DEBUG_STRICT_USER_COPY_CHECKS, but even
+-	 * without - the [hopefully] dangerous looking nature of the warning
+-	 * would make people go look at the respecitive call sites over and
+-	 * over again just to find that there's no problem).
+-	 *
+-	 * And there are cases where it's just not realistic for the compiler
+-	 * to prove the count to be in range. For example when multiple call
+-	 * sites of a helper function - perhaps in different source files -
+-	 * all doing proper range checking, yet the helper function not doing
+-	 * so again.
+-	 *
+-	 * Therefore limit the compile time checking to the constant size
+-	 * case, and do only runtime checking for non-constant sizes.
+-	 */
+-
+ 	if (likely(sz < 0 || sz >= n)) {
+ 		check_object_size(to, n, false);
+ 		n = _copy_from_user(to, from, n);
+-	} else if (__builtin_constant_p(n))
+-		copy_from_user_overflow();
++	} else if (!__builtin_constant_p(n))
++		copy_user_overflow(sz, n);
+ 	else
+-		__copy_from_user_overflow(sz, n);
++		__bad_copy_user();
+ 
+ 	return n;
+ }
+@@ -781,21 +734,17 @@ copy_to_user(void __user *to, const void *from, unsigned long n)
+ 
+ 	might_fault();
+ 
+-	/* See the comment in copy_from_user() above. */
+ 	if (likely(sz < 0 || sz >= n)) {
+ 		check_object_size(from, n, true);
+ 		n = _copy_to_user(to, from, n);
+-	} else if (__builtin_constant_p(n))
+-		copy_to_user_overflow();
++	} else if (!__builtin_constant_p(n))
++		copy_user_overflow(sz, n);
+ 	else
+-		__copy_to_user_overflow(sz, n);
++		__bad_copy_user();
+ 
+ 	return n;
+ }
+ 
+-#undef __copy_from_user_overflow
+-#undef __copy_to_user_overflow
+-
+ /*
+  * We rely on the nested NMI work to allow atomic faults from the NMI path; the
+  * nested NMI paths are careful to preserve CR2.
+diff --git a/include/asm-generic/uaccess.h b/include/asm-generic/uaccess.h
+index 1bfa602958f2..5dea1fb6979c 100644
+--- a/include/asm-generic/uaccess.h
++++ b/include/asm-generic/uaccess.h
+@@ -72,6 +72,7 @@ struct exception_table_entry
+ /* Returns 0 if exception not found and fixup otherwise.  */
+ extern unsigned long search_exception_table(unsigned long);
+ 
++
+ /*
+  * architectures with an MMU should override these two
+  */
+diff --git a/include/linux/compiler-gcc.h b/include/linux/compiler-gcc.h
+index 8dbc8929a6a0..573c5a18908f 100644
+--- a/include/linux/compiler-gcc.h
++++ b/include/linux/compiler-gcc.h
+@@ -158,7 +158,7 @@
+ #define __compiler_offsetof(a, b)					\
+ 	__builtin_offsetof(a, b)
+ 
+-#if GCC_VERSION >= 40100 && GCC_VERSION < 40600
++#if GCC_VERSION >= 40100
+ # define __compiletime_object_size(obj) __builtin_object_size(obj, 0)
+ #endif
+ 
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 2307d7c89dac..2e2cca509231 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1686,24 +1686,6 @@ config LATENCYTOP
+ 	  Enable this option if you want to use the LatencyTOP tool
+ 	  to find out which userspace is blocking on what kernel operations.
+ 
+-config ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+-	bool
+-
+-config DEBUG_STRICT_USER_COPY_CHECKS
+-	bool "Strict user copy size checks"
+-	depends on ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+-	depends on DEBUG_KERNEL && !TRACE_BRANCH_PROFILING
+-	help
+-	  Enabling this option turns a certain set of sanity checks for user
+-	  copy operations into compile time failures.
+-
+-	  The copy_from_user() etc checks are there to help test if there
+-	  are sufficient security checks on the length argument of
+-	  the copy operation, by having gcc prove that the argument is
+-	  within bounds.
+-
+-	  If unsure, say N.
+-
+ source kernel/trace/Kconfig
+ 
+ menu "Runtime Testing"
+diff --git a/lib/Makefile b/lib/Makefile
+index cfa68eb269e4..5dc77a8ec297 100644
+--- a/lib/Makefile
++++ b/lib/Makefile
+@@ -24,7 +24,6 @@ lib-y := ctype.o string.o vsprintf.o cmdline.o \
+ 	 is_single_threaded.o plist.o decompress.o kobject_uevent.o \
+ 	 earlycpio.o seq_buf.o nmi_backtrace.o nodemask.o
+ 
+-obj-$(CONFIG_ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS) += usercopy.o
+ lib-$(CONFIG_MMU) += ioremap.o
+ lib-$(CONFIG_SMP) += cpumask.o
+ lib-$(CONFIG_HAS_DMA) += dma-noop.o
+diff --git a/lib/usercopy.c b/lib/usercopy.c
+deleted file mode 100644
+index 4f5b1ddbcd25..000000000000
+--- a/lib/usercopy.c
++++ /dev/null
+@@ -1,9 +0,0 @@
+-#include <linux/export.h>
+-#include <linux/bug.h>
+-#include <linux/uaccess.h>
+-
+-void copy_from_user_overflow(void)
+-{
+-	WARN(1, "Buffer overflow detected!\n");
+-}
+-EXPORT_SYMBOL(copy_from_user_overflow);

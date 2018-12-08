@@ -1,0 +1,82 @@
+commit e7aa8c2eb11ba69b1b69099c3c7bd6be3087b0ba
+Merge: e34bac726d27 868c97a846a7
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Dec 12 21:58:13 2016 -0800
+
+    Merge tag 'docs-4.10' of git://git.lwn.net/linux
+    
+    Pull documentation update from Jonathan Corbet:
+     "These are the documentation changes for 4.10.
+    
+      It's another busy cycle for the docs tree, as the sphinx conversion
+      continues. Highlights include:
+    
+       - Further work on PDF output, which remains a bit of a pain but
+         should be more solid now.
+    
+       - Five more DocBook template files converted to Sphinx. Only 27 to
+         go... Lots of plain-text files have also been converted and
+         integrated.
+    
+       - Images in binary formats have been replaced with more
+         source-friendly versions.
+    
+       - Various bits of organizational work, including the renaming of
+         various files discussed at the kernel summit.
+    
+       - New documentation for the device_link mechanism.
+    
+      ... and, of course, lots of typo fixes and small updates"
+    
+    * tag 'docs-4.10' of git://git.lwn.net/linux: (193 commits)
+      dma-buf: Extract dma-buf.rst
+      Update Documentation/00-INDEX
+      docs: 00-INDEX: document directories/files with no docs
+      docs: 00-INDEX: remove non-existing entries
+      docs: 00-INDEX: add missing entries for documentation files/dirs
+      docs: 00-INDEX: consolidate process/ and admin-guide/ description
+      scripts: add a script to check if Documentation/00-INDEX is sane
+      Docs: change sh -> awk in REPORTING-BUGS
+      Documentation/core-api/device_link: Add initial documentation
+      core-api: remove an unexpected unident
+      ppc/idle: Add documentation for powersave=off
+      Doc: Correct typo, "Introdution" => "Introduction"
+      Documentation/atomic_ops.txt: convert to ReST markup
+      Documentation/local_ops.txt: convert to ReST markup
+      Documentation/assoc_array.txt: convert to ReST markup
+      docs-rst: parse-headers.pl: cleanup the documentation
+      docs-rst: fix media cleandocs target
+      docs-rst: media/Makefile: reorganize the rules
+      docs-rst: media: build SVG from graphviz files
+      docs-rst: replace bayer.png by a SVG image
+      ...
+
+diff --cc lib/Kconfig.debug
+index e40a0715f422,1a9fa51b693b..e6327d102184
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@@ -13,23 -13,8 +13,23 @@@ config PRINTK_TIM
+  	  be included, not that the timestamp is recorded.
+  
+  	  The behavior is also controlled by the kernel command line
+- 	  parameter printk.time=1. See Documentation/kernel-parameters.txt
++ 	  parameter printk.time=1. See Documentation/admin-guide/kernel-parameters.rst
+  
+ +config CONSOLE_LOGLEVEL_DEFAULT
+ +	int "Default console loglevel (1-15)"
+ +	range 1 15
+ +	default "7"
+ +	help
+ +	  Default loglevel to determine what will be printed on the console.
+ +
+ +	  Setting a default here is equivalent to passing in loglevel=<x> in
+ +	  the kernel bootargs. loglevel=<x> continues to override whatever
+ +	  value is specified here as well.
+ +
+ +	  Note: This does not affect the log level of un-prefixed prink()
+ +	  usage in the kernel. That is controlled by the MESSAGE_LOGLEVEL_DEFAULT
+ +	  option.
+ +
+  config MESSAGE_LOGLEVEL_DEFAULT
+  	int "Default message log level (1-7)"
+  	range 1 7

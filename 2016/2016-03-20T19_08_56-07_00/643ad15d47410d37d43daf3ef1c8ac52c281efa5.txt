@@ -1,0 +1,156 @@
+commit 643ad15d47410d37d43daf3ef1c8ac52c281efa5
+Merge: 24b5e20f11a7 0d47638f80a0
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Mar 20 19:08:56 2016 -0700
+
+    Merge branch 'mm-pkeys-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 protection key support from Ingo Molnar:
+     "This tree adds support for a new memory protection hardware feature
+      that is available in upcoming Intel CPUs: 'protection keys' (pkeys).
+    
+      There's a background article at LWN.net:
+    
+          https://lwn.net/Articles/643797/
+    
+      The gist is that protection keys allow the encoding of
+      user-controllable permission masks in the pte.  So instead of having a
+      fixed protection mask in the pte (which needs a system call to change
+      and works on a per page basis), the user can map a (handful of)
+      protection mask variants and can change the masks runtime relatively
+      cheaply, without having to change every single page in the affected
+      virtual memory range.
+    
+      This allows the dynamic switching of the protection bits of large
+      amounts of virtual memory, via user-space instructions.  It also
+      allows more precise control of MMU permission bits: for example the
+      executable bit is separate from the read bit (see more about that
+      below).
+    
+      This tree adds the MM infrastructure and low level x86 glue needed for
+      that, plus it adds a high level API to make use of protection keys -
+      if a user-space application calls:
+    
+            mmap(..., PROT_EXEC);
+    
+      or
+    
+            mprotect(ptr, sz, PROT_EXEC);
+    
+      (note PROT_EXEC-only, without PROT_READ/WRITE), the kernel will notice
+      this special case, and will set a special protection key on this
+      memory range.  It also sets the appropriate bits in the Protection
+      Keys User Rights (PKRU) register so that the memory becomes unreadable
+      and unwritable.
+    
+      So using protection keys the kernel is able to implement 'true'
+      PROT_EXEC on x86 CPUs: without protection keys PROT_EXEC implies
+      PROT_READ as well.  Unreadable executable mappings have security
+      advantages: they cannot be read via information leaks to figure out
+      ASLR details, nor can they be scanned for ROP gadgets - and they
+      cannot be used by exploits for data purposes either.
+    
+      We know about no user-space code that relies on pure PROT_EXEC
+      mappings today, but binary loaders could start making use of this new
+      feature to map binaries and libraries in a more secure fashion.
+    
+      There is other pending pkeys work that offers more high level system
+      call APIs to manage protection keys - but those are not part of this
+      pull request.
+    
+      Right now there's a Kconfig that controls this feature
+      (CONFIG_X86_INTEL_MEMORY_PROTECTION_KEYS) that is default enabled
+      (like most x86 CPU feature enablement code that has no runtime
+      overhead), but it's not user-configurable at the moment.  If there's
+      any serious problem with this then we can make it configurable and/or
+      flip the default"
+    
+    * 'mm-pkeys-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (38 commits)
+      x86/mm/pkeys: Fix mismerge of protection keys CPUID bits
+      mm/pkeys: Fix siginfo ABI breakage caused by new u64 field
+      x86/mm/pkeys: Fix access_error() denial of writes to write-only VMA
+      mm/core, x86/mm/pkeys: Add execute-only protection keys support
+      x86/mm/pkeys: Create an x86 arch_calc_vm_prot_bits() for VMA flags
+      x86/mm/pkeys: Allow kernel to modify user pkey rights register
+      x86/fpu: Allow setting of XSAVE state
+      x86/mm: Factor out LDT init from context init
+      mm/core, x86/mm/pkeys: Add arch_validate_pkey()
+      mm/core, arch, powerpc: Pass a protection key in to calc_vm_flag_bits()
+      x86/mm/pkeys: Actually enable Memory Protection Keys in the CPU
+      x86/mm/pkeys: Add Kconfig prompt to existing config option
+      x86/mm/pkeys: Dump pkey from VMA in /proc/pid/smaps
+      x86/mm/pkeys: Dump PKRU with other kernel registers
+      mm/core, x86/mm/pkeys: Differentiate instruction fetches
+      x86/mm/pkeys: Optimize fault handling in access_error()
+      mm/core: Do not enforce PKEY permissions on remote mm access
+      um, pkeys: Add UML arch_*_access_permitted() methods
+      mm/gup, x86/mm/pkeys: Check VMAs and PTEs for protection keys
+      x86/mm/gup: Simplify get_user_pages() PTE bit handling
+      ...
+
+diff --cc arch/x86/Kconfig
+index d07cca6ad37b,eda18cecdbbd..8b680a5cb25b
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -155,7 -155,8 +155,9 @@@ config X8
+  	select VIRT_TO_BUS
+  	select X86_DEV_DMA_OPS			if X86_64
+  	select X86_FEATURE_NAMES		if PROC_FS
+ +	select HAVE_STACK_VALIDATION		if X86_64
++ 	select ARCH_USES_HIGH_VMA_FLAGS		if X86_INTEL_MEMORY_PROTECTION_KEYS
++ 	select ARCH_HAS_PKEYS			if X86_INTEL_MEMORY_PROTECTION_KEYS
+  
+  config INSTRUCTION_DECODER
+  	def_bool y
+diff --cc arch/x86/include/asm/fpu/xstate.h
+index f23cd8c80b1c,9994d4229002..38951b0fcc5a
+--- a/arch/x86/include/asm/fpu/xstate.h
++++ b/arch/x86/include/asm/fpu/xstate.h
+@@@ -24,11 -28,9 +24,12 @@@
+  				 XFEATURE_MASK_YMM | \
+  				 XFEATURE_MASK_OPMASK | \
+  				 XFEATURE_MASK_ZMM_Hi256 | \
+- 				 XFEATURE_MASK_Hi16_ZMM)
++ 				 XFEATURE_MASK_Hi16_ZMM	 | \
++ 				 XFEATURE_MASK_PKRU)
+  
+ +/* Supported features which require eager state saving */
+ +#define XFEATURE_MASK_EAGER	(XFEATURE_MASK_BNDREGS | XFEATURE_MASK_BNDCSR)
+ +
+  /* All currently supported features */
+  #define XCNTXT_MASK	(XFEATURE_MASK_LAZY | XFEATURE_MASK_EAGER)
+  
+diff --cc arch/x86/kernel/fpu/xstate.c
+index 6e8354f5a593,1b1981812bb6..b48ef35b28d4
+--- a/arch/x86/kernel/fpu/xstate.c
++++ b/arch/x86/kernel/fpu/xstate.c
+@@@ -51,11 -59,9 +59,12 @@@ void fpu__xstate_clear_all_cpu_caps(voi
+  	setup_clear_cpu_cap(X86_FEATURE_AVX512PF);
+  	setup_clear_cpu_cap(X86_FEATURE_AVX512ER);
+  	setup_clear_cpu_cap(X86_FEATURE_AVX512CD);
+ +	setup_clear_cpu_cap(X86_FEATURE_AVX512DQ);
+ +	setup_clear_cpu_cap(X86_FEATURE_AVX512BW);
+ +	setup_clear_cpu_cap(X86_FEATURE_AVX512VL);
+  	setup_clear_cpu_cap(X86_FEATURE_MPX);
+  	setup_clear_cpu_cap(X86_FEATURE_XGETBV1);
++ 	setup_clear_cpu_cap(X86_FEATURE_PKU);
+  }
+  
+  /*
+diff --cc arch/x86/mm/fault.c
+index 03898aea6e0f,6138db471b17..5ce1ed02f7e8
+--- a/arch/x86/mm/fault.c
++++ b/arch/x86/mm/fault.c
+@@@ -661,9 -711,11 +718,11 @@@ no_context(struct pt_regs *regs, unsign
+  	struct task_struct *tsk = current;
+  	unsigned long flags;
+  	int sig;
++ 	/* No context means no VMA to pass down */
++ 	struct vm_area_struct *vma = NULL;
+  
+  	/* Are we prepared to handle this kernel fault? */
+ -	if (fixup_exception(regs)) {
+ +	if (fixup_exception(regs, X86_TRAP_PF)) {
+  		/*
+  		 * Any interrupt that takes a fault gets the fixup. This makes
+  		 * the below recursive fault logic only apply to a faults from

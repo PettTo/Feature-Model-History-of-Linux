@@ -1,0 +1,39 @@
+commit d4883d5d6b146fd65f762c462b2c6d4a327c7d50
+Author: Josh Poimboeuf <jpoimboe@redhat.com>
+Date:   Sun Feb 28 22:22:43 2016 -0600
+
+    objtool: Enable stack metadata validation on 64-bit x86
+    
+    Set HAVE_STACK_VALIDATION to enable stack metadata validation for
+    x86_64.
+    
+    Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Andy Lutomirski <luto@kernel.org>
+    Cc: Arnaldo Carvalho de Melo <acme@kernel.org>
+    Cc: Bernd Petrovitsch <bernd@petrovitsch.priv.at>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Chris J Arges <chris.j.arges@canonical.com>
+    Cc: Jiri Slaby <jslaby@suse.cz>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Michal Marek <mmarek@suse.cz>
+    Cc: Namhyung Kim <namhyung@gmail.com>
+    Cc: Pedro Alves <palves@redhat.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: live-patching@vger.kernel.org
+    Link: http://lkml.kernel.org/r/cdaeb6914d00a070c0f455cd06989bf3f787a2f6.1456719558.git.jpoimboe@redhat.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c46662f64c39..adc5a6d28735 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -155,6 +155,7 @@ config X86
+ 	select VIRT_TO_BUS
+ 	select X86_DEV_DMA_OPS			if X86_64
+ 	select X86_FEATURE_NAMES		if PROC_FS
++	select HAVE_STACK_VALIDATION		if X86_64
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y

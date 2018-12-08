@@ -1,0 +1,144 @@
+commit e4a744ef2fef5c803348b650a3a2d01da7797a9b
+Author: Josh Poimboeuf <jpoimboe@redhat.com>
+Date:   Fri Aug 19 06:52:55 2016 -0500
+
+    ftrace: Remove CONFIG_HAVE_FUNCTION_GRAPH_FP_TEST from config
+    
+    Make HAVE_FUNCTION_GRAPH_FP_TEST a normal define, independent from
+    kconfig.  This removes some config file pollution and simplifies the
+    checking for the fp test.
+    
+    Suggested-by: Steven Rostedt <rostedt@goodmis.org>
+    Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+    Acked-by: Steven Rostedt <rostedt@goodmis.org>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Andy Lutomirski <luto@kernel.org>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Byungchul Park <byungchul.park@lge.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: Frederic Weisbecker <fweisbec@gmail.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Nilay Vaish <nilayvaish@gmail.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/2c4e5f05054d6d367f702fd153af7a0109dd5c81.1471607358.git.jpoimboe@redhat.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/arm64/kernel/entry-ftrace.S b/arch/arm64/kernel/entry-ftrace.S
+index 0f03a8fe2314..aef02d2af3b5 100644
+--- a/arch/arm64/kernel/entry-ftrace.S
++++ b/arch/arm64/kernel/entry-ftrace.S
+@@ -219,7 +219,7 @@ ENDPROC(ftrace_graph_caller)
+  *
+  * Run ftrace_return_to_handler() before going back to parent.
+  * @fp is checked against the value passed by ftrace_graph_caller()
+- * only when CONFIG_HAVE_FUNCTION_GRAPH_FP_TEST is enabled.
++ * only when HAVE_FUNCTION_GRAPH_FP_TEST is enabled.
+  */
+ ENTRY(return_to_handler)
+ 	save_return_regs
+diff --git a/arch/blackfin/kernel/ftrace-entry.S b/arch/blackfin/kernel/ftrace-entry.S
+index 28d059540424..3b8bdcbb7da3 100644
+--- a/arch/blackfin/kernel/ftrace-entry.S
++++ b/arch/blackfin/kernel/ftrace-entry.S
+@@ -169,7 +169,7 @@ ENTRY(_ftrace_graph_caller)
+ 	r0 = sp;	/* unsigned long *parent */
+ 	r1 = [sp];	/* unsigned long self_addr */
+ # endif
+-# ifdef CONFIG_HAVE_FUNCTION_GRAPH_FP_TEST
++# ifdef HAVE_FUNCTION_GRAPH_FP_TEST
+ 	r2 = fp;	/* unsigned long frame_pointer */
+ # endif
+ 	r0 += 16;	/* skip the 4 local regs on stack */
+@@ -190,7 +190,7 @@ ENTRY(_return_to_handler)
+ 	[--sp] = r1;
+ 
+ 	/* get original return address */
+-# ifdef CONFIG_HAVE_FUNCTION_GRAPH_FP_TEST
++# ifdef HAVE_FUNCTION_GRAPH_FP_TEST
+ 	r0 = fp;	/* Blackfin is sane, so omit this */
+ # endif
+ 	call _ftrace_return_to_handler;
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 59b09600dd32..f5d60f14a0bc 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -56,7 +56,6 @@ config SPARC64
+ 	def_bool 64BIT
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+-	select HAVE_FUNCTION_GRAPH_FP_TEST
+ 	select HAVE_KRETPROBES
+ 	select HAVE_KPROBES
+ 	select HAVE_RCU_TABLE_FREE if SMP
+diff --git a/arch/sparc/include/asm/ftrace.h b/arch/sparc/include/asm/ftrace.h
+index 3192a8e42fd6..62755a339a59 100644
+--- a/arch/sparc/include/asm/ftrace.h
++++ b/arch/sparc/include/asm/ftrace.h
+@@ -9,6 +9,10 @@
+ void _mcount(void);
+ #endif
+ 
++#endif /* CONFIG_MCOUNT */
++
++#if defined(CONFIG_SPARC64) && !defined(CC_USE_FENTRY)
++#define HAVE_FUNCTION_GRAPH_FP_TEST
+ #endif
+ 
+ #ifdef CONFIG_DYNAMIC_FTRACE
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 21a6d0ec5983..ce8860cccc34 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -111,7 +111,6 @@ config X86
+ 	select HAVE_EXIT_THREAD
+ 	select HAVE_FENTRY			if X86_64
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+-	select HAVE_FUNCTION_GRAPH_FP_TEST
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_GCC_PLUGINS
+diff --git a/arch/x86/include/asm/ftrace.h b/arch/x86/include/asm/ftrace.h
+index a4820d4df617..37f67cbba1c6 100644
+--- a/arch/x86/include/asm/ftrace.h
++++ b/arch/x86/include/asm/ftrace.h
+@@ -6,6 +6,7 @@
+ # define MCOUNT_ADDR		((unsigned long)(__fentry__))
+ #else
+ # define MCOUNT_ADDR		((unsigned long)(mcount))
++# define HAVE_FUNCTION_GRAPH_FP_TEST
+ #endif
+ #define MCOUNT_INSN_SIZE	5 /* sizeof mcount call */
+ 
+diff --git a/kernel/trace/Kconfig b/kernel/trace/Kconfig
+index f4b86e8ca1e7..ba3326785ca4 100644
+--- a/kernel/trace/Kconfig
++++ b/kernel/trace/Kconfig
+@@ -24,11 +24,6 @@ config HAVE_FUNCTION_GRAPH_TRACER
+ 	help
+ 	  See Documentation/trace/ftrace-design.txt
+ 
+-config HAVE_FUNCTION_GRAPH_FP_TEST
+-	bool
+-	help
+-	  See Documentation/trace/ftrace-design.txt
+-
+ config HAVE_DYNAMIC_FTRACE
+ 	bool
+ 	help
+diff --git a/kernel/trace/trace_functions_graph.c b/kernel/trace/trace_functions_graph.c
+index 7363ccf79512..fc173cd9fbfd 100644
+--- a/kernel/trace/trace_functions_graph.c
++++ b/kernel/trace/trace_functions_graph.c
+@@ -204,7 +204,7 @@ ftrace_pop_return_trace(struct ftrace_graph_ret *trace, unsigned long *ret,
+ 		return;
+ 	}
+ 
+-#if defined(CONFIG_HAVE_FUNCTION_GRAPH_FP_TEST) && !defined(CC_USING_FENTRY)
++#ifdef HAVE_FUNCTION_GRAPH_FP_TEST
+ 	/*
+ 	 * The arch may choose to record the frame pointer used
+ 	 * and check it here to make sure that it is what we expect it

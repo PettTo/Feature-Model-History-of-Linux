@@ -1,0 +1,82 @@
+commit eb254f323bd50ab7e3cc385f2fc641a595cc8b37
+Merge: f79f7b1b4f91 76ae054c69a7
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Dec 22 09:25:45 2016 -0800
+
+    Merge branch 'x86-cache-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 cache allocation interface from Thomas Gleixner:
+     "This provides support for Intel's Cache Allocation Technology, a cache
+      partitioning mechanism.
+    
+      The interface is odd, but the hardware interface of that CAT stuff is
+      odd as well.
+    
+      We tried hard to come up with an abstraction, but that only allows
+      rather simple partitioning, but no way of sharing and dealing with the
+      per package nature of this mechanism.
+    
+      In the end we decided to expose the allocation bitmaps directly so all
+      combinations of the hardware can be utilized.
+    
+      There are two ways of associating a cache partition:
+    
+       - Task
+    
+         A task can be added to a resource group. It uses the cache
+         partition associated to the group.
+    
+       - CPU
+    
+         All tasks which are not member of a resource group use the group to
+         which the CPU they are running on is associated with.
+    
+         That allows for simple CPU based partitioning schemes.
+    
+      The main expected user sare:
+    
+       - Virtualization so a VM can only trash only the associated part of
+         the cash w/o disturbing others
+    
+       - Real-Time systems to seperate RT and general workloads.
+    
+       - Latency sensitive enterprise workloads
+    
+       - In theory this also can be used to protect against cache side
+         channel attacks"
+    
+    [ Intel RDT is "Resource Director Technology". The interface really is
+      rather odd and very specific, which delayed this pull request while I
+      was thinking about it. The pull request itself came in early during
+      the merge window, I just delayed it until things had calmed down and I
+      had more time.
+    
+      But people tell me they'll use this, and the good news is that it is
+      _so_ specific that it's rather independent of anything else, and no
+      user is going to depend on the interface since it's pretty rare. So if
+      push comes to shove, we can just remove the interface and nothing will
+      break ]
+    
+    * 'x86-cache-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (31 commits)
+      x86/intel_rdt: Implement show_options() for resctrlfs
+      x86/intel_rdt: Call intel_rdt_sched_in() with preemption disabled
+      x86/intel_rdt: Update task closid immediately on CPU in rmdir and unmount
+      x86/intel_rdt: Fix setting of closid when adding CPUs to a group
+      x86/intel_rdt: Update percpu closid immeditately on CPUs affected by changee
+      x86/intel_rdt: Reset per cpu closids on unmount
+      x86/intel_rdt: Select KERNFS when enabling INTEL_RDT_A
+      x86/intel_rdt: Prevent deadlock against hotplug lock
+      x86/intel_rdt: Protect info directory from removal
+      x86/intel_rdt: Add info files to Documentation
+      x86/intel_rdt: Export the minimum number of set mask bits in sysfs
+      x86/intel_rdt: Propagate error in rdt_mount() properly
+      x86/intel_rdt: Add a missing #include
+      MAINTAINERS: Add maintainer for Intel RDT resource allocation
+      x86/intel_rdt: Add scheduler hook
+      x86/intel_rdt: Add schemata file
+      x86/intel_rdt: Add tasks files
+      x86/intel_rdt: Add cpus file
+      x86/intel_rdt: Add mkdir to resctrl file system
+      x86/intel_rdt: Add "info" files to resctrl file system
+      ...
+

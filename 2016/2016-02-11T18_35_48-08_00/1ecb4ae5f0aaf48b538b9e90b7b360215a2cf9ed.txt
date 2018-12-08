@@ -1,0 +1,29 @@
+commit 1ecb4ae5f0aaf48b538b9e90b7b360215a2cf9ed
+Author: Andrew Morton <akpm@linux-foundation.org>
+Date:   Thu Feb 11 16:13:20 2016 -0800
+
+    arch/x86/Kconfig: CONFIG_X86_UV should depend on CONFIG_EFI
+    
+    arch/x86/built-in.o: In function `uv_bios_call':
+    (.text+0xeba00): undefined reference to `efi_call'
+    
+    Reported-by: kbuild test robot <fengguang.wu@intel.com>
+    Suggested-by: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: Ingo Molnar <mingo@elte.hu>
+    Reviewed-by: Matt Fleming <matt@codeblueprint.co.uk>
+    Acked-by: Alex Thorlton <athorlton@sgi.com>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 9af2e6338400..ab2ed5328f0a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -475,6 +475,7 @@ config X86_UV
+ 	depends on X86_64
+ 	depends on X86_EXTENDED_PLATFORM
+ 	depends on NUMA
++	depends on EFI
+ 	depends on X86_X2APIC
+ 	depends on PCI
+ 	---help---

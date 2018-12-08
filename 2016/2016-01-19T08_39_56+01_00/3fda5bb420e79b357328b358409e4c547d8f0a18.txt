@@ -1,0 +1,68 @@
+commit 3fda5bb420e79b357328b358409e4c547d8f0a18
+Author: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+Date:   Fri Jan 15 22:11:07 2016 +0200
+
+    x86/platform/intel-mid: Enable 64-bit build
+    
+    Intel Tangier SoC is known to have 64-bit dual core CPU. Enable
+    64-bit build for it.
+    
+    The kernel has been tested on Intel Edison board:
+    
+            Linux buildroot 4.4.0-next-20160115+ #25 SMP Fri Jan 15 22:03:19 EET 2016 x86_64 GNU/Linux
+    
+            processor       : 0
+            vendor_id       : GenuineIntel
+            cpu family      : 6
+            model           : 74
+            model name      : Genuine Intel(R) CPU   4000  @  500MHz
+            stepping        : 8
+    
+    Signed-off-by: Andy Shevchenko <andriy.shevchenko@linux.intel.com>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Mika Westerberg <mika.westerberg@linux.intel.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1452888668-147116-1-git-send-email-andriy.shevchenko@linux.intel.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 258965d56beb..07459a6b417d 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -495,11 +495,10 @@ config X86_INTEL_CE
+ 
+ config X86_INTEL_MID
+ 	bool "Intel MID platform support"
+-	depends on X86_32
+ 	depends on X86_EXTENDED_PLATFORM
+ 	depends on X86_PLATFORM_DEVICES
+ 	depends on PCI
+-	depends on PCI_GOANY
++	depends on X86_64 || (PCI_GOANY && X86_32)
+ 	depends on X86_IO_APIC
+ 	select SFI
+ 	select I2C
+diff --git a/arch/x86/kernel/head64.c b/arch/x86/kernel/head64.c
+index f129a9af6357..2c0f3407bd1f 100644
+--- a/arch/x86/kernel/head64.c
++++ b/arch/x86/kernel/head64.c
+@@ -192,5 +192,13 @@ void __init x86_64_start_reservations(char *real_mode_data)
+ 
+ 	reserve_ebda_region();
+ 
++	switch (boot_params.hdr.hardware_subarch) {
++	case X86_SUBARCH_INTEL_MID:
++		x86_intel_mid_early_setup();
++		break;
++	default:
++		break;
++	}
++
+ 	start_kernel();
+ }

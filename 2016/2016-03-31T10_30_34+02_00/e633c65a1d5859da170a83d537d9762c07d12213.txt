@@ -1,0 +1,397 @@
+commit e633c65a1d5859da170a83d537d9762c07d12213
+Author: Kan Liang <kan.liang@intel.com>
+Date:   Sun Mar 20 01:33:36 2016 -0700
+
+    x86/perf/intel/uncore: Make the Intel uncore PMU driver modular
+    
+    By default, the uncore driver will be built into the kernel. If it is
+    configured as a module, the supported CPU model can be auto loaded.
+    
+    This patch also cleans up the code of uncore_cpu_init() and
+    uncore_pci_init().
+    
+    Based-on-a-patch-by: Thomas Gleixner <tglx@linutronix.de>
+    Signed-off-by: Kan Liang <kan.liang@intel.com>
+    Signed-off-by: Peter Zijlstra (Intel) <peterz@infradead.org>
+    Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Alexander Shishkin <alexander.shishkin@linux.intel.com>
+    Cc: Arnaldo Carvalho de Melo <acme@redhat.com>
+    Cc: Jiri Olsa <jolsa@redhat.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Stephane Eranian <eranian@google.com>
+    Cc: Vince Weaver <vincent.weaver@maine.edu>
+    Link: http://lkml.kernel.org/r/1458462817-2475-1-git-send-email-kan.liang@intel.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index a313c0e7e165..496218b8236b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -160,10 +160,6 @@ config INSTRUCTION_DECODER
+ 	def_bool y
+ 	depends on KPROBES || PERF_EVENTS || UPROBES
+ 
+-config PERF_EVENTS_INTEL_UNCORE
+-	def_bool y
+-	depends on PERF_EVENTS && CPU_SUP_INTEL && PCI
+-
+ config OUTPUT_FORMAT
+ 	string
+ 	default "elf32-i386" if X86_32
+@@ -1042,6 +1038,8 @@ config X86_THERMAL_VECTOR
+ 	def_bool y
+ 	depends on X86_MCE_INTEL
+ 
++source "arch/x86/Kconfig.perf"
++
+ config X86_LEGACY_VM86
+ 	bool "Legacy VM86 support"
+ 	default n
+diff --git a/arch/x86/Kconfig.perf b/arch/x86/Kconfig.perf
+new file mode 100644
+index 000000000000..90b7f5878c96
+--- /dev/null
++++ b/arch/x86/Kconfig.perf
+@@ -0,0 +1,11 @@
++menu "Performance monitoring"
++
++config PERF_EVENTS_INTEL_UNCORE
++	tristate "Intel uncore performance events"
++	depends on PERF_EVENTS && CPU_SUP_INTEL && PCI
++	default y
++	---help---
++	Include support for Intel uncore performance events. These are
++	available on NehalemEX and more modern processors.
++
++endmenu
+diff --git a/arch/x86/events/Makefile b/arch/x86/events/Makefile
+index f59618a39990..1d392c39fe56 100644
+--- a/arch/x86/events/Makefile
++++ b/arch/x86/events/Makefile
+@@ -6,9 +6,6 @@ obj-$(CONFIG_X86_LOCAL_APIC)            += amd/ibs.o msr.o
+ ifdef CONFIG_AMD_IOMMU
+ obj-$(CONFIG_CPU_SUP_AMD)               += amd/iommu.o
+ endif
+-obj-$(CONFIG_CPU_SUP_INTEL)		+= intel/core.o intel/bts.o intel/cqm.o
+-obj-$(CONFIG_CPU_SUP_INTEL)		+= intel/cstate.o intel/ds.o intel/knc.o 
+-obj-$(CONFIG_CPU_SUP_INTEL)		+= intel/lbr.o intel/p4.o intel/p6.o intel/pt.o
+-obj-$(CONFIG_CPU_SUP_INTEL)		+= intel/rapl.o msr.o
+-obj-$(CONFIG_PERF_EVENTS_INTEL_UNCORE)	+= intel/uncore.o intel/uncore_nhmex.o
+-obj-$(CONFIG_PERF_EVENTS_INTEL_UNCORE)	+= intel/uncore_snb.o intel/uncore_snbep.o
++
++obj-$(CONFIG_CPU_SUP_INTEL)		+= msr.o
++obj-$(CONFIG_CPU_SUP_INTEL)		+= intel/
+diff --git a/arch/x86/events/intel/Makefile b/arch/x86/events/intel/Makefile
+new file mode 100644
+index 000000000000..a6c744871a73
+--- /dev/null
++++ b/arch/x86/events/intel/Makefile
+@@ -0,0 +1,6 @@
++obj-$(CONFIG_CPU_SUP_INTEL)		+= core.o bts.o cqm.o
++obj-$(CONFIG_CPU_SUP_INTEL)		+= cstate.o ds.o knc.o
++obj-$(CONFIG_CPU_SUP_INTEL)		+= lbr.o p4.o p6.o pt.o
++obj-$(CONFIG_CPU_SUP_INTEL)		+= rapl.o
++obj-$(CONFIG_PERF_EVENTS_INTEL_UNCORE)	+= intel-uncore.o
++intel-uncore-objs			:= uncore.o uncore_nhmex.o uncore_snb.o uncore_snbep.o
+diff --git a/arch/x86/events/intel/uncore.c b/arch/x86/events/intel/uncore.c
+index 7012d18bb293..17734a6ef474 100644
+--- a/arch/x86/events/intel/uncore.c
++++ b/arch/x86/events/intel/uncore.c
+@@ -1,3 +1,4 @@
++#include <asm/cpu_device_id.h>
+ #include "uncore.h"
+ 
+ static struct intel_uncore_type *empty_uncore[] = { NULL, };
+@@ -21,6 +22,8 @@ static struct event_constraint uncore_constraint_fixed =
+ struct event_constraint uncore_constraint_empty =
+ 	EVENT_CONSTRAINT(0, 0, 0);
+ 
++MODULE_LICENSE("GPL");
++
+ static int uncore_pcibus_to_physid(struct pci_bus *bus)
+ {
+ 	struct pci2phy_map *map;
+@@ -754,7 +757,7 @@ static void uncore_pmu_unregister(struct intel_uncore_pmu *pmu)
+ 	pmu->registered = false;
+ }
+ 
+-static void __init __uncore_exit_boxes(struct intel_uncore_type *type, int cpu)
++static void __uncore_exit_boxes(struct intel_uncore_type *type, int cpu)
+ {
+ 	struct intel_uncore_pmu *pmu = type->pmus;
+ 	struct intel_uncore_box *box;
+@@ -770,7 +773,7 @@ static void __init __uncore_exit_boxes(struct intel_uncore_type *type, int cpu)
+ 	}
+ }
+ 
+-static void __init uncore_exit_boxes(void *dummy)
++static void uncore_exit_boxes(void *dummy)
+ {
+ 	struct intel_uncore_type **types;
+ 
+@@ -787,7 +790,7 @@ static void uncore_free_boxes(struct intel_uncore_pmu *pmu)
+ 	kfree(pmu->boxes);
+ }
+ 
+-static void __init uncore_type_exit(struct intel_uncore_type *type)
++static void uncore_type_exit(struct intel_uncore_type *type)
+ {
+ 	struct intel_uncore_pmu *pmu = type->pmus;
+ 	int i;
+@@ -804,7 +807,7 @@ static void __init uncore_type_exit(struct intel_uncore_type *type)
+ 	type->events_group = NULL;
+ }
+ 
+-static void __init uncore_types_exit(struct intel_uncore_type **types)
++static void uncore_types_exit(struct intel_uncore_type **types)
+ {
+ 	for (; *types; types++)
+ 		uncore_type_exit(*types);
+@@ -989,46 +992,6 @@ static int __init uncore_pci_init(void)
+ 	size_t size;
+ 	int ret;
+ 
+-	switch (boot_cpu_data.x86_model) {
+-	case 45: /* Sandy Bridge-EP */
+-		ret = snbep_uncore_pci_init();
+-		break;
+-	case 62: /* Ivy Bridge-EP */
+-		ret = ivbep_uncore_pci_init();
+-		break;
+-	case 63: /* Haswell-EP */
+-		ret = hswep_uncore_pci_init();
+-		break;
+-	case 79: /* BDX-EP */
+-	case 86: /* BDX-DE */
+-		ret = bdx_uncore_pci_init();
+-		break;
+-	case 42: /* Sandy Bridge */
+-		ret = snb_uncore_pci_init();
+-		break;
+-	case 58: /* Ivy Bridge */
+-		ret = ivb_uncore_pci_init();
+-		break;
+-	case 60: /* Haswell */
+-	case 69: /* Haswell Celeron */
+-		ret = hsw_uncore_pci_init();
+-		break;
+-	case 61: /* Broadwell */
+-		ret = bdw_uncore_pci_init();
+-		break;
+-	case 87: /* Knights Landing */
+-		ret = knl_uncore_pci_init();
+-		break;
+-	case 94: /* SkyLake */
+-		ret = skl_uncore_pci_init();
+-		break;
+-	default:
+-		return -ENODEV;
+-	}
+-
+-	if (ret)
+-		return ret;
+-
+ 	size = max_packages * sizeof(struct pci_extra_dev);
+ 	uncore_extra_pci_dev = kzalloc(size, GFP_KERNEL);
+ 	if (!uncore_extra_pci_dev) {
+@@ -1060,7 +1023,7 @@ static int __init uncore_pci_init(void)
+ 	return ret;
+ }
+ 
+-static void __init uncore_pci_exit(void)
++static void uncore_pci_exit(void)
+ {
+ 	if (pcidrv_registered) {
+ 		pcidrv_registered = false;
+@@ -1287,46 +1250,6 @@ static int __init uncore_cpu_init(void)
+ {
+ 	int ret;
+ 
+-	switch (boot_cpu_data.x86_model) {
+-	case 26: /* Nehalem */
+-	case 30:
+-	case 37: /* Westmere */
+-	case 44:
+-		nhm_uncore_cpu_init();
+-		break;
+-	case 42: /* Sandy Bridge */
+-	case 58: /* Ivy Bridge */
+-	case 60: /* Haswell */
+-	case 69: /* Haswell */
+-	case 70: /* Haswell */
+-	case 61: /* Broadwell */
+-	case 71: /* Broadwell */
+-		snb_uncore_cpu_init();
+-		break;
+-	case 45: /* Sandy Bridge-EP */
+-		snbep_uncore_cpu_init();
+-		break;
+-	case 46: /* Nehalem-EX */
+-	case 47: /* Westmere-EX aka. Xeon E7 */
+-		nhmex_uncore_cpu_init();
+-		break;
+-	case 62: /* Ivy Bridge-EP */
+-		ivbep_uncore_cpu_init();
+-		break;
+-	case 63: /* Haswell-EP */
+-		hswep_uncore_cpu_init();
+-		break;
+-	case 79: /* BDX-EP */
+-	case 86: /* BDX-DE */
+-		bdx_uncore_cpu_init();
+-		break;
+-	case 87: /* Knights Landing */
+-		knl_uncore_cpu_init();
+-		break;
+-	default:
+-		return -ENODEV;
+-	}
+-
+ 	ret = uncore_types_init(uncore_msr_uncores, true);
+ 	if (ret)
+ 		goto err;
+@@ -1376,11 +1299,105 @@ static int __init uncore_cpumask_init(bool msr)
+ 	return 0;
+ }
+ 
++#define X86_UNCORE_MODEL_MATCH(model, init)	\
++	{ X86_VENDOR_INTEL, 6, model, X86_FEATURE_ANY, (unsigned long)&init }
++
++struct intel_uncore_init_fun {
++	void	(*cpu_init)(void);
++	int	(*pci_init)(void);
++};
++
++static const struct intel_uncore_init_fun nhm_uncore_init __initconst = {
++	.cpu_init = nhm_uncore_cpu_init,
++};
++
++static const struct intel_uncore_init_fun snb_uncore_init __initconst = {
++	.cpu_init = snb_uncore_cpu_init,
++	.pci_init = snb_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun ivb_uncore_init __initconst = {
++	.cpu_init = snb_uncore_cpu_init,
++	.pci_init = ivb_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun hsw_uncore_init __initconst = {
++	.cpu_init = snb_uncore_cpu_init,
++	.pci_init = hsw_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun bdw_uncore_init __initconst = {
++	.cpu_init = snb_uncore_cpu_init,
++	.pci_init = bdw_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun snbep_uncore_init __initconst = {
++	.cpu_init = snbep_uncore_cpu_init,
++	.pci_init = snbep_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun nhmex_uncore_init __initconst = {
++	.cpu_init = nhmex_uncore_cpu_init,
++};
++
++static const struct intel_uncore_init_fun ivbep_uncore_init __initconst = {
++	.cpu_init = ivbep_uncore_cpu_init,
++	.pci_init = ivbep_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun hswep_uncore_init __initconst = {
++	.cpu_init = hswep_uncore_cpu_init,
++	.pci_init = hswep_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun bdx_uncore_init __initconst = {
++	.cpu_init = bdx_uncore_cpu_init,
++	.pci_init = bdx_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun knl_uncore_init __initconst = {
++	.cpu_init = knl_uncore_cpu_init,
++	.pci_init = knl_uncore_pci_init,
++};
++
++static const struct intel_uncore_init_fun skl_uncore_init __initconst = {
++	.pci_init = skl_uncore_pci_init,
++};
++
++static const struct x86_cpu_id intel_uncore_match[] __initconst = {
++	X86_UNCORE_MODEL_MATCH(26, nhm_uncore_init),	/* Nehalem */
++	X86_UNCORE_MODEL_MATCH(30, nhm_uncore_init),
++	X86_UNCORE_MODEL_MATCH(37, nhm_uncore_init),	/* Westmere */
++	X86_UNCORE_MODEL_MATCH(44, nhm_uncore_init),
++	X86_UNCORE_MODEL_MATCH(42, snb_uncore_init),	/* Sandy Bridge */
++	X86_UNCORE_MODEL_MATCH(58, ivb_uncore_init),	/* Ivy Bridge */
++	X86_UNCORE_MODEL_MATCH(60, hsw_uncore_init),	/* Haswell */
++	X86_UNCORE_MODEL_MATCH(69, hsw_uncore_init),	/* Haswell Celeron */
++	X86_UNCORE_MODEL_MATCH(70, hsw_uncore_init),	/* Haswell */
++	X86_UNCORE_MODEL_MATCH(61, bdw_uncore_init),	/* Broadwell */
++	X86_UNCORE_MODEL_MATCH(71, bdw_uncore_init),	/* Broadwell */
++	X86_UNCORE_MODEL_MATCH(45, snbep_uncore_init),	/* Sandy Bridge-EP */
++	X86_UNCORE_MODEL_MATCH(46, nhmex_uncore_init),	/* Nehalem-EX */
++	X86_UNCORE_MODEL_MATCH(47, nhmex_uncore_init),	/* Westmere-EX aka. Xeon E7 */
++	X86_UNCORE_MODEL_MATCH(62, ivbep_uncore_init),	/* Ivy Bridge-EP */
++	X86_UNCORE_MODEL_MATCH(63, hswep_uncore_init),	/* Haswell-EP */
++	X86_UNCORE_MODEL_MATCH(79, bdx_uncore_init),	/* BDX-EP */
++	X86_UNCORE_MODEL_MATCH(86, bdx_uncore_init),	/* BDX-DE */
++	X86_UNCORE_MODEL_MATCH(87, knl_uncore_init),	/* Knights Landing */
++	X86_UNCORE_MODEL_MATCH(94, skl_uncore_init),	/* SkyLake */
++	{},
++};
++
++MODULE_DEVICE_TABLE(x86cpu, intel_uncore_match);
++
+ static int __init intel_uncore_init(void)
+ {
+-	int pret, cret, ret;
++	const struct x86_cpu_id *id;
++	struct intel_uncore_init_fun *uncore_init;
++	int pret = 0, cret = 0, ret;
+ 
+-	if (boot_cpu_data.x86_vendor != X86_VENDOR_INTEL)
++	id = x86_match_cpu(intel_uncore_match);
++	if (!id)
+ 		return -ENODEV;
+ 
+ 	if (cpu_has_hypervisor)
+@@ -1388,8 +1405,17 @@ static int __init intel_uncore_init(void)
+ 
+ 	max_packages = topology_max_packages();
+ 
+-	pret = uncore_pci_init();
+-	cret = uncore_cpu_init();
++	uncore_init = (struct intel_uncore_init_fun *)id->driver_data;
++	if (uncore_init->pci_init) {
++		pret = uncore_init->pci_init();
++		if (!pret)
++			pret = uncore_pci_init();
++	}
++
++	if (uncore_init->cpu_init) {
++		uncore_init->cpu_init();
++		cret = uncore_cpu_init();
++	}
+ 
+ 	if (cret && pret)
+ 		return -ENODEV;
+@@ -1409,4 +1435,14 @@ static int __init intel_uncore_init(void)
+ 	cpu_notifier_register_done();
+ 	return ret;
+ }
+-device_initcall(intel_uncore_init);
++module_init(intel_uncore_init);
++
++static void __exit intel_uncore_exit(void)
++{
++	cpu_notifier_register_begin();
++	__unregister_cpu_notifier(&uncore_cpu_nb);
++	uncore_types_exit(uncore_msr_uncores);
++	uncore_pci_exit();
++	cpu_notifier_register_done();
++}
++module_exit(intel_uncore_exit);

@@ -1,0 +1,193 @@
+commit 15f4eae70d365bba26854c90b6002aaabb18c8aa
+Author: Andy Lutomirski <luto@kernel.org>
+Date:   Tue Sep 13 14:29:25 2016 -0700
+
+    x86: Move thread_info into task_struct
+    
+    Now that most of the thread_info users have been cleaned up,
+    this is straightforward.
+    
+    Most of this code was written by Linus.
+    
+    Originally-from: Linus Torvalds <torvalds@linux-foundation.org>
+    Signed-off-by: Andy Lutomirski <luto@kernel.org>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Jann Horn <jann@thejh.net>
+    Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/a50eab40abeaec9cb9a9e3cbdeafd32190206654.1473801993.git.luto@kernel.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4c3972847c2a..2a83bc8b24c6 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -157,6 +157,7 @@ config X86
+ 	select SPARSE_IRQ
+ 	select SRCU
+ 	select SYSCTL_EXCEPTION_TRACE
++	select THREAD_INFO_IN_TASK
+ 	select USER_STACKTRACE_SUPPORT
+ 	select VIRT_TO_BUS
+ 	select X86_DEV_DMA_OPS			if X86_64
+diff --git a/arch/x86/entry/entry_64.S b/arch/x86/entry/entry_64.S
+index e7fba58f4d9c..2b46384b4a4f 100644
+--- a/arch/x86/entry/entry_64.S
++++ b/arch/x86/entry/entry_64.S
+@@ -179,7 +179,8 @@ GLOBAL(entry_SYSCALL_64_after_swapgs)
+ 	 * If we need to do entry work or if we guess we'll need to do
+ 	 * exit work, go straight to the slow path.
+ 	 */
+-	testl	$_TIF_WORK_SYSCALL_ENTRY|_TIF_ALLWORK_MASK, ASM_THREAD_INFO(TI_flags, %rsp, SIZEOF_PTREGS)
++	movq	PER_CPU_VAR(current_task), %r11
++	testl	$_TIF_WORK_SYSCALL_ENTRY|_TIF_ALLWORK_MASK, TASK_TI_flags(%r11)
+ 	jnz	entry_SYSCALL64_slow_path
+ 
+ entry_SYSCALL_64_fastpath:
+@@ -217,7 +218,8 @@ entry_SYSCALL_64_fastpath:
+ 	 */
+ 	DISABLE_INTERRUPTS(CLBR_NONE)
+ 	TRACE_IRQS_OFF
+-	testl	$_TIF_ALLWORK_MASK, ASM_THREAD_INFO(TI_flags, %rsp, SIZEOF_PTREGS)
++	movq	PER_CPU_VAR(current_task), %r11
++	testl	$_TIF_ALLWORK_MASK, TASK_TI_flags(%r11)
+ 	jnz	1f
+ 
+ 	LOCKDEP_SYS_EXIT
+@@ -370,6 +372,7 @@ END(ptregs_\func)
+ /*
+  * %rdi: prev task
+  * %rsi: next task
++ * rsi: task we're switching to
+  */
+ ENTRY(__switch_to_asm)
+ 	/*
+diff --git a/arch/x86/include/asm/thread_info.h b/arch/x86/include/asm/thread_info.h
+index c9dcfe7c7e4b..2aaca53c0974 100644
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@ -52,20 +52,6 @@ struct task_struct;
+ #include <asm/cpufeature.h>
+ #include <linux/atomic.h>
+ 
+-struct thread_info {
+-	struct task_struct	*task;		/* main task structure */
+-	__u32			flags;		/* low level flags */
+-	__u32			cpu;		/* current CPU */
+-};
+-
+-#define INIT_THREAD_INFO(tsk)			\
+-{						\
+-	.task		= &tsk,			\
+-	.flags		= 0,			\
+-	.cpu		= 0,			\
+-}
+-
+-#define init_thread_info	(init_thread_union.thread_info)
+ #define init_stack		(init_thread_union.stack)
+ 
+ #else /* !__ASSEMBLY__ */
+@@ -157,11 +143,6 @@ struct thread_info {
+  */
+ #ifndef __ASSEMBLY__
+ 
+-static inline struct thread_info *current_thread_info(void)
+-{
+-	return (struct thread_info *)(current_top_of_stack() - THREAD_SIZE);
+-}
+-
+ static inline unsigned long current_stack_pointer(void)
+ {
+ 	unsigned long sp;
+@@ -223,33 +204,6 @@ static inline int arch_within_stack_frames(const void * const stack,
+ # define cpu_current_top_of_stack (cpu_tss + TSS_sp0)
+ #endif
+ 
+-/*
+- * ASM operand which evaluates to a 'thread_info' address of
+- * the current task, if it is known that "reg" is exactly "off"
+- * bytes below the top of the stack currently.
+- *
+- * ( The kernel stack's size is known at build time, it is usually
+- *   2 or 4 pages, and the bottom  of the kernel stack contains
+- *   the thread_info structure. So to access the thread_info very
+- *   quickly from assembly code we can calculate down from the
+- *   top of the kernel stack to the bottom, using constant,
+- *   build-time calculations only. )
+- *
+- * For example, to fetch the current thread_info->flags value into %eax
+- * on x86-64 defconfig kernels, in syscall entry code where RSP is
+- * currently at exactly SIZEOF_PTREGS bytes away from the top of the
+- * stack:
+- *
+- *      mov ASM_THREAD_INFO(TI_flags, %rsp, SIZEOF_PTREGS), %eax
+- *
+- * will translate to:
+- *
+- *      8b 84 24 b8 c0 ff ff      mov    -0x3f48(%rsp), %eax
+- *
+- * which is below the current RSP by almost 16K.
+- */
+-#define ASM_THREAD_INFO(field, reg, off) ((field)+(off)-THREAD_SIZE)(reg)
+-
+ #endif
+ 
+ #ifdef CONFIG_COMPAT
+diff --git a/arch/x86/kernel/asm-offsets.c b/arch/x86/kernel/asm-offsets.c
+index add5f90b93d4..c62e015b126c 100644
+--- a/arch/x86/kernel/asm-offsets.c
++++ b/arch/x86/kernel/asm-offsets.c
+@@ -35,9 +35,7 @@ void common(void) {
+ #endif
+ 
+ 	BLANK();
+-	OFFSET(TI_flags, thread_info, flags);
+-
+-	BLANK();
++	OFFSET(TASK_TI_flags, task_struct, thread_info.flags);
+ 	OFFSET(TASK_addr_limit, task_struct, thread.addr_limit);
+ 
+ 	BLANK();
+diff --git a/arch/x86/kernel/irq_64.c b/arch/x86/kernel/irq_64.c
+index 4a7903714065..9ebd0b0e73d9 100644
+--- a/arch/x86/kernel/irq_64.c
++++ b/arch/x86/kernel/irq_64.c
+@@ -40,8 +40,7 @@ static inline void stack_overflow_check(struct pt_regs *regs)
+ 	if (user_mode(regs))
+ 		return;
+ 
+-	if (regs->sp >= curbase + sizeof(struct thread_info) +
+-				  sizeof(struct pt_regs) + STACK_TOP_MARGIN &&
++	if (regs->sp >= curbase + sizeof(struct pt_regs) + STACK_TOP_MARGIN &&
+ 	    regs->sp <= curbase + THREAD_SIZE)
+ 		return;
+ 
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index c1fa790c81cd..0b9ed8ec5226 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -549,9 +549,7 @@ unsigned long get_wchan(struct task_struct *p)
+ 	 * PADDING
+ 	 * ----------- top = topmax - TOP_OF_KERNEL_STACK_PADDING
+ 	 * stack
+-	 * ----------- bottom = start + sizeof(thread_info)
+-	 * thread_info
+-	 * ----------- start
++	 * ----------- bottom = start
+ 	 *
+ 	 * The tasks stack pointer points at the location where the
+ 	 * framepointer is stored. The data on the stack is:
+@@ -562,7 +560,7 @@ unsigned long get_wchan(struct task_struct *p)
+ 	 */
+ 	top = start + THREAD_SIZE - TOP_OF_KERNEL_STACK_PADDING;
+ 	top -= 2 * sizeof(unsigned long);
+-	bottom = start + sizeof(struct thread_info);
++	bottom = start;
+ 
+ 	sp = READ_ONCE(p->thread.sp);
+ 	if (sp < bottom || sp > top)

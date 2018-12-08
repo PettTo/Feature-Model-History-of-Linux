@@ -1,0 +1,153 @@
+commit 26660a4046b171a752e72a1dd32153230234fe3a
+Merge: 46e595a17dcf 1bcb58a09993
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sun Mar 20 18:23:21 2016 -0700
+
+    Merge branch 'core-objtool-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull 'objtool' stack frame validation from Ingo Molnar:
+     "This tree adds a new kernel build-time object file validation feature
+      (ONFIG_STACK_VALIDATION=y): kernel stack frame correctness validation.
+      It was written by and is maintained by Josh Poimboeuf.
+    
+      The motivation: there's a category of hard to find kernel bugs, most
+      of them in assembly code (but also occasionally in C code), that
+      degrades the quality of kernel stack dumps/backtraces.  These bugs are
+      hard to detect at the source code level.  Such bugs result in
+      incorrect/incomplete backtraces most of time - but can also in some
+      rare cases result in crashes or other undefined behavior.
+    
+      The build time correctness checking is done via the new 'objtool'
+      user-space utility that was written for this purpose and which is
+      hosted in the kernel repository in tools/objtool/.  The tool's (very
+      simple) UI and source code design is shaped after Git and perf and
+      shares quite a bit of infrastructure with tools/perf (which tooling
+      infrastructure sharing effort got merged via perf and is already
+      upstream).  Objtool follows the well-known kernel coding style.
+    
+      Objtool does not try to check .c or .S files, it instead analyzes the
+      resulting .o generated machine code from first principles: it decodes
+      the instruction stream and interprets it.  (Right now objtool supports
+      the x86-64 architecture.)
+    
+      From tools/objtool/Documentation/stack-validation.txt:
+    
+       "The kernel CONFIG_STACK_VALIDATION option enables a host tool named
+        objtool which runs at compile time.  It has a "check" subcommand
+        which analyzes every .o file and ensures the validity of its stack
+        metadata.  It enforces a set of rules on asm code and C inline
+        assembly code so that stack traces can be reliable.
+    
+        Currently it only checks frame pointer usage, but there are plans to
+        add CFI validation for C files and CFI generation for asm files.
+    
+        For each function, it recursively follows all possible code paths
+        and validates the correct frame pointer state at each instruction.
+    
+        It also follows code paths involving special sections, like
+        .altinstructions, __jump_table, and __ex_table, which can add
+        alternative execution paths to a given instruction (or set of
+        instructions).  Similarly, it knows how to follow switch statements,
+        for which gcc sometimes uses jump tables."
+    
+      When this new kernel option is enabled (it's disabled by default), the
+      tool, if it finds any suspicious assembly code pattern, outputs
+      warnings in compiler warning format:
+    
+        warning: objtool: rtlwifi_rate_mapping()+0x2e7: frame pointer state mismatch
+        warning: objtool: cik_tiling_mode_table_init()+0x6ce: call without frame pointer save/setup
+        warning: objtool:__schedule()+0x3c0: duplicate frame pointer save
+        warning: objtool:__schedule()+0x3fd: sibling call from callable instruction with changed frame pointer
+    
+      ... so that scripts that pick up compiler warnings will notice them.
+      All known warnings triggered by the tool are fixed by the tree, most
+      of the commits in fact prepare the kernel to be warning-free.  Most of
+      them are bugfixes or cleanups that stand on their own, but there are
+      also some annotations of 'special' stack frames for justified cases
+      such entries to JIT-ed code (BPF) or really special boot time code.
+    
+      There are two other long-term motivations behind this tool as well:
+    
+       - To improve the quality and reliability of kernel stack frames, so
+         that they can be used for optimized live patching.
+    
+       - To create independent infrastructure to check the correctness of
+         CFI stack frames at build time.  CFI debuginfo is notoriously
+         unreliable and we cannot use it in the kernel as-is without extra
+         checking done both on the kernel side and on the build side.
+    
+      The quality of kernel stack frames matters to debuggability as well,
+      so IMO we can merge this without having to consider the live patching
+      or CFI debuginfo angle"
+    
+    * 'core-objtool-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (52 commits)
+      objtool: Only print one warning per function
+      objtool: Add several performance improvements
+      tools: Copy hashtable.h into tools directory
+      objtool: Fix false positive warnings for functions with multiple switch statements
+      objtool: Rename some variables and functions
+      objtool: Remove superflous INIT_LIST_HEAD
+      objtool: Add helper macros for traversing instructions
+      objtool: Fix false positive warnings related to sibling calls
+      objtool: Compile with debugging symbols
+      objtool: Detect infinite recursion
+      objtool: Prevent infinite recursion in noreturn detection
+      objtool: Detect and warn if libelf is missing and don't break the build
+      tools: Support relative directory path for 'O='
+      objtool: Support CROSS_COMPILE
+      x86/asm/decoder: Use explicitly signed chars
+      objtool: Enable stack metadata validation on 64-bit x86
+      objtool: Add CONFIG_STACK_VALIDATION option
+      objtool: Add tool to perform compile-time stack metadata validation
+      x86/kprobes: Mark kretprobe_trampoline() stack frame as non-standard
+      sched: Always inline context_switch()
+      ...
+
+diff --cc kernel/sched/core.c
+index 4ee3ce7ec78d,bb0daabe0ffe..44db0fffa8be
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@@ -71,8 -71,10 +71,9 @@@
+  #include <linux/ftrace.h>
+  #include <linux/slab.h>
+  #include <linux/init_task.h>
+ -#include <linux/binfmts.h>
+  #include <linux/context_tracking.h>
+  #include <linux/compiler.h>
++ #include <linux/frame.h>
+  
+  #include <asm/switch_to.h>
+  #include <asm/tlb.h>
+diff --cc tools/Makefile
+index f41e7c6ea23e,cc2a37d975d6..60c7e6c8ff17
+--- a/tools/Makefile
++++ b/tools/Makefile
+@@@ -54,7 -54,7 +55,7 @@@ acpi: FORC
+  cpupower: FORCE
+  	$(call descend,power/$@)
+  
+- cgroup firewire hv guest spi usb virtio vm net iio gpio: FORCE
+ -cgroup firewire hv guest spi usb virtio vm net iio objtool: FORCE
+++cgroup firewire hv guest spi usb virtio vm net iio gpio objtool: FORCE
+  	$(call descend,$@)
+  
+  liblockdep: FORCE
+@@@ -120,7 -120,7 +121,7 @@@ acpi_clean
+  cpupower_clean:
+  	$(call descend,power/cpupower,clean)
+  
+- cgroup_clean hv_clean firewire_clean lguest_clean spi_clean usb_clean virtio_clean vm_clean net_clean iio_clean gpio_clean:
+ -cgroup_clean hv_clean firewire_clean lguest_clean spi_clean usb_clean virtio_clean vm_clean net_clean iio_clean objtool_clean:
+++cgroup_clean hv_clean firewire_clean lguest_clean spi_clean usb_clean virtio_clean vm_clean net_clean iio_clean gpio_clean objtool_clean:
+  	$(call descend,$(@:_clean=),clean)
+  
+  liblockdep_clean:
+@@@ -157,6 -157,6 +158,6 @@@ clean: acpi_clean cgroup_clean cpupower
+  		perf_clean selftests_clean turbostat_clean spi_clean usb_clean virtio_clean \
+  		vm_clean net_clean iio_clean x86_energy_perf_policy_clean tmon_clean \
+  		freefall_clean build_clean libbpf_clean libsubcmd_clean liblockdep_clean \
+- 		gpio_clean
+ -		objtool_clean
+++		gpio_clean objtool_clean
+  
+  .PHONY: FORCE

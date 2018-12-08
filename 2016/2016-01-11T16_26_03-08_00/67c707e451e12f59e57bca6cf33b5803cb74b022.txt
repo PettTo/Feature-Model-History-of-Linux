@@ -1,0 +1,70 @@
+commit 67c707e451e12f59e57bca6cf33b5803cb74b022
+Merge: 463eb8ac337b 0105c8d8334f
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jan 11 16:26:03 2016 -0800
+
+    Merge branch 'x86-cleanups-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 cleanups from Ingo Molnar:
+     "The main changes in this cycle were:
+    
+       - code patching and cpu_has cleanups (Borislav Petkov)
+    
+       - paravirt cleanups (Juergen Gross)
+    
+       - TSC cleanup (Thomas Gleixner)
+    
+       - ptrace cleanup (Chen Gang)"
+    
+    * 'x86-cleanups-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      arch/x86/kernel/ptrace.c: Remove unused arg_offs_table
+      x86/mm: Align macro defines
+      x86/cpu: Provide a config option to disable static_cpu_has
+      x86/cpufeature: Remove unused and seldomly used cpu_has_xx macros
+      x86/cpufeature: Cleanup get_cpu_cap()
+      x86/cpufeature: Move some of the scattered feature bits to x86_capability
+      x86/paravirt: Remove paravirt ops pmd_update[_defer] and pte_update_defer
+      x86/paravirt: Remove unused pv_apic_ops structure
+      x86/tsc: Remove unused tsc_pre_init() hook
+      x86: Remove unused function cpu_has_ht_siblings()
+      x86/paravirt: Kill some unused patching functions
+
+diff --cc arch/x86/include/asm/cpufeature.h
+index f7ba9fbf12ee,43e144474043..7ad8c9464297
+--- a/arch/x86/include/asm/cpufeature.h
++++ b/arch/x86/include/asm/cpufeature.h
+@@@ -205,18 -200,8 +200,9 @@@
+  #define X86_FEATURE_FLEXPRIORITY ( 8*32+ 2) /* Intel FlexPriority */
+  #define X86_FEATURE_EPT         ( 8*32+ 3) /* Intel Extended Page Table */
+  #define X86_FEATURE_VPID        ( 8*32+ 4) /* Intel Virtual Processor ID */
+- #define X86_FEATURE_NPT		( 8*32+ 5) /* AMD Nested Page Table support */
+- #define X86_FEATURE_LBRV	( 8*32+ 6) /* AMD LBR Virtualization support */
+- #define X86_FEATURE_SVML	( 8*32+ 7) /* "svm_lock" AMD SVM locking MSR */
+- #define X86_FEATURE_NRIPS	( 8*32+ 8) /* "nrip_save" AMD SVM next_rip save */
+- #define X86_FEATURE_TSCRATEMSR  ( 8*32+ 9) /* "tsc_scale" AMD TSC scaling support */
+- #define X86_FEATURE_VMCBCLEAN   ( 8*32+10) /* "vmcb_clean" AMD VMCB clean bits support */
+- #define X86_FEATURE_FLUSHBYASID ( 8*32+11) /* AMD flush-by-ASID support */
+- #define X86_FEATURE_DECODEASSISTS ( 8*32+12) /* AMD Decode Assists support */
+- #define X86_FEATURE_PAUSEFILTER ( 8*32+13) /* AMD filtered pause intercept */
+- #define X86_FEATURE_PFTHRESHOLD ( 8*32+14) /* AMD pause filter threshold */
++ 
+  #define X86_FEATURE_VMMCALL     ( 8*32+15) /* Prefer vmmcall to vmcall */
+ +#define X86_FEATURE_XENPV       ( 8*32+16) /* "" Xen paravirtual guest */
+  
+  
+  /* Intel-defined CPU features, CPUID level 0x00000007:0 (ebx), word 9 */
+diff --cc arch/x86/xen/enlighten.c
+index dd37ccabcacc,4334e511cfc8..23063923e364
+--- a/arch/x86/xen/enlighten.c
++++ b/arch/x86/xen/enlighten.c
+@@@ -1532,10 -1529,7 +1526,9 @@@ asmlinkage __visible void __init xen_st
+  
+  	/* Install Xen paravirt ops */
+  	pv_info = xen_info;
+ +	if (xen_initial_domain())
+ +		pv_info.features |= PV_SUPPORTED_RTC;
+  	pv_init_ops = xen_init_ops;
+- 	pv_apic_ops = xen_apic_ops;
+  	if (!xen_pvh_domain()) {
+  		pv_cpu_ops = xen_cpu_ops;
+  

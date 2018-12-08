@@ -1,0 +1,99 @@
+commit 90397a41779645d3abba5599f6bb538fdcab9339
+Author: Thomas Garnier <thgarnie@google.com>
+Date:   Tue Jun 21 17:47:06 2016 -0700
+
+    x86/mm: Add memory hotplug support for KASLR memory randomization
+    
+    Add a new option (CONFIG_RANDOMIZE_MEMORY_PHYSICAL_PADDING) to define
+    the padding used for the physical memory mapping section when KASLR
+    memory is enabled. It ensures there is enough virtual address space when
+    CONFIG_MEMORY_HOTPLUG is used. The default value is 10 terabytes. If
+    CONFIG_MEMORY_HOTPLUG is not used, no space is reserved increasing the
+    entropy available.
+    
+    Signed-off-by: Thomas Garnier <thgarnie@google.com>
+    Signed-off-by: Kees Cook <keescook@chromium.org>
+    Cc: Alexander Kuleshov <kuleshovmail@gmail.com>
+    Cc: Alexander Popov <alpopov@ptsecurity.com>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Andy Lutomirski <luto@kernel.org>
+    Cc: Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com>
+    Cc: Baoquan He <bhe@redhat.com>
+    Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Borislav Petkov <bp@suse.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Christian Borntraeger <borntraeger@de.ibm.com>
+    Cc: Dan Williams <dan.j.williams@intel.com>
+    Cc: Dave Hansen <dave.hansen@linux.intel.com>
+    Cc: Dave Young <dyoung@redhat.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: Dmitry Vyukov <dvyukov@google.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Jan Beulich <JBeulich@suse.com>
+    Cc: Joerg Roedel <jroedel@suse.de>
+    Cc: Jonathan Corbet <corbet@lwn.net>
+    Cc: Josh Poimboeuf <jpoimboe@redhat.com>
+    Cc: Juergen Gross <jgross@suse.com>
+    Cc: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Lv Zheng <lv.zheng@intel.com>
+    Cc: Mark Salter <msalter@redhat.com>
+    Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+    Cc: Matt Fleming <matt@codeblueprint.co.uk>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Stephen Smalley <sds@tycho.nsa.gov>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Toshi Kani <toshi.kani@hpe.com>
+    Cc: Xiao Guangrong <guangrong.xiao@linux.intel.com>
+    Cc: Yinghai Lu <yinghai@kernel.org>
+    Cc: kernel-hardening@lists.openwall.com
+    Cc: linux-doc@vger.kernel.org
+    Link: http://lkml.kernel.org/r/1466556426-32664-10-git-send-email-keescook@chromium.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 9719b8eb38d3..703413fb233a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2010,6 +2010,21 @@ config RANDOMIZE_MEMORY
+ 
+ 	   If unsure, say N.
+ 
++config RANDOMIZE_MEMORY_PHYSICAL_PADDING
++	hex "Physical memory mapping padding" if EXPERT
++	depends on RANDOMIZE_MEMORY
++	default "0xa" if MEMORY_HOTPLUG
++	default "0x0"
++	range 0x1 0x40 if MEMORY_HOTPLUG
++	range 0x0 0x40
++	---help---
++	   Define the padding in terabytes added to the existing physical
++	   memory size during kernel memory randomization. It is useful
++	   for memory hotplug support but reduces the entropy available for
++	   address randomization.
++
++	   If unsure, leave at the default value.
++
+ config HOTPLUG_CPU
+ 	bool "Support for hot-pluggable CPUs"
+ 	depends on SMP
+diff --git a/arch/x86/mm/kaslr.c b/arch/x86/mm/kaslr.c
+index c939cfe1b516..26dccd6c0df1 100644
+--- a/arch/x86/mm/kaslr.c
++++ b/arch/x86/mm/kaslr.c
+@@ -92,8 +92,13 @@ void __init kernel_randomize_memory(void)
+ 	if (!kaslr_memory_enabled())
+ 		return;
+ 
++	/*
++	 * Update Physical memory mapping to available and
++	 * add padding if needed (especially for memory hotplug support).
++	 */
+ 	BUG_ON(kaslr_regions[0].base != &page_offset_base);
+-	memory_tb = ((max_pfn << PAGE_SHIFT) >> TB_SHIFT);
++	memory_tb = ((max_pfn << PAGE_SHIFT) >> TB_SHIFT) +
++		CONFIG_RANDOMIZE_MEMORY_PHYSICAL_PADDING;
+ 
+ 	/* Adapt phyiscal memory region size based on available memory */
+ 	if (memory_tb < kaslr_regions[0].size_tb)
