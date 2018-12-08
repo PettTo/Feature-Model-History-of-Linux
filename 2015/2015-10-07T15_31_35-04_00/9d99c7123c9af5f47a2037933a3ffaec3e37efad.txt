@@ -1,0 +1,47 @@
+commit 9d99c7123c9af5f47a2037933a3ffaec3e37efad
+Author: Christian Melki <christian.melki@t2data.com>
+Date:   Mon Oct 5 17:31:33 2015 +0200
+
+    swiotlb: Enable it under x86 PAE
+    
+    Most distributions end up enabling SWIOTLB already with 32-bit
+    kernels due to the combination of CONFIG_HYPERVISOR_GUEST|CONFIG_XEN=y
+    as those end up requiring the SWIOTLB.
+    
+    However for those that are not interested in virtualization and
+    run in 32-bit they will discover that: "32-bit PAE 4.2.0 kernel
+    (no IOMMU code) would hang when writing to my USB disk. The kernel
+    spews million(-ish messages per sec) to syslog, effectively
+    "hanging" userspace with my kernel.
+    
+    Oct  2 14:33:06 voodoochild kernel: [  223.287447] nommu_map_sg:
+    overflow 25dcac000+1024 of device mask ffffffff
+    Oct  2 14:33:06 voodoochild kernel: [  223.287448] nommu_map_sg:
+    overflow 25dcac000+1024 of device mask ffffffff
+    Oct  2 14:33:06 voodoochild kernel: [  223.287449] nommu_map_sg:
+    overflow 25dcac000+1024 of device mask ffffffff
+    ... etc ..."
+    
+    Enabling it makes the problem go away.
+    
+    N.B. With a6dfa128ce5c414ab46b1d690f7a1b8decb8526d
+    "config: Enable NEED_DMA_MAP_STATE by default when SWIOTLB is selected"
+    we also have the important part of the SG macros enabled to make this
+    work properly - in case anybody wants to backport this patch.
+    
+    Reported-and-Tested-by: Christian Melki <christian.melki@t2data.com>
+    Signed-off-by: Christian Melki <christian.melki@t2data.com>
+    Signed-off-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 328c8352480c..96d058a87100 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1308,6 +1308,7 @@ config HIGHMEM
+ config X86_PAE
+ 	bool "PAE (Physical Address Extension) Support"
+ 	depends on X86_32 && !HIGHMEM4G
++	select SWIOTLB
+ 	---help---
+ 	  PAE is required for NX support, and furthermore enables
+ 	  larger swapspace support for non-overcommit purposes. It

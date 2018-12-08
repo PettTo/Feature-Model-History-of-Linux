@@ -1,0 +1,145 @@
+commit 4a20799d11f64e6b8725cacc7619b1ae1dbf9acd
+Author: Vladimir Murzin <vladimir.murzin@arm.com>
+Date:   Tue Apr 14 15:48:27 2015 -0700
+
+    mm: move memtest under mm
+    
+    Memtest is a simple feature which fills the memory with a given set of
+    patterns and validates memory contents, if bad memory regions is detected
+    it reserves them via memblock API.  Since memblock API is widely used by
+    other architectures this feature can be enabled outside of x86 world.
+    
+    This patch set promotes memtest to live under generic mm umbrella and
+    enables memtest feature for arm/arm64.
+    
+    It was reported that this patch set was useful for tracking down an issue
+    with some errant DMA on an arm64 platform.
+    
+    This patch (of 6):
+    
+    There is nothing platform dependent in the core memtest code, so other
+    platforms might benefit from this feature too.
+    
+    [linux@roeck-us.net: MEMTEST depends on MEMBLOCK]
+    Signed-off-by: Vladimir Murzin <vladimir.murzin@arm.com>
+    Acked-by: Will Deacon <will.deacon@arm.com>
+    Tested-by: Mark Rutland <mark.rutland@arm.com>
+    Cc: Ingo Molnar <mingo@elte.hu>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: Catalin Marinas <catalin.marinas@arm.com>
+    Cc: Russell King <rmk@arm.linux.org.uk>
+    Cc: Paul Bolle <pebolle@tiscali.nl>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 1f7f185934a5..d43e7e1c784b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -721,17 +721,6 @@ endif #HYPERVISOR_GUEST
+ config NO_BOOTMEM
+ 	def_bool y
+ 
+-config MEMTEST
+-	bool "Memtest"
+-	---help---
+-	  This option adds a kernel parameter 'memtest', which allows memtest
+-	  to be set.
+-	        memtest=0, mean disabled; -- default
+-	        memtest=1, mean do 1 test pattern;
+-	        ...
+-	        memtest=4, mean do 4 test patterns.
+-	  If you are unsure how to answer this question, answer N.
+-
+ source "arch/x86/Kconfig.cpu"
+ 
+ config HPET_TIMER
+diff --git a/arch/x86/include/asm/e820.h b/arch/x86/include/asm/e820.h
+index 779c2efe2e97..3ab0537872fb 100644
+--- a/arch/x86/include/asm/e820.h
++++ b/arch/x86/include/asm/e820.h
+@@ -40,14 +40,6 @@ static inline void e820_mark_nosave_regions(unsigned long limit_pfn)
+ }
+ #endif
+ 
+-#ifdef CONFIG_MEMTEST
+-extern void early_memtest(unsigned long start, unsigned long end);
+-#else
+-static inline void early_memtest(unsigned long start, unsigned long end)
+-{
+-}
+-#endif
+-
+ extern unsigned long e820_end_of_ram_pfn(void);
+ extern unsigned long e820_end_of_low_ram_pfn(void);
+ extern u64 early_reserve_e820(u64 sizet, u64 align);
+diff --git a/arch/x86/mm/Makefile b/arch/x86/mm/Makefile
+index c4cc74006c61..a482d105172b 100644
+--- a/arch/x86/mm/Makefile
++++ b/arch/x86/mm/Makefile
+@@ -32,6 +32,4 @@ obj-$(CONFIG_AMD_NUMA)		+= amdtopology.o
+ obj-$(CONFIG_ACPI_NUMA)		+= srat.o
+ obj-$(CONFIG_NUMA_EMU)		+= numa_emulation.o
+ 
+-obj-$(CONFIG_MEMTEST)		+= memtest.o
+-
+ obj-$(CONFIG_X86_INTEL_MPX)	+= mpx.o
+diff --git a/include/linux/memblock.h b/include/linux/memblock.h
+index e8cc45307f8f..6724cb020f5e 100644
+--- a/include/linux/memblock.h
++++ b/include/linux/memblock.h
+@@ -365,6 +365,14 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
+ #define __initdata_memblock
+ #endif
+ 
++#ifdef CONFIG_MEMTEST
++extern void early_memtest(unsigned long start, unsigned long end);
++#else
++static inline void early_memtest(unsigned long start, unsigned long end)
++{
++}
++#endif
++
+ #else
+ static inline phys_addr_t memblock_alloc(phys_addr_t size, phys_addr_t align)
+ {
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 36b6fa88ce5b..5c7a3183423b 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -1745,6 +1745,18 @@ config TEST_UDELAY
+ 
+ 	  If unsure, say N.
+ 
++config MEMTEST
++	bool "Memtest"
++	depends on HAVE_MEMBLOCK
++	---help---
++	  This option adds a kernel parameter 'memtest', which allows memtest
++	  to be set.
++	        memtest=0, mean disabled; -- default
++	        memtest=1, mean do 1 test pattern;
++	        ...
++	        memtest=4, mean do 4 test patterns.
++	  If you are unsure how to answer this question, answer N.
++
+ source "samples/Kconfig"
+ 
+ source "lib/Kconfig.kgdb"
+diff --git a/mm/Makefile b/mm/Makefile
+index 668a9bb82be4..98c4eaeabdcb 100644
+--- a/mm/Makefile
++++ b/mm/Makefile
+@@ -55,6 +55,7 @@ obj-$(CONFIG_KMEMCHECK) += kmemcheck.o
+ obj-$(CONFIG_KASAN)	+= kasan/
+ obj-$(CONFIG_FAILSLAB) += failslab.o
+ obj-$(CONFIG_MEMORY_HOTPLUG) += memory_hotplug.o
++obj-$(CONFIG_MEMTEST)		+= memtest.o
+ obj-$(CONFIG_MIGRATION) += migrate.o
+ obj-$(CONFIG_QUICKLIST) += quicklist.o
+ obj-$(CONFIG_TRANSPARENT_HUGEPAGE) += huge_memory.o
+diff --git a/arch/x86/mm/memtest.c b/mm/memtest.c
+similarity index 100%
+rename from arch/x86/mm/memtest.c
+rename to mm/memtest.c

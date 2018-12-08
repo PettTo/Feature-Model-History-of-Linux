@@ -1,0 +1,72 @@
+commit 752240e74d650faa24425adc523f1308973ea51c
+Merge: b8cb642af982 626d7508664c
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Sep 8 11:46:48 2015 -0700
+
+    Merge tag 'for-linus-4.3-rc0-tag' of git://git.kernel.org/pub/scm/linux/kernel/git/xen/tip
+    
+    Pull xen updates from David Vrabel:
+     "Xen features and fixes for 4.3:
+    
+       - Convert xen-blkfront to the multiqueue API
+       - [arm] Support binding event channels to different VCPUs.
+       - [x86] Support > 512 GiB in a PV guests (off by default as such a
+         guest cannot be migrated with the current toolstack).
+       - [x86] PMU support for PV dom0 (limited support for using perf with
+         Xen and other guests)"
+    
+    * tag 'for-linus-4.3-rc0-tag' of git://git.kernel.org/pub/scm/linux/kernel/git/xen/tip: (33 commits)
+      xen: switch extra memory accounting to use pfns
+      xen: limit memory to architectural maximum
+      xen: avoid another early crash of memory limited dom0
+      xen: avoid early crash of memory limited dom0
+      arm/xen: Remove helpers which are PV specific
+      xen/x86: Don't try to set PCE bit in CR4
+      xen/PMU: PMU emulation code
+      xen/PMU: Intercept PMU-related MSR and APIC accesses
+      xen/PMU: Describe vendor-specific PMU registers
+      xen/PMU: Initialization code for Xen PMU
+      xen/PMU: Sysfs interface for setting Xen PMU mode
+      xen: xensyms support
+      xen: remove no longer needed p2m.h
+      xen: allow more than 512 GB of RAM for 64 bit pv-domains
+      xen: move p2m list if conflicting with e820 map
+      xen: add explicit memblock_reserve() calls for special pages
+      mm: provide early_memremap_ro to establish read-only mapping
+      xen: check for initrd conflicting with e820 map
+      xen: check pre-allocated page tables for conflict with memory map
+      xen: check for kernel memory conflicting with memory layout
+      ...
+
+diff --cc arch/x86/xen/Kconfig
+index 484145368a24,a8ffdb85656f..c7b15f3e2cf3
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@@ -7,8 -7,9 +7,9 @@@ config XE
+  	depends on PARAVIRT
+  	select PARAVIRT_CLOCK
+  	select XEN_HAVE_PVMMU
++ 	select XEN_HAVE_VPMU
+  	depends on X86_64 || (X86_32 && X86_PAE)
+ -	depends on X86_TSC
+ +	depends on X86_LOCAL_APIC && X86_TSC
+  	help
+  	  This is the Linux Xen port.  Enabling this will allow the
+  	  kernel to boot in a paravirtualized environment under the
+diff --cc arch/x86/xen/enlighten.c
+index d9cfa452da9d,25309c168311..30d12afe52ed
+--- a/arch/x86/xen/enlighten.c
++++ b/arch/x86/xen/enlighten.c
+@@@ -1215,8 -1219,11 +1219,8 @@@ static const struct pv_cpu_ops xen_cpu_
+  	.read_msr = xen_read_msr_safe,
+  	.write_msr = xen_write_msr_safe,
+  
+- 	.read_pmc = native_read_pmc,
+ -	.read_tsc = native_read_tsc,
++ 	.read_pmc = xen_read_pmc,
+  
+ -	.read_tscp = native_read_tscp,
+ -
+  	.iret = xen_iret,
+  #ifdef CONFIG_X86_64
+  	.usergs_sysret32 = xen_sysret32,

@@ -1,0 +1,384 @@
+commit 872912352c5be930e9568e5f3b6d73107d9f278d
+Merge: c08f8467939e b5e82233cab4
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Feb 10 15:09:41 2015 -0800
+
+    Merge tag 'pm+acpi-3.20-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm
+    
+    Pull ACPI and power management updates from Rafael Wysocki:
+     "We have a few new features this time, including a new SFI-based
+      cpufreq driver, a new devfreq driver for Tegra Activity Monitor, a new
+      devfreq class for providing its governors with raw utilization data
+      and a new ACPI driver for AMD SoCs.
+    
+      Still, the majority of changes here are reworks of existing code to
+      make it more straightforward or to prepare it for implementing new
+      features on top of it.  The primary example is the rework of ACPI
+      resources handling from Jiang Liu, Thomas Gleixner and Lv Zheng with
+      support for IOAPIC hotplug implemented on top of it, but there is
+      quite a number of changes of this kind in the cpufreq core, ACPICA,
+      ACPI EC driver, ACPI processor driver and the generic power domains
+      core code too.
+    
+      The most active developer is Viresh Kumar with his cpufreq changes.
+    
+      Specifics:
+    
+       - Rework of the core ACPI resources parsing code to fix issues in it
+         and make using resource offsets more convenient and consolidation
+         of some resource-handing code in a couple of places that have grown
+         analagous data structures and code to cover the the same gap in the
+         core (Jiang Liu, Thomas Gleixner, Lv Zheng).
+    
+       - ACPI-based IOAPIC hotplug support on top of the resources handling
+         rework (Jiang Liu, Yinghai Lu).
+    
+       - ACPICA update to upstream release 20150204 including an interrupt
+         handling rework that allows drivers to install raw handlers for
+         ACPI GPEs which then become entirely responsible for the given GPE
+         and the ACPICA core code won't touch it (Lv Zheng, David E Box,
+         Octavian Purdila).
+    
+       - ACPI EC driver rework to fix several concurrency issues and other
+         problems related to events handling on top of the ACPICA's new
+         support for raw GPE handlers (Lv Zheng).
+    
+       - New ACPI driver for AMD SoCs analogous to the LPSS (Low-Power
+         Subsystem) driver for Intel chips (Ken Xue).
+    
+       - Two minor fixes of the ACPI LPSS driver (Heikki Krogerus, Jarkko
+         Nikula).
+    
+       - Two new blacklist entries for machines (Samsung 730U3E/740U3E and
+         510R) where the native backlight interface doesn't work correctly
+         while the ACPI one does (Hans de Goede).
+    
+       - Rework of the ACPI processor driver's handling of idle states to
+         make the code more straightforward and less bloated overall (Rafael
+         J Wysocki).
+    
+       - Assorted minor fixes related to ACPI and SFI (Andreas Ruprecht,
+         Andy Shevchenko, Hanjun Guo, Jan Beulich, Rafael J Wysocki, Yaowei
+         Bai).
+    
+       - PCI core power management modification to avoid resuming (some)
+         runtime-suspended devices during system suspend if they are in the
+         right states already (Rafael J Wysocki).
+    
+       - New SFI-based cpufreq driver for Intel platforms using SFI
+         (Srinidhi Kasagar).
+    
+       - cpufreq core fixes, cleanups and simplifications (Viresh Kumar,
+         Doug Anderson, Wolfram Sang).
+    
+       - SkyLake CPU support and other updates for the intel_pstate driver
+         (Kristen Carlson Accardi, Srinivas Pandruvada).
+    
+       - cpufreq-dt driver cleanup (Markus Elfring).
+    
+       - Init fix for the ARM big.LITTLE cpuidle driver (Sudeep Holla).
+    
+       - Generic power domains core code fixes and cleanups (Ulf Hansson).
+    
+       - Operating Performance Points (OPP) core code cleanups and kernel
+         documentation update (Nishanth Menon).
+    
+       - New dabugfs interface to make the list of PM QoS constraints
+         available to user space (Nishanth Menon).
+    
+       - New devfreq driver for Tegra Activity Monitor (Tomeu Vizoso).
+    
+       - New devfreq class (devfreq_event) to provide raw utilization data
+         to devfreq governors (Chanwoo Choi).
+    
+       - Assorted minor fixes and cleanups related to power management
+         (Andreas Ruprecht, Krzysztof Kozlowski, Rickard Strandqvist, Pavel
+         Machek, Todd E Brandt, Wonhong Kwon).
+    
+       - turbostat updates (Len Brown) and cpupower Makefile improvement
+         (Sriram Raghunathan)"
+    
+    * tag 'pm+acpi-3.20-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/rafael/linux-pm: (151 commits)
+      tools/power turbostat: relax dependency on APERF_MSR
+      tools/power turbostat: relax dependency on invariant TSC
+      Merge branch 'pci/host-generic' of git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci into acpi-resources
+      tools/power turbostat: decode MSR_*_PERF_LIMIT_REASONS
+      tools/power turbostat: relax dependency on root permission
+      ACPI / video: Add disable_native_backlight quirk for Samsung 510R
+      ACPI / PM: Remove unneeded nested #ifdef
+      USB / PM: Remove unneeded #ifdef and associated dead code
+      intel_pstate: provide option to only use intel_pstate with HWP
+      ACPI / EC: Add GPE reference counting debugging messages
+      ACPI / EC: Add query flushing support
+      ACPI / EC: Refine command storm prevention support
+      ACPI / EC: Add command flushing support.
+      ACPI / EC: Introduce STARTED/STOPPED flags to replace BLOCKED flag
+      ACPI: add AMD ACPI2Platform device support for x86 system
+      ACPI / table: remove duplicate NULL check for the handler of acpi_table_parse()
+      ACPI / EC: Update revision due to raw handler mode.
+      ACPI / EC: Reduce ec_poll() by referencing the last register access timestamp.
+      ACPI / EC: Fix several GPE handling issues by deploying ACPI_GPE_DISPATCH_RAW_HANDLER mode.
+      ACPICA: Events: Enable APIs to allow interrupt/polling adaptive request based GPE handling model
+      ...
+
+diff --cc drivers/of/of_pci.c
+index 60dc36c865b5,62426d81a4d6..110fece2ff53
+--- a/drivers/of/of_pci.c
++++ b/drivers/of/of_pci.c
+@@@ -226,10 -226,9 +226,10 @@@ int of_pci_get_host_bridge_resources(st
+  conversion_failed:
+  	kfree(res);
+  parse_failed:
+- 	list_for_each_entry(window, resources, list)
++ 	resource_list_for_each_entry(window, resources)
+  		kfree(window->res);
+  	pci_free_resource_list(resources);
+ +	kfree(bus_range);
+  	return err;
+  }
+  EXPORT_SYMBOL_GPL(of_pci_get_host_bridge_resources);
+diff --cc drivers/pci/host/pci-versatile.c
+index 341529ca23e8,000000000000..1ec694a52379
+mode 100644,000000..100644
+--- a/drivers/pci/host/pci-versatile.c
++++ b/drivers/pci/host/pci-versatile.c
+@@@ -1,237 -1,0 +1,237 @@@
+ +/*
+ + * Copyright 2004 Koninklijke Philips Electronics NV
+ + *
+ + * Conversion to platform driver and DT:
+ + * Copyright 2014 Linaro Ltd.
+ + *
+ + * This software is licensed under the terms of the GNU General Public
+ + * License version 2, as published by the Free Software Foundation, and
+ + * may be copied, distributed, and modified under those terms.
+ + *
+ + * This program is distributed in the hope that it will be useful,
+ + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ + * GNU General Public License for more details.
+ + *
+ + * 14/04/2005 Initial version, colin.king@philips.com
+ + */
+ +#include <linux/kernel.h>
+ +#include <linux/module.h>
+ +#include <linux/of_address.h>
+ +#include <linux/of_pci.h>
+ +#include <linux/of_platform.h>
+ +#include <linux/pci.h>
+ +#include <linux/platform_device.h>
+ +
+ +static void __iomem *versatile_pci_base;
+ +static void __iomem *versatile_cfg_base[2];
+ +
+ +#define PCI_IMAP(m)		(versatile_pci_base + ((m) * 4))
+ +#define PCI_SMAP(m)		(versatile_pci_base + 0x14 + ((m) * 4))
+ +#define PCI_SELFID		(versatile_pci_base + 0xc)
+ +
+ +#define VP_PCI_DEVICE_ID		0x030010ee
+ +#define VP_PCI_CLASS_ID			0x0b400000
+ +
+ +static u32 pci_slot_ignore;
+ +
+ +static int __init versatile_pci_slot_ignore(char *str)
+ +{
+ +	int retval;
+ +	int slot;
+ +
+ +	while ((retval = get_option(&str, &slot))) {
+ +		if ((slot < 0) || (slot > 31))
+ +			pr_err("Illegal slot value: %d\n", slot);
+ +		else
+ +			pci_slot_ignore |= (1 << slot);
+ +	}
+ +	return 1;
+ +}
+ +__setup("pci_slot_ignore=", versatile_pci_slot_ignore);
+ +
+ +
+ +static void __iomem *versatile_map_bus(struct pci_bus *bus,
+ +				       unsigned int devfn, int offset)
+ +{
+ +	unsigned int busnr = bus->number;
+ +
+ +	if (pci_slot_ignore & (1 << PCI_SLOT(devfn)))
+ +		return NULL;
+ +
+ +	return versatile_cfg_base[1] + ((busnr << 16) | (devfn << 8) | offset);
+ +}
+ +
+ +static struct pci_ops pci_versatile_ops = {
+ +	.map_bus = versatile_map_bus,
+ +	.read	= pci_generic_config_read32,
+ +	.write	= pci_generic_config_write,
+ +};
+ +
+ +static int versatile_pci_parse_request_of_pci_ranges(struct device *dev,
+ +						     struct list_head *res)
+ +{
+ +	int err, mem = 1, res_valid = 0;
+ +	struct device_node *np = dev->of_node;
+ +	resource_size_t iobase;
+- 	struct pci_host_bridge_window *win;
+++	struct resource_entry *win;
+ +
+ +	err = of_pci_get_host_bridge_resources(np, 0, 0xff, res, &iobase);
+ +	if (err)
+ +		return err;
+ +
+- 	list_for_each_entry(win, res, list) {
+++	resource_list_for_each_entry(win, res, list) {
+ +		struct resource *parent, *res = win->res;
+ +
+ +		switch (resource_type(res)) {
+ +		case IORESOURCE_IO:
+ +			parent = &ioport_resource;
+ +			err = pci_remap_iospace(res, iobase);
+ +			if (err) {
+ +				dev_warn(dev, "error %d: failed to map resource %pR\n",
+ +					 err, res);
+ +				continue;
+ +			}
+ +			break;
+ +		case IORESOURCE_MEM:
+ +			parent = &iomem_resource;
+ +			res_valid |= !(res->flags & IORESOURCE_PREFETCH);
+ +
+ +			writel(res->start >> 28, PCI_IMAP(mem));
+ +			writel(PHYS_OFFSET >> 28, PCI_SMAP(mem));
+ +			mem++;
+ +
+ +			break;
+ +		case IORESOURCE_BUS:
+ +		default:
+ +			continue;
+ +		}
+ +
+ +		err = devm_request_resource(dev, parent, res);
+ +		if (err)
+ +			goto out_release_res;
+ +	}
+ +
+ +	if (!res_valid) {
+ +		dev_err(dev, "non-prefetchable memory resource required\n");
+ +		err = -EINVAL;
+ +		goto out_release_res;
+ +	}
+ +
+ +	return 0;
+ +
+ +out_release_res:
+ +	pci_free_resource_list(res);
+ +	return err;
+ +}
+ +
+ +/* Unused, temporary to satisfy ARM arch code */
+ +struct pci_sys_data sys;
+ +
+ +static int versatile_pci_probe(struct platform_device *pdev)
+ +{
+ +	struct resource *res;
+ +	int ret, i, myslot = -1;
+ +	u32 val;
+ +	void __iomem *local_pci_cfg_base;
+ +	struct pci_bus *bus;
+ +	LIST_HEAD(pci_res);
+ +
+ +	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+ +	if (!res)
+ +		return -ENODEV;
+ +	versatile_pci_base = devm_ioremap_resource(&pdev->dev, res);
+ +
+ +	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+ +	if (!res)
+ +		return -ENODEV;
+ +	versatile_cfg_base[0] = devm_ioremap_resource(&pdev->dev, res);
+ +
+ +	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+ +	if (!res)
+ +		return -ENODEV;
+ +	versatile_cfg_base[1] = devm_ioremap_resource(&pdev->dev, res);
+ +
+ +	ret = versatile_pci_parse_request_of_pci_ranges(&pdev->dev, &pci_res);
+ +	if (ret)
+ +		return ret;
+ +
+ +	/*
+ +	 * We need to discover the PCI core first to configure itself
+ +	 * before the main PCI probing is performed
+ +	 */
+ +	for (i = 0; i < 32; i++) {
+ +		if ((readl(versatile_cfg_base[0] + (i << 11) + PCI_VENDOR_ID) == VP_PCI_DEVICE_ID) &&
+ +		    (readl(versatile_cfg_base[0] + (i << 11) + PCI_CLASS_REVISION) == VP_PCI_CLASS_ID)) {
+ +			myslot = i;
+ +			break;
+ +		}
+ +	}
+ +	if (myslot == -1) {
+ +		dev_err(&pdev->dev, "Cannot find PCI core!\n");
+ +		return -EIO;
+ +	}
+ +	/*
+ +	 * Do not to map Versatile FPGA PCI device into memory space
+ +	 */
+ +	pci_slot_ignore |= (1 << myslot);
+ +
+ +	dev_info(&pdev->dev, "PCI core found (slot %d)\n", myslot);
+ +
+ +	writel(myslot, PCI_SELFID);
+ +	local_pci_cfg_base = versatile_cfg_base[1] + (myslot << 11);
+ +
+ +	val = readl(local_pci_cfg_base + PCI_COMMAND);
+ +	val |= PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER | PCI_COMMAND_INVALIDATE;
+ +	writel(val, local_pci_cfg_base + PCI_COMMAND);
+ +
+ +	/*
+ +	 * Configure the PCI inbound memory windows to be 1:1 mapped to SDRAM
+ +	 */
+ +	writel(PHYS_OFFSET, local_pci_cfg_base + PCI_BASE_ADDRESS_0);
+ +	writel(PHYS_OFFSET, local_pci_cfg_base + PCI_BASE_ADDRESS_1);
+ +	writel(PHYS_OFFSET, local_pci_cfg_base + PCI_BASE_ADDRESS_2);
+ +
+ +	/*
+ +	 * For many years the kernel and QEMU were symbiotically buggy
+ +	 * in that they both assumed the same broken IRQ mapping.
+ +	 * QEMU therefore attempts to auto-detect old broken kernels
+ +	 * so that they still work on newer QEMU as they did on old
+ +	 * QEMU. Since we now use the correct (ie matching-hardware)
+ +	 * IRQ mapping we write a definitely different value to a
+ +	 * PCI_INTERRUPT_LINE register to tell QEMU that we expect
+ +	 * real hardware behaviour and it need not be backwards
+ +	 * compatible for us. This write is harmless on real hardware.
+ +	 */
+ +	writel(0, versatile_cfg_base[0] + PCI_INTERRUPT_LINE);
+ +
+ +	pci_add_flags(PCI_ENABLE_PROC_DOMAINS);
+ +	pci_add_flags(PCI_REASSIGN_ALL_BUS | PCI_REASSIGN_ALL_RSRC);
+ +
+ +	bus = pci_scan_root_bus(&pdev->dev, 0, &pci_versatile_ops, &sys, &pci_res);
+ +	if (!bus)
+ +		return -ENOMEM;
+ +
+ +	pci_fixup_irqs(pci_common_swizzle, of_irq_parse_and_map_pci);
+ +	pci_assign_unassigned_bus_resources(bus);
+ +
+ +	return 0;
+ +}
+ +
+ +static const struct of_device_id versatile_pci_of_match[] = {
+ +	{ .compatible = "arm,versatile-pci", },
+ +	{ },
+ +};
+ +MODULE_DEVICE_TABLE(of, versatile_pci_of_match);
+ +
+ +static struct platform_driver versatile_pci_driver = {
+ +	.driver = {
+ +		.name = "versatile-pci",
+ +		.of_match_table = versatile_pci_of_match,
+ +	},
+ +	.probe = versatile_pci_probe,
+ +};
+ +module_platform_driver(versatile_pci_driver);
+ +
+ +MODULE_DESCRIPTION("Versatile PCI driver");
+ +MODULE_LICENSE("GPL v2");

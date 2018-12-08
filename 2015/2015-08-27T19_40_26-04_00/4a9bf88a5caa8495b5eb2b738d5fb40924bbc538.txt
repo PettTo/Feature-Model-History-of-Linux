@@ -1,0 +1,7 @@
+commit 4a9bf88a5caa8495b5eb2b738d5fb40924bbc538
+Merge: a06a7576526e 67a3e8fe9015
+Author: Dan Williams <dan.j.williams@intel.com>
+Date:   Thu Aug 27 19:40:26 2015 -0400
+
+    Merge branch 'pmem-api' into libnvdimm-for-next
+

@@ -1,0 +1,27 @@
+commit 69711ca19b06d1b33d8f21213b540b5d1c638dbf
+Author: Sébastien Hinderer <Sebastien.Hinderer@ens-lyon.org>
+Date:   Wed Jul 8 00:02:01 2015 +0200
+
+    x86/kconfig: Fix typo in the CONFIG_CMDLINE_BOOL help text
+    
+    Signed-off-by: Sébastien Hinderer <Sebastien.Hinderer@ens-lyon.org>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Samuel Thibault <Samuel.Thibault@ens-lyon.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 0b2929f49531..3dbb7e7909ca 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2020,7 +2020,7 @@ config CMDLINE_BOOL
+ 
+ 	  To compile command line arguments into the kernel,
+ 	  set this option to 'Y', then fill in the
+-	  the boot arguments in CONFIG_CMDLINE.
++	  boot arguments in CONFIG_CMDLINE.
+ 
+ 	  Systems with fully functional boot loaders (i.e. non-embedded)
+ 	  should leave this option set to 'N'.

@@ -1,0 +1,55 @@
+commit 9d43bade347143b96671b38a7f81c39a81206675
+Merge: 0ba97bc4b4b0 ba360f887a41
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Feb 9 16:57:56 2015 -0800
+
+    Merge branch 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 APIC updates from Ingo Molnar:
+     "Continued fallout of the conversion of the x86 IRQ code to the
+      hierarchical irqdomain framework: more cleanups, simplifications,
+      memory allocation behavior enhancements, mainly in the interrupt
+      remapping and APIC code"
+    
+    * 'x86-apic-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (44 commits)
+      x86, init: Fix UP boot regression on x86_64
+      iommu/amd: Fix irq remapping detection logic
+      x86/acpi: Make acpi_[un]register_gsi_ioapic() depend on CONFIG_X86_LOCAL_APIC
+      x86: Consolidate boot cpu timer setup
+      x86/apic: Reuse apic_bsp_setup() for UP APIC setup
+      x86/smpboot: Sanitize uniprocessor init
+      x86/smpboot: Move apic init code to apic.c
+      init: Get rid of x86isms
+      x86/apic: Move apic_init_uniprocessor code
+      x86/smpboot: Cleanup ioapic handling
+      x86/apic: Sanitize ioapic handling
+      x86/ioapic: Add proper checks to setp/enable_IO_APIC()
+      x86/ioapic: Provide stub functions for IOAPIC%3Dn
+      x86/smpboot: Move smpboot inlines to code
+      x86/x2apic: Use state information for disable
+      x86/x2apic: Split enable and setup function
+      x86/x2apic: Disable x2apic from nox2apic setup
+      x86/x2apic: Add proper state tracking
+      x86/x2apic: Clarify remapping mode for x2apic enablement
+      x86/x2apic: Move code in conditional region
+      ...
+
+diff --cc arch/x86/Kconfig
+index 85588a891c06,04b8810a5489..5e28e2be3a41
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -856,9 -855,13 +856,13 @@@ config SCHED_M
+  
+  source "kernel/Kconfig.preempt"
+  
++ config UP_LATE_INIT
++        def_bool y
++        depends on !SMP && X86_LOCAL_APIC
++ 
+  config X86_UP_APIC
+  	bool "Local APIC support on uniprocessors"
+ -	depends on X86_32 && !SMP && !X86_32_NON_STANDARD && !PCI_MSI
+ +	depends on X86_32 && !SMP && !X86_32_NON_STANDARD
+  	---help---
+  	  A local APIC (Advanced Programmable Interrupt Controller) is an
+  	  integrated interrupt controller in the CPU. If you have a single-CPU

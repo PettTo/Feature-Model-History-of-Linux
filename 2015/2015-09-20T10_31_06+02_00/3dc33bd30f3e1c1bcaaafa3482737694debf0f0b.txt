@@ -1,0 +1,104 @@
+commit 3dc33bd30f3e1c1bcaaafa3482737694debf0f0b
+Author: Kees Cook <keescook@chromium.org>
+Date:   Wed Aug 12 17:55:19 2015 -0700
+
+    x86/entry/vsyscall: Add CONFIG to control default
+    
+    Most modern systems can run with vsyscall=none. In an effort to
+    provide a way for build-time defaults to lack legacy settings,
+    this adds a new CONFIG to select the type of vsyscall mapping to
+    use, similar to the existing "vsyscall" command line parameter.
+    
+    Signed-off-by: Kees Cook <keescook@chromium.org>
+    Acked-by: Andy Lutomirski <luto@amacapital.net>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Josh Triplett <josh@joshtriplett.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/20150813005519.GA11696@www.outflux.net
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 328c8352480c..9bfb9e15a6e8 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2042,6 +2042,55 @@ config COMPAT_VDSO
+ 	  If unsure, say N: if you are compiling your own kernel, you
+ 	  are unlikely to be using a buggy version of glibc.
+ 
++choice
++	prompt "vsyscall table for legacy applications"
++	depends on X86_64
++	default LEGACY_VSYSCALL_EMULATE
++	help
++	  Legacy user code that does not know how to find the vDSO expects
++	  to be able to issue three syscalls by calling fixed addresses in
++	  kernel space. Since this location is not randomized with ASLR,
++	  it can be used to assist security vulnerability exploitation.
++
++	  This setting can be changed at boot time via the kernel command
++	  line parameter vsyscall=[native|emulate|none].
++
++	  On a system with recent enough glibc (2.14 or newer) and no
++	  static binaries, you can say None without a performance penalty
++	  to improve security.
++
++	  If unsure, select "Emulate".
++
++	config LEGACY_VSYSCALL_NATIVE
++		bool "Native"
++		help
++		  Actual executable code is located in the fixed vsyscall
++		  address mapping, implementing time() efficiently. Since
++		  this makes the mapping executable, it can be used during
++		  security vulnerability exploitation (traditionally as
++		  ROP gadgets). This configuration is not recommended.
++
++	config LEGACY_VSYSCALL_EMULATE
++		bool "Emulate"
++		help
++		  The kernel traps and emulates calls into the fixed
++		  vsyscall address mapping. This makes the mapping
++		  non-executable, but it still contains known contents,
++		  which could be used in certain rare security vulnerability
++		  exploits. This configuration is recommended when userspace
++		  still uses the vsyscall area.
++
++	config LEGACY_VSYSCALL_NONE
++		bool "None"
++		help
++		  There will be no vsyscall mapping at all. This will
++		  eliminate any risk of ASLR bypass due to the vsyscall
++		  fixed address mapping. Attempts to use the vsyscalls
++		  will be reported to dmesg, so that either old or
++		  malicious userspace programs can be identified.
++
++endchoice
++
+ config CMDLINE_BOOL
+ 	bool "Built-in kernel command line"
+ 	---help---
+diff --git a/arch/x86/entry/vsyscall/vsyscall_64.c b/arch/x86/entry/vsyscall/vsyscall_64.c
+index b160c0c6baed..76e0fd3ea1fb 100644
+--- a/arch/x86/entry/vsyscall/vsyscall_64.c
++++ b/arch/x86/entry/vsyscall/vsyscall_64.c
+@@ -38,7 +38,14 @@
+ #define CREATE_TRACE_POINTS
+ #include "vsyscall_trace.h"
+ 
+-static enum { EMULATE, NATIVE, NONE } vsyscall_mode = EMULATE;
++static enum { EMULATE, NATIVE, NONE } vsyscall_mode =
++#ifdef CONFIG_LEGACY_VSYSCALL_NATIVE
++	NATIVE;
++#elif CONFIG_LEGACY_VSYSCALL_NONE
++	NONE;
++#else
++	EMULATE;
++#endif
+ 
+ static int __init vsyscall_setup(char *str)
+ {

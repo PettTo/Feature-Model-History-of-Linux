@@ -1,0 +1,30 @@
+commit 5b929bd11df23922daf1be5d52731cc3900c1d79
+Merge: b2c51106c758 37868fe113ff
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Fri Jul 31 10:23:35 2015 +0200
+
+    Merge branch 'x86/urgent' into x86/asm, before applying dependent patches
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --cc arch/x86/kernel/cpu/perf_event.c
+index 641413d68a54,9469dfa55607..09f9ff271df4
+--- a/arch/x86/kernel/cpu/perf_event.c
++++ b/arch/x86/kernel/cpu/perf_event.c
+@@@ -2190,13 -2194,13 +2194,13 @@@ static unsigned long get_segment_base(u
+  		if (idx > GDT_ENTRIES)
+  			return 0;
+  
+- 		desc = raw_cpu_ptr(gdt_page.gdt);
++ 		desc = raw_cpu_ptr(gdt_page.gdt) + idx;
+  	}
+  
+- 	return get_desc_base(desc + idx);
++ 	return get_desc_base(desc);
+  }
+  
+ -#ifdef CONFIG_COMPAT
+ +#ifdef CONFIG_IA32_EMULATION
+  
+  #include <asm/compat.h>
+  

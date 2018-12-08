@@ -1,0 +1,40 @@
+commit 34a984f7b0cc6355a1e0c184251d0d4cc86f44d2
+Merge: 90d1c087861d 4c1eaa2344fb
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat Apr 18 11:42:49 2015 -0400
+
+    Merge branch 'x86-pmem-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull PMEM driver from Ingo Molnar:
+     "This is the initial support for the pmem block device driver:
+      persistent non-volatile memory space mapped into the system's physical
+      memory space as large physical memory regions.
+    
+      The driver is based on Intel code, written by Ross Zwisler, with fixes
+      by Boaz Harrosh, integrated with x86 e820 memory resource management
+      and tidied up by Christoph Hellwig.
+    
+      Note that there were two other separate pmem driver submissions to
+      lkml: but apparently all parties (Ross Zwisler, Boaz Harrosh) are
+      reasonably happy with this initial version.
+    
+      This version enables minimal support that enables persistent memory
+      devices out in the wild to work as block devices, identified through a
+      magic (non-standard) e820 flag and auto-discovered if
+      CONFIG_X86_PMEM_LEGACY=y, or added explicitly through manipulating the
+      memory maps via the "memmap=..." boot option with the new, special '!'
+      modifier character.
+    
+      Limitations: this is a regular block device, and since the pmem areas
+      are not struct page backed, they are invisible to the rest of the
+      system (other than the block IO device), so direct IO to/from pmem
+      areas, direct mmap() or XIP is not possible yet.  The page cache will
+      also shadow and double buffer pmem contents, etc.
+    
+      Initial support is for x86"
+    
+    * 'x86-pmem-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      drivers/block/pmem: Fix 32-bit build warning in pmem_alloc()
+      drivers/block/pmem: Add a driver for persistent memory
+      x86/mm: Add support for the non-standard protected e820 type
+

@@ -1,0 +1,86 @@
+commit 5aef51c340cb50ed9a3997dc5d782324372078bd
+Author: Andy Lutomirski <luto@kernel.org>
+Date:   Fri Jul 10 08:34:23 2015 -0700
+
+    x86/kconfig/32: Rename CONFIG_VM86 and default it to 'n'
+    
+    VM86 is entirely broken if ptrace, syscall auditing, or
+    NOHZ_FULL is in use.  The code is a big undocumented mess, it's
+    a real PITA to test, and it looks like a big chunk of vm86_32.c
+    is dead code.  It also plays awful games with the entry asm.
+    
+    No one should be using it anyway. Use DOSBOX or KVM instead.
+    
+    Let's accelerate its slow death.  Remove it from EXPERT and
+    default it to n.  Distros should not enable it.  In the unlikely
+    event that some user needs it, they can easily re-enable it.
+    
+    While we're at it, rename it to CONFIG_X86_LEGACY_VM86 so that 'make
+    oldconfig' users will be prompted again.  I left CONFIG_VM86 as
+    an alias to avoid a treewide replacement of the names.  We can
+    clean that up once the current asm and vm86 code churn settles
+    down.
+    
+    Signed-off-by: Andy Lutomirski <luto@kernel.org>
+    Cc: Arjan van de Ven <arjan@linux.intel.com>
+    Cc: Austin S Hemmelgarn <ahferroin7@gmail.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Kees Cook <keescook@chromium.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Matthew Garrett <mjg59@srcf.ucam.org>
+    Cc: Oleg Nesterov <oleg@redhat.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/d29c6cc442d32d4df58849d2f8c89fb39ff88d61.1436542295.git.luto@kernel.org
+    [ Refined it some more. ]
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index aa94fd014fa2..2cb2211cea18 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -996,15 +996,36 @@ config X86_THERMAL_VECTOR
+ 	def_bool y
+ 	depends on X86_MCE_INTEL
+ 
+-config VM86
+-	bool "Enable VM86 support" if EXPERT
+-	default y
++config X86_LEGACY_VM86
++	bool "Legacy VM86 support (obsolete)"
++	default n
+ 	depends on X86_32
+ 	---help---
+-	  This option is required by programs like DOSEMU to run
+-	  16-bit real mode legacy code on x86 processors. It also may
+-	  be needed by software like XFree86 to initialize some video
+-	  cards via BIOS. Disabling this option saves about 6K.
++	  This option allows user programs to put the CPU into V8086
++	  mode, which is an 80286-era approximation of 16-bit real mode.
++
++	  Some very old versions of X and/or vbetool require this option
++	  for user mode setting.  Similarly, DOSEMU will use it if
++	  available to accelerate real mode DOS programs.  However, any
++	  recent version of DOSEMU, X, or vbetool should be fully
++	  functional even without kernel VM86 support, as they will all
++	  fall back to (pretty well performing) software emulation.
++
++	  Anything that works on a 64-bit kernel is unlikely to need
++	  this option, as 64-bit kernels don't, and can't, support V8086
++	  mode.  This option is also unrelated to 16-bit protected mode
++	  and is not needed to run most 16-bit programs under Wine.
++
++	  Enabling this option adds considerable attack surface to the
++	  kernel and slows down system calls and exception handling.
++
++	  Unless you use very old userspace or need the last drop of
++	  performance in your real mode DOS games and can't use KVM,
++	  say N here.
++
++config VM86
++       bool
++       default X86_LEGACY_VM86
+ 
+ config X86_16BIT
+ 	bool "Enable support for 16-bit segments" if EXPERT

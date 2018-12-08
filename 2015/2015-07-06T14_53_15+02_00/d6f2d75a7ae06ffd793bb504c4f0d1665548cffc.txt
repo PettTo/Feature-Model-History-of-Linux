@@ -1,0 +1,53 @@
+commit d6f2d75a7ae06ffd793bb504c4f0d1665548cffc
+Author: Andrey Ryabinin <a.ryabinin@samsung.com>
+Date:   Thu Jul 2 12:09:38 2015 +0300
+
+    x86/kasan: Move KASAN_SHADOW_OFFSET to the arch Kconfig
+    
+    KASAN_SHADOW_OFFSET is purely arch specific setting,
+    so it should be in arch's Kconfig file.
+    
+    Signed-off-by: Andrey Ryabinin <a.ryabinin@samsung.com>
+    Cc: Alexander Popov <alpopov@ptsecurity.com>
+    Cc: Alexander Potapenko <glider@google.com>
+    Cc: Andrey Konovalov <adech.fo@gmail.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Dmitry Vyukov <dvyukov@google.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Paul Bolle <pebolle@tiscali.nl>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1435828178-10975-7-git-send-email-a.ryabinin@samsung.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 55bced17dc95..0b2929f49531 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -254,6 +254,11 @@ config ARCH_SUPPORTS_OPTIMIZED_INLINING
+ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
+ 	def_bool y
+ 
++config KASAN_SHADOW_OFFSET
++	hex
++	depends on KASAN
++	default 0xdffffc0000000000
++
+ config HAVE_INTEL_TXT
+ 	def_bool y
+ 	depends on INTEL_IOMMU && ACPI
+diff --git a/lib/Kconfig.kasan b/lib/Kconfig.kasan
+index 777eda7d1ab4..39f24d6721e5 100644
+--- a/lib/Kconfig.kasan
++++ b/lib/Kconfig.kasan
+@@ -18,10 +18,6 @@ config KASAN
+ 	  For better error detection enable CONFIG_STACKTRACE,
+ 	  and add slub_debug=U to boot cmdline.
+ 
+-config KASAN_SHADOW_OFFSET
+-	hex
+-	default 0xdffffc0000000000 if X86_64
+-
+ choice
+ 	prompt "Instrumentation type"
+ 	depends on KASAN

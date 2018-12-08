@@ -1,0 +1,314 @@
+commit 45471cd98decae5fced8b38e46c223f54a924814
+Merge: 93a4b1b9465d 043b43180efe
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Wed Jun 24 19:52:06 2015 -0700
+
+    Merge tag 'edac_for_4.2_2' of git://git.kernel.org/pub/scm/linux/kernel/git/bp/bp
+    
+    Pull EDAC updates from Borislav Petkov:
+    
+     - New APM X-Gene SoC EDAC driver (Loc Ho)
+    
+     - AMD error injection module improvements (Aravind Gopalakrishnan)
+    
+     - Altera Arria 10 support (Thor Thayer)
+    
+     - misc fixes and cleanups all over the place
+    
+    * tag 'edac_for_4.2_2' of git://git.kernel.org/pub/scm/linux/kernel/git/bp/bp: (28 commits)
+      EDAC: Update Documentation/edac.txt
+      EDAC: Fix typos in Documentation/edac.txt
+      EDAC, mce_amd_inj: Set MISCV on injection
+      EDAC, mce_amd_inj: Move bit preparations before the injection
+      EDAC, mce_amd_inj: Cleanup and simplify README
+      EDAC, altera: Do not allow suspend when EDAC is enabled
+      EDAC, mce_amd_inj: Make inj_type static
+      arm: socfpga: dts: Add Arria10 SDRAM EDAC DTS support
+      EDAC, altera: Add Arria10 EDAC support
+      EDAC, altera: Refactor for Altera CycloneV SoC
+      EDAC, altera: Generalize driver to use DT Memory size
+      EDAC, mce_amd_inj: Add README file
+      EDAC, mce_amd_inj: Add individual permissions field to dfs_node
+      EDAC, mce_amd_inj: Modify flags attribute to use string arguments
+      EDAC, mce_amd_inj: Read out number of MCE banks from the hardware
+      EDAC, mce_amd_inj: Use MCE_INJECT_GET macro for bank node too
+      EDAC, xgene: Fix cpuid abuse
+      EDAC, mpc85xx: Extend error address to 64 bit
+      EDAC, mpc8xxx: Adapt for FSL SoC
+      EDAC, edac_stub: Drop arch-specific include
+      ...
+
+diff --cc arch/arm64/boot/dts/apm/apm-storm.dtsi
+index d8f3a1c65ecd,577799f0c5a3..0bb287ca0a98
+--- a/arch/arm64/boot/dts/apm/apm-storm.dtsi
++++ b/arch/arm64/boot/dts/apm/apm-storm.dtsi
+@@@ -374,28 -374,89 +374,111 @@@
+  			};
+  		};
+  
+ +		msi: msi@79000000 {
+ +			compatible = "apm,xgene1-msi";
+ +			msi-controller;
+ +			reg = <0x00 0x79000000 0x0 0x900000>;
+ +			interrupts = <  0x0 0x10 0x4
+ +					0x0 0x11 0x4
+ +					0x0 0x12 0x4
+ +					0x0 0x13 0x4
+ +					0x0 0x14 0x4
+ +					0x0 0x15 0x4
+ +					0x0 0x16 0x4
+ +					0x0 0x17 0x4
+ +					0x0 0x18 0x4
+ +					0x0 0x19 0x4
+ +					0x0 0x1a 0x4
+ +					0x0 0x1b 0x4
+ +					0x0 0x1c 0x4
+ +					0x0 0x1d 0x4
+ +					0x0 0x1e 0x4
+ +					0x0 0x1f 0x4>;
+ +		};
+ +
++ 		csw: csw@7e200000 {
++ 			compatible = "apm,xgene-csw", "syscon";
++ 			reg = <0x0 0x7e200000 0x0 0x1000>;
++ 		};
++ 
++ 		mcba: mcba@7e700000 {
++ 			compatible = "apm,xgene-mcb", "syscon";
++ 			reg = <0x0 0x7e700000 0x0 0x1000>;
++ 		};
++ 
++ 		mcbb: mcbb@7e720000 {
++ 			compatible = "apm,xgene-mcb", "syscon";
++ 			reg = <0x0 0x7e720000 0x0 0x1000>;
++ 		};
++ 
++ 		efuse: efuse@1054a000 {
++ 			compatible = "apm,xgene-efuse", "syscon";
++ 			reg = <0x0 0x1054a000 0x0 0x20>;
++ 		};
++ 
++ 		edac@78800000 {
++ 			compatible = "apm,xgene-edac";
++ 			#address-cells = <2>;
++ 			#size-cells = <2>;
++ 			ranges;
++ 			regmap-csw = <&csw>;
++ 			regmap-mcba = <&mcba>;
++ 			regmap-mcbb = <&mcbb>;
++ 			regmap-efuse = <&efuse>;
++ 			reg = <0x0 0x78800000 0x0 0x100>;
++ 			interrupts = <0x0 0x20 0x4>,
++ 				     <0x0 0x21 0x4>,
++ 				     <0x0 0x27 0x4>;
++ 
++ 			edacmc@7e800000 {
++ 				compatible = "apm,xgene-edac-mc";
++ 				reg = <0x0 0x7e800000 0x0 0x1000>;
++ 				memory-controller = <0>;
++ 			};
++ 
++ 			edacmc@7e840000 {
++ 				compatible = "apm,xgene-edac-mc";
++ 				reg = <0x0 0x7e840000 0x0 0x1000>;
++ 				memory-controller = <1>;
++ 			};
++ 
++ 			edacmc@7e880000 {
++ 				compatible = "apm,xgene-edac-mc";
++ 				reg = <0x0 0x7e880000 0x0 0x1000>;
++ 				memory-controller = <2>;
++ 			};
++ 
++ 			edacmc@7e8c0000 {
++ 				compatible = "apm,xgene-edac-mc";
++ 				reg = <0x0 0x7e8c0000 0x0 0x1000>;
++ 				memory-controller = <3>;
++ 			};
++ 
++ 			edacpmd@7c000000 {
++ 				compatible = "apm,xgene-edac-pmd";
++ 				reg = <0x0 0x7c000000 0x0 0x200000>;
++ 				pmd-controller = <0>;
++ 			};
++ 
++ 			edacpmd@7c200000 {
++ 				compatible = "apm,xgene-edac-pmd";
++ 				reg = <0x0 0x7c200000 0x0 0x200000>;
++ 				pmd-controller = <1>;
++ 			};
++ 
++ 			edacpmd@7c400000 {
++ 				compatible = "apm,xgene-edac-pmd";
++ 				reg = <0x0 0x7c400000 0x0 0x200000>;
++ 				pmd-controller = <2>;
++ 			};
++ 
++ 			edacpmd@7c600000 {
++ 				compatible = "apm,xgene-edac-pmd";
++ 				reg = <0x0 0x7c600000 0x0 0x200000>;
++ 				pmd-controller = <3>;
++ 			};
++ 		};
++ 
+  		pcie0: pcie@1f2b0000 {
+  			status = "disabled";
+  			device_type = "pci";
+diff --cc arch/x86/Kconfig
+index 7e39f9b22705,482c160a9fe9..8e0b76ad8350
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -17,111 -22,61 +17,113 @@@ config X86_6
+  ### Arch settings
+  config X86
+  	def_bool y
+ -	select ACPI_SYSTEM_POWER_STATES_SUPPORT if ACPI
+ -	select ARCH_MIGHT_HAVE_ACPI_PDC if ACPI
+ +	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+ +	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
+ +	select ANON_INODES
+ +	select ARCH_CLOCKSOURCE_DATA
+ +	select ARCH_DISCARD_MEMBLOCK
+ +	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+  	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ +	select ARCH_HAS_ELF_RANDOMIZE
+  	select ARCH_HAS_FAST_MULTIPLIER
+  	select ARCH_HAS_GCOV_PROFILE_ALL
+ +	select ARCH_HAS_SG_CHAIN
+ +	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ +	select ARCH_MIGHT_HAVE_ACPI_PDC		if ACPI
+  	select ARCH_MIGHT_HAVE_PC_PARPORT
+  	select ARCH_MIGHT_HAVE_PC_SERIO
+ -	select HAVE_AOUT if X86_32
+ -	select HAVE_UNSTABLE_SCHED_CLOCK
+ -	select ARCH_SUPPORTS_NUMA_BALANCING if X86_64
+ -	select ARCH_SUPPORTS_INT128 if X86_64
+ -	select HAVE_IDE
+ -	select HAVE_OPROFILE
+ -	select HAVE_PCSPKR_PLATFORM
+ -	select HAVE_PERF_EVENTS
+ -	select HAVE_IOREMAP_PROT
+ -	select HAVE_KPROBES
+ -	select HAVE_MEMBLOCK
+ -	select HAVE_MEMBLOCK_NODE_MAP
+ -	select ARCH_DISCARD_MEMBLOCK
+ -	select ARCH_WANT_OPTIONAL_GPIOLIB
+ +	select ARCH_SUPPORTS_ATOMIC_RMW
+ +	select ARCH_SUPPORTS_INT128		if X86_64
+ +	select ARCH_SUPPORTS_NUMA_BALANCING	if X86_64
+ +	select ARCH_USE_BUILTIN_BSWAP
+ +	select ARCH_USE_CMPXCHG_LOCKREF		if X86_64
+ +	select ARCH_USE_QUEUED_RWLOCKS
+ +	select ARCH_USE_QUEUED_SPINLOCKS
+  	select ARCH_WANT_FRAME_POINTERS
+ -	select HAVE_DMA_ATTRS
+ -	select HAVE_DMA_CONTIGUOUS
+ -	select HAVE_KRETPROBES
+ +	select ARCH_WANT_IPC_PARSE_VERSION	if X86_32
+ +	select ARCH_WANT_OPTIONAL_GPIOLIB
+ +	select BUILDTIME_EXTABLE_SORT
+ +	select CLKEVT_I8253
+ +	select CLKSRC_I8253			if X86_32
+ +	select CLOCKSOURCE_VALIDATE_LAST_CYCLE
+ +	select CLOCKSOURCE_WATCHDOG
+ +	select CLONE_BACKWARDS			if X86_32
+ +	select COMPAT_OLD_SIGACTION		if IA32_EMULATION
+ +	select DCACHE_WORD_ACCESS
+++	select EDAC_ATOMIC_SCRUB
+++	select EDAC_SUPPORT
+ +	select GENERIC_CLOCKEVENTS
+ +	select GENERIC_CLOCKEVENTS_BROADCAST	if X86_64 || (X86_32 && X86_LOCAL_APIC)
+ +	select GENERIC_CLOCKEVENTS_MIN_ADJUST
+ +	select GENERIC_CMOS_UPDATE
+ +	select GENERIC_CPU_AUTOPROBE
+  	select GENERIC_EARLY_IOREMAP
+ -	select HAVE_OPTPROBES
+ -	select HAVE_KPROBES_ON_FTRACE
+ -	select HAVE_FTRACE_MCOUNT_RECORD
+ -	select HAVE_FENTRY if X86_64
+ +	select GENERIC_FIND_FIRST_BIT
+ +	select GENERIC_IOMAP
+ +	select GENERIC_IRQ_PROBE
+ +	select GENERIC_IRQ_SHOW
+ +	select GENERIC_PENDING_IRQ		if SMP
+ +	select GENERIC_SMP_IDLE_THREAD
+ +	select GENERIC_STRNCPY_FROM_USER
+ +	select GENERIC_STRNLEN_USER
+ +	select GENERIC_TIME_VSYSCALL
+ +	select HAVE_ACPI_APEI			if ACPI
+ +	select HAVE_ACPI_APEI_NMI		if ACPI
+ +	select HAVE_ALIGNED_STRUCT_PAGE		if SLUB
+ +	select HAVE_AOUT			if X86_32
+ +	select HAVE_ARCH_AUDITSYSCALL
+ +	select HAVE_ARCH_HUGE_VMAP		if X86_64 || X86_PAE
+ +	select HAVE_ARCH_JUMP_LABEL
+ +	select HAVE_ARCH_KASAN			if X86_64 && SPARSEMEM_VMEMMAP
+ +	select HAVE_ARCH_KGDB
+ +	select HAVE_ARCH_KMEMCHECK
+ +	select HAVE_ARCH_SECCOMP_FILTER
+ +	select HAVE_ARCH_SOFT_DIRTY		if X86_64
+ +	select HAVE_ARCH_TRACEHOOK
+ +	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ +	select HAVE_BPF_JIT			if X86_64
+ +	select HAVE_CC_STACKPROTECTOR
+ +	select HAVE_CMPXCHG_DOUBLE
+ +	select HAVE_CMPXCHG_LOCAL
+ +	select HAVE_CONTEXT_TRACKING		if X86_64
+  	select HAVE_C_RECORDMCOUNT
+ +	select HAVE_DEBUG_KMEMLEAK
+ +	select HAVE_DEBUG_STACKOVERFLOW
+ +	select HAVE_DMA_API_DEBUG
+ +	select HAVE_DMA_ATTRS
+ +	select HAVE_DMA_CONTIGUOUS
+  	select HAVE_DYNAMIC_FTRACE
+  	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+ -	select HAVE_FUNCTION_TRACER
+ -	select HAVE_FUNCTION_GRAPH_TRACER
+ -	select HAVE_FUNCTION_GRAPH_FP_TEST
+ -	select HAVE_SYSCALL_TRACEPOINTS
+ -	select SYSCTL_EXCEPTION_TRACE
+ -	select HAVE_KVM
+ -	select HAVE_ARCH_KGDB
+ -	select HAVE_ARCH_TRACEHOOK
+ -	select HAVE_GENERIC_DMA_COHERENT if X86_32
+  	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+ -	select USER_STACKTRACE_SUPPORT
+ -	select HAVE_REGS_AND_STACK_ACCESS_API
+ -	select HAVE_DMA_API_DEBUG
+ -	select HAVE_KERNEL_GZIP
+ +	select HAVE_FENTRY			if X86_64
+ +	select HAVE_FTRACE_MCOUNT_RECORD
+ +	select HAVE_FUNCTION_GRAPH_FP_TEST
+ +	select HAVE_FUNCTION_GRAPH_TRACER
+ +	select HAVE_FUNCTION_TRACER
+ +	select HAVE_GENERIC_DMA_COHERENT	if X86_32
+ +	select HAVE_HW_BREAKPOINT
+ +	select HAVE_IDE
+ +	select HAVE_IOREMAP_PROT
+ +	select HAVE_IRQ_EXIT_ON_IRQ_STACK	if X86_64
+ +	select HAVE_IRQ_TIME_ACCOUNTING
+  	select HAVE_KERNEL_BZIP2
+ +	select HAVE_KERNEL_GZIP
+ +	select HAVE_KERNEL_LZ4
+  	select HAVE_KERNEL_LZMA
+ -	select HAVE_KERNEL_XZ
+  	select HAVE_KERNEL_LZO
+ -	select HAVE_KERNEL_LZ4
+ -	select HAVE_HW_BREAKPOINT
+ +	select HAVE_KERNEL_XZ
+ +	select HAVE_KPROBES
+ +	select HAVE_KPROBES_ON_FTRACE
+ +	select HAVE_KRETPROBES
+ +	select HAVE_KVM
+ +	select HAVE_LIVEPATCH			if X86_64
+ +	select HAVE_MEMBLOCK
+ +	select HAVE_MEMBLOCK_NODE_MAP
+  	select HAVE_MIXED_BREAKPOINTS_REGS
+ -	select PERF_EVENTS
+ +	select HAVE_OPROFILE
+ +	select HAVE_OPTPROBES
+ +	select HAVE_PCSPKR_PLATFORM
+ +	select HAVE_PERF_EVENTS
+  	select HAVE_PERF_EVENTS_NMI
+  	select HAVE_PERF_REGS
+  	select HAVE_PERF_USER_STACK_DUMP

@@ -1,0 +1,23 @@
+commit 90d1c087861dcc3d1175993fc03492c137fd21bb
+Merge: 96b90f27bcf2 a6dfa128ce5c
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat Apr 18 11:31:11 2015 -0400
+
+    Merge branch 'x86-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 fixes from Ingo Molnar:
+     "This tree includes:
+    
+       - an FPU related crash fix
+    
+       - a ptrace fix (with matching testcase in tools/testing/selftests/)
+    
+       - an x86 Kconfig DMA-config defaults tweak to better avoid
+         non-working drivers"
+    
+    * 'x86-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      config: Enable NEED_DMA_MAP_STATE by default when SWIOTLB is selected
+      x86/fpu: Load xsave pointer *after* initialization
+      x86/ptrace: Fix the TIF_FORCED_TF logic in handle_signal()
+      x86, selftests: Add single_step_syscall test
+

@@ -1,0 +1,99 @@
+commit 30b8b0066cafef274fc92462578ee346211ce7cb
+Author: Thomas Gleixner <tglx@linutronix.de>
+Date:   Thu Jan 15 21:22:39 2015 +0000
+
+    init: Get rid of x86isms
+    
+    The UP local API support can be set up from an early initcall. No need
+    for horrible hackery in the init code.
+    
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Jiang Liu <jiang.liu@linux.intel.com>
+    Cc: Joerg Roedel <joro@8bytes.org>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Link: http://lkml.kernel.org/r/20150115211703.827943883@linutronix.de
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index ba397bde7948..ffcc3ca5862a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -855,6 +855,10 @@ config SCHED_MC
+ 
+ source "kernel/Kconfig.preempt"
+ 
++config UP_LATE_INIT
++       def_bool y
++       depends on X86_UP_APIC
++
+ config X86_UP_APIC
+ 	bool "Local APIC support on uniprocessors"
+ 	depends on X86_32 && !SMP && !X86_32_NON_STANDARD && !PCI_MSI
+diff --git a/arch/x86/kernel/apic/apic.c b/arch/x86/kernel/apic/apic.c
+index c681e9ba9e47..19f1bc714ee6 100644
+--- a/arch/x86/kernel/apic/apic.c
++++ b/arch/x86/kernel/apic/apic.c
+@@ -2267,6 +2267,13 @@ int __init APIC_init_uniprocessor(void)
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_UP_LATE_INIT
++void __init up_late_init(void)
++{
++	APIC_init_uniprocessor();
++}
++#endif
++
+ /*
+  * Power management
+  */
+diff --git a/include/linux/smp.h b/include/linux/smp.h
+index 93dff5fff524..be91db2a7017 100644
+--- a/include/linux/smp.h
++++ b/include/linux/smp.h
+@@ -151,6 +151,13 @@ smp_call_function_any(const struct cpumask *mask, smp_call_func_t func,
+ static inline void kick_all_cpus_sync(void) {  }
+ static inline void wake_up_all_idle_cpus(void) {  }
+ 
++#ifdef CONFIG_UP_LATE_INIT
++extern void __init up_late_init(void);
++static inline void smp_init(void) { up_late_init(); }
++#else
++static inline void smp_init(void) { }
++#endif
++
+ #endif /* !SMP */
+ 
+ /*
+diff --git a/init/main.c b/init/main.c
+index 61b993767db5..179ada15d08a 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -87,10 +87,6 @@
+ #include <asm/sections.h>
+ #include <asm/cacheflush.h>
+ 
+-#ifdef CONFIG_X86_LOCAL_APIC
+-#include <asm/smp.h>
+-#endif
+-
+ static int kernel_init(void *);
+ 
+ extern void init_IRQ(void);
+@@ -351,15 +347,6 @@ __setup("rdinit=", rdinit_setup);
+ 
+ #ifndef CONFIG_SMP
+ static const unsigned int setup_max_cpus = NR_CPUS;
+-#ifdef CONFIG_X86_LOCAL_APIC
+-static void __init smp_init(void)
+-{
+-	APIC_init_uniprocessor();
+-}
+-#else
+-#define smp_init()	do { } while (0)
+-#endif
+-
+ static inline void setup_nr_cpu_ids(void) { }
+ static inline void smp_prepare_cpus(unsigned int maxcpus) { }
+ #endif

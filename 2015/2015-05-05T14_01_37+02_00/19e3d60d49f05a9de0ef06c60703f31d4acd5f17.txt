@@ -1,0 +1,27 @@
+commit 19e3d60d49f05a9de0ef06c60703f31d4acd5f17
+Author: Jan Kiszka <jan.kiszka@siemens.com>
+Date:   Mon May 4 17:58:01 2015 +0200
+
+    x86: Let x2APIC support depend on interrupt remapping or guest support
+    
+    We are able to use x2APIC mode in the absence of interrupt remapping on
+    certain hypervisors. So it is fine to disable IRQ_REMAP without having
+    to give up x2APIC support.
+    
+    Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+    Link: http://lkml.kernel.org/r/55479709.4030901@siemens.com
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c86fdc13615f..3c17c04ce5a7 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -340,7 +340,7 @@ config X86_FEATURE_NAMES
+ 
+ config X86_X2APIC
+ 	bool "Support x2apic"
+-	depends on X86_LOCAL_APIC && X86_64 && IRQ_REMAP
++	depends on X86_LOCAL_APIC && X86_64 && (IRQ_REMAP || HYPERVISOR_GUEST)
+ 	---help---
+ 	  This enables x2apic support on CPUs that have this feature.
+ 

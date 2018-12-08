@@ -1,0 +1,108 @@
+commit 87276880065246ce49ec571130d3d1e4a22e5604
+Author: Feng Wu <feng.wu@intel.com>
+Date:   Fri Sep 18 22:29:40 2015 +0800
+
+    KVM: x86: select IRQ_BYPASS_MANAGER
+    
+    Select IRQ_BYPASS_MANAGER for x86 when CONFIG_KVM is set
+    
+    Signed-off-by: Feng Wu <feng.wu@intel.com>
+    Reviewed-by: Alex Williamson <alex.williamson@redhat.com>
+    Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+
+diff --git a/arch/x86/include/asm/kvm_host.h b/arch/x86/include/asm/kvm_host.h
+index a4067ecd4376..15664994b6f3 100644
+--- a/arch/x86/include/asm/kvm_host.h
++++ b/arch/x86/include/asm/kvm_host.h
+@@ -24,6 +24,7 @@
+ #include <linux/perf_event.h>
+ #include <linux/pvclock_gtod.h>
+ #include <linux/clocksource.h>
++#include <linux/irqbypass.h>
+ 
+ #include <asm/pvclock-abi.h>
+ #include <asm/desc.h>
+diff --git a/arch/x86/kvm/Kconfig b/arch/x86/kvm/Kconfig
+index d8a1d56276e1..639a6e34500c 100644
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@ -28,6 +28,8 @@ config KVM
+ 	select ANON_INODES
+ 	select HAVE_KVM_IRQCHIP
+ 	select HAVE_KVM_IRQFD
++	select IRQ_BYPASS_MANAGER
++	select HAVE_KVM_IRQ_BYPASS
+ 	select HAVE_KVM_IRQ_ROUTING
+ 	select HAVE_KVM_EVENTFD
+ 	select KVM_APIC_ARCHITECTURE
+diff --git a/arch/x86/kvm/x86.c b/arch/x86/kvm/x86.c
+index 3978ace4ddbc..b8425a769c0a 100644
+--- a/arch/x86/kvm/x86.c
++++ b/arch/x86/kvm/x86.c
+@@ -51,6 +51,8 @@
+ #include <linux/pci.h>
+ #include <linux/timekeeper_internal.h>
+ #include <linux/pvclock_gtod.h>
++#include <linux/kvm_irqfd.h>
++#include <linux/irqbypass.h>
+ #include <trace/events/kvm.h>
+ 
+ #define CREATE_TRACE_POINTS
+@@ -8079,6 +8081,57 @@ bool kvm_arch_has_noncoherent_dma(struct kvm *kvm)
+ }
+ EXPORT_SYMBOL_GPL(kvm_arch_has_noncoherent_dma);
+ 
++int kvm_arch_irq_bypass_add_producer(struct irq_bypass_consumer *cons,
++				      struct irq_bypass_producer *prod)
++{
++	struct kvm_kernel_irqfd *irqfd =
++		container_of(cons, struct kvm_kernel_irqfd, consumer);
++
++	if (kvm_x86_ops->update_pi_irte) {
++		irqfd->producer = prod;
++		return kvm_x86_ops->update_pi_irte(irqfd->kvm,
++				prod->irq, irqfd->gsi, 1);
++	}
++
++	return -EINVAL;
++}
++
++void kvm_arch_irq_bypass_del_producer(struct irq_bypass_consumer *cons,
++				      struct irq_bypass_producer *prod)
++{
++	int ret;
++	struct kvm_kernel_irqfd *irqfd =
++		container_of(cons, struct kvm_kernel_irqfd, consumer);
++
++	if (!kvm_x86_ops->update_pi_irte) {
++		WARN_ON(irqfd->producer != NULL);
++		return;
++	}
++
++	WARN_ON(irqfd->producer != prod);
++	irqfd->producer = NULL;
++
++	/*
++	 * When producer of consumer is unregistered, we change back to
++	 * remapped mode, so we can re-use the current implementation
++	 * when the irq is masked/disabed or the consumer side (KVM
++	 * int this case doesn't want to receive the interrupts.
++	*/
++	ret = kvm_x86_ops->update_pi_irte(irqfd->kvm, prod->irq, irqfd->gsi, 0);
++	if (ret)
++		printk(KERN_INFO "irq bypass consumer (token %p) unregistration"
++		       " fails: %d\n", irqfd->consumer.token, ret);
++}
++
++int kvm_arch_update_irqfd_routing(struct kvm *kvm, unsigned int host_irq,
++				   uint32_t guest_irq, bool set)
++{
++	if (!kvm_x86_ops->update_pi_irte)
++		return -EINVAL;
++
++	return kvm_x86_ops->update_pi_irte(kvm, host_irq, guest_irq, set);
++}
++
+ EXPORT_TRACEPOINT_SYMBOL_GPL(kvm_exit);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(kvm_fast_mmio);
+ EXPORT_TRACEPOINT_SYMBOL_GPL(kvm_inj_virq);

@@ -1,0 +1,137 @@
+commit 12cf89b550d13eb7cb86ef182bd6c04345a33a1f
+Author: Josh Poimboeuf <jpoimboe@redhat.com>
+Date:   Tue Feb 3 16:45:18 2015 -0600
+
+    livepatch: rename config to CONFIG_LIVEPATCH
+    
+    Rename CONFIG_LIVE_PATCHING to CONFIG_LIVEPATCH to make the naming of
+    the config and the code more consistent.
+    
+    Signed-off-by: Josh Poimboeuf <jpoimboe@redhat.com>
+    Reviewed-by: Jingoo Han <jg1.han@samsung.com>
+    Signed-off-by: Jiri Kosina <jkosina@suse.cz>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 29b095231276..11970b076862 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -17,7 +17,7 @@ config X86_64
+ 	depends on 64BIT
+ 	select X86_DEV_DMA_OPS
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+-	select HAVE_LIVE_PATCHING
++	select HAVE_LIVEPATCH
+ 
+ ### Arch settings
+ config X86
+diff --git a/arch/x86/include/asm/livepatch.h b/arch/x86/include/asm/livepatch.h
+index 26e58134c8cb..a455a53d789a 100644
+--- a/arch/x86/include/asm/livepatch.h
++++ b/arch/x86/include/asm/livepatch.h
+@@ -24,7 +24,7 @@
+ #include <linux/module.h>
+ #include <linux/ftrace.h>
+ 
+-#ifdef CONFIG_LIVE_PATCHING
++#ifdef CONFIG_LIVEPATCH
+ static inline int klp_check_compiler_support(void)
+ {
+ #ifndef CC_USING_FENTRY
+@@ -40,7 +40,7 @@ static inline void klp_arch_set_pc(struct pt_regs *regs, unsigned long ip)
+ 	regs->ip = ip;
+ }
+ #else
+-#error Live patching support is disabled; check CONFIG_LIVE_PATCHING
++#error Live patching support is disabled; check CONFIG_LIVEPATCH
+ #endif
+ 
+ #endif /* _ASM_X86_LIVEPATCH_H */
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index 316b34e74c15..732223496968 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -63,7 +63,7 @@ obj-$(CONFIG_X86_MPPARSE)	+= mpparse.o
+ obj-y				+= apic/
+ obj-$(CONFIG_X86_REBOOTFIXUPS)	+= reboot_fixups_32.o
+ obj-$(CONFIG_DYNAMIC_FTRACE)	+= ftrace.o
+-obj-$(CONFIG_LIVE_PATCHING)	+= livepatch.o
++obj-$(CONFIG_LIVEPATCH)		+= livepatch.o
+ obj-$(CONFIG_FUNCTION_GRAPH_TRACER) += ftrace.o
+ obj-$(CONFIG_FTRACE_SYSCALLS)	+= ftrace.o
+ obj-$(CONFIG_X86_TSC)		+= trace_clock.o
+diff --git a/include/linux/livepatch.h b/include/linux/livepatch.h
+index f14c6fb262b4..95023fd8b00d 100644
+--- a/include/linux/livepatch.h
++++ b/include/linux/livepatch.h
+@@ -24,7 +24,7 @@
+ #include <linux/module.h>
+ #include <linux/ftrace.h>
+ 
+-#if IS_ENABLED(CONFIG_LIVE_PATCHING)
++#if IS_ENABLED(CONFIG_LIVEPATCH)
+ 
+ #include <asm/livepatch.h>
+ 
+@@ -128,6 +128,6 @@ extern int klp_unregister_patch(struct klp_patch *);
+ extern int klp_enable_patch(struct klp_patch *);
+ extern int klp_disable_patch(struct klp_patch *);
+ 
+-#endif /* CONFIG_LIVE_PATCHING */
++#endif /* CONFIG_LIVEPATCH */
+ 
+ #endif /* _LINUX_LIVEPATCH_H_ */
+diff --git a/kernel/livepatch/Kconfig b/kernel/livepatch/Kconfig
+index 347ee2221137..045022557936 100644
+--- a/kernel/livepatch/Kconfig
++++ b/kernel/livepatch/Kconfig
+@@ -1,15 +1,15 @@
+-config HAVE_LIVE_PATCHING
++config HAVE_LIVEPATCH
+ 	bool
+ 	help
+ 	  Arch supports kernel live patching
+ 
+-config LIVE_PATCHING
++config LIVEPATCH
+ 	bool "Kernel Live Patching"
+ 	depends on DYNAMIC_FTRACE_WITH_REGS
+ 	depends on MODULES
+ 	depends on SYSFS
+ 	depends on KALLSYMS_ALL
+-	depends on HAVE_LIVE_PATCHING
++	depends on HAVE_LIVEPATCH
+ 	help
+ 	  Say Y here if you want to support kernel live patching.
+ 	  This option has no runtime impact until a kernel "patch"
+diff --git a/kernel/livepatch/Makefile b/kernel/livepatch/Makefile
+index 7c1f00861428..e8780c0901d9 100644
+--- a/kernel/livepatch/Makefile
++++ b/kernel/livepatch/Makefile
+@@ -1,3 +1,3 @@
+-obj-$(CONFIG_LIVE_PATCHING) += livepatch.o
++obj-$(CONFIG_LIVEPATCH) += livepatch.o
+ 
+ livepatch-objs := core.o
+diff --git a/samples/Kconfig b/samples/Kconfig
+index 0aed20df5f0b..224ebb46bed5 100644
+--- a/samples/Kconfig
++++ b/samples/Kconfig
+@@ -63,9 +63,9 @@ config SAMPLE_RPMSG_CLIENT
+ 	  to communicate with an AMP-configured remote processor over
+ 	  the rpmsg bus.
+ 
+-config SAMPLE_LIVE_PATCHING
++config SAMPLE_LIVEPATCH
+ 	tristate "Build live patching sample -- loadable modules only"
+-	depends on LIVE_PATCHING && m
++	depends on LIVEPATCH && m
+ 	help
+ 	  Builds a sample live patch that replaces the procfs handler
+ 	  for /proc/cmdline to print "this has been live patched".
+diff --git a/samples/livepatch/Makefile b/samples/livepatch/Makefile
+index 7f1cdc131a02..10319d7ea0b1 100644
+--- a/samples/livepatch/Makefile
++++ b/samples/livepatch/Makefile
+@@ -1 +1 @@
+-obj-$(CONFIG_SAMPLE_LIVE_PATCHING) += livepatch-sample.o
++obj-$(CONFIG_SAMPLE_LIVEPATCH) += livepatch-sample.o

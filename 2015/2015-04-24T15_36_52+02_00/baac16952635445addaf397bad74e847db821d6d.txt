@@ -1,0 +1,85 @@
+commit baac16952635445addaf397bad74e847db821d6d
+Author: Jiang Liu <jiang.liu@linux.intel.com>
+Date:   Tue Apr 14 10:29:44 2015 +0800
+
+    x86/irq: Remove GENERIC_IRQ_LEGACY_ALLOC_HWIRQ
+    
+    There's no user of irq_alloc_hwirqs(), irq_alloc_hwirq(),
+    irq_free_hwirqs() and irq_free_hwirq() in x86 anymore, so remove
+    GENERIC_IRQ_LEGACY_ALLOC_HWIRQ and related code.
+    
+    Signed-off-by: Jiang Liu <jiang.liu@linux.intel.com>
+    Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+    Cc: David Cohen <david.a.cohen@linux.intel.com>
+    Cc: Sander Eikelenboom <linux@eikelenboom.it>
+    Cc: David Vrabel <david.vrabel@citrix.com>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Cc: Joerg Roedel <joro@8bytes.org>
+    Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+    Cc: Bjorn Helgaas <bhelgaas@google.com>
+    Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+    Cc: Rafael J. Wysocki <rjw@rjwysocki.net>
+    Cc: Randy Dunlap <rdunlap@infradead.org>
+    Cc: Yinghai Lu <yinghai@kernel.org>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Dimitri Sivanich <sivanich@sgi.com>
+    Link: http://lkml.kernel.org/r/1428978610-28986-8-git-send-email-jiang.liu@linux.intel.com
+    Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 26e066579637..c86fdc13615f 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -912,7 +912,6 @@ config X86_UP_IOAPIC
+ config X86_LOCAL_APIC
+ 	def_bool y
+ 	depends on X86_64 || SMP || X86_32_NON_STANDARD || X86_UP_APIC || PCI_MSI
+-	select GENERIC_IRQ_LEGACY_ALLOC_HWIRQ
+ 	select IRQ_DOMAIN_HIERARCHY
+ 	select PCI_MSI_IRQ_DOMAIN if PCI_MSI
+ 
+diff --git a/arch/x86/kernel/apic/vector.c b/arch/x86/kernel/apic/vector.c
+index 633f03268d48..d0e5ea0fb947 100644
+--- a/arch/x86/kernel/apic/vector.c
++++ b/arch/x86/kernel/apic/vector.c
+@@ -659,40 +659,6 @@ void irq_force_complete_move(int irq)
+ }
+ #endif
+ 
+-/*
+- * Dynamic irq allocate and deallocation. Should be replaced by irq domains!
+- */
+-int arch_setup_hwirq(unsigned int irq, int node)
+-{
+-	struct irq_cfg *cfg;
+-	unsigned long flags;
+-	int ret;
+-
+-	cfg = alloc_irq_cfg(node);
+-	if (!cfg)
+-		return -ENOMEM;
+-
+-	raw_spin_lock_irqsave(&vector_lock, flags);
+-	ret = __assign_irq_vector(irq, cfg, apic->target_cpus());
+-	raw_spin_unlock_irqrestore(&vector_lock, flags);
+-
+-	if (!ret)
+-		irq_set_chip_data(irq, cfg);
+-	else
+-		free_irq_cfg(cfg);
+-	return ret;
+-}
+-
+-void arch_teardown_hwirq(unsigned int irq)
+-{
+-	struct irq_cfg *cfg = irq_cfg(irq);
+-
+-	free_remapped_irq(irq);
+-	clear_irq_vector(irq, cfg);
+-	irq_set_chip_data(irq, NULL);
+-	free_irq_cfg(cfg);
+-}
+-
+ static void __init print_APIC_field(int base)
+ {
+ 	int i;

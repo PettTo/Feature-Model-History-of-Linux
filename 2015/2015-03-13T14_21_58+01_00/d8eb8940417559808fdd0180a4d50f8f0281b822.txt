@@ -1,0 +1,40 @@
+commit d8eb8940417559808fdd0180a4d50f8f0281b822
+Author: Borislav Petkov <bp@suse.de>
+Date:   Fri Mar 13 14:04:37 2015 +0100
+
+    x86/kexec: Cleanup KEXEC_VERIFY_SIG Kconfig help text
+    
+    Fix typos and also make it simpler without losing the gist of what it says.
+    
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Vivek Goyal <vgoyal@redhat.com>
+    Link: http://lkml.kernel.org/r/1426251877-11415-1-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 78a3f674c3eb..867bc5bea8dc 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1742,14 +1742,11 @@ config KEXEC_VERIFY_SIG
+ 	depends on KEXEC_FILE
+ 	---help---
+ 	  This option makes kernel signature verification mandatory for
+-	  kexec_file_load() syscall. If kernel is signature can not be
+-	  verified, kexec_file_load() will fail.
+-
+-	  This option enforces signature verification at generic level.
+-	  One needs to enable signature verification for type of kernel
+-	  image being loaded to make sure it works. For example, enable
+-	  bzImage signature verification option to be able to load and
+-	  verify signatures of bzImage. Otherwise kernel loading will fail.
++	  the kexec_file_load() syscall.
++
++	  In addition to that option, you need to enable signature
++	  verification for the corresponding kernel image type being
++	  loaded in order for this to work.
+ 
+ config KEXEC_BZIMAGE_VERIFY_SIG
+ 	bool "Enable bzImage signature verification support"

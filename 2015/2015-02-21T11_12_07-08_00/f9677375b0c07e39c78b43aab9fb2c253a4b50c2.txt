@@ -1,0 +1,22 @@
+commit f9677375b0c07e39c78b43aab9fb2c253a4b50c2
+Merge: f3c233d75ed0 c11a25f443e9
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Sat Feb 21 11:12:07 2015 -0800
+
+    Merge branch 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull Intel Quark SoC support from Ingo Molnar:
+     "This adds support for Intel Quark X1000 SoC boards, used in the low
+      power 32-bit x86 Intel Galileo microcontroller board intended for the
+      Arduino space.
+    
+      There's been some preparatory core x86 patches for Quark CPU quirks
+      merged already, but this rounds it all up and adds Kconfig enablement.
+      It's a clean hardware enablement addition tree at this point"
+    
+    * 'x86-platform-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/intel/quark: Fix simple_return.cocci warnings
+      x86/intel/quark: Fix ptr_ret.cocci warnings
+      x86/intel/quark: Add Intel Quark platform support
+      x86/intel/quark: Add Isolated Memory Regions for Quark X1000
+

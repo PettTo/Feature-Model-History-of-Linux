@@ -1,0 +1,186 @@
+commit 5aaeb5c01c5b6c0be7b7aadbf3ace9f3a4458c3d
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Fri Jul 17 12:28:12 2015 +0200
+
+    x86/fpu, sched: Introduce CONFIG_ARCH_WANTS_DYNAMIC_TASK_STRUCT and use it on x86
+    
+    Don't burden architectures without dynamic task_struct sizing
+    with the overhead of dynamic sizing.
+    
+    Also optimize the x86 code a bit by caching task_struct_size.
+    
+    Acked-and-Tested-by: Dave Hansen <dave.hansen@linux.intel.com>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Dave Hansen <dave@sr71.net>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Oleg Nesterov <oleg@redhat.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1437128892-9831-3-git-send-email-mingo@kernel.org
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/Kconfig b/arch/Kconfig
+index bec6666a3cc4..8a8ea7110de8 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -221,6 +221,10 @@ config ARCH_TASK_STRUCT_ALLOCATOR
+ config ARCH_THREAD_INFO_ALLOCATOR
+ 	bool
+ 
++# Select if arch wants to size task_struct dynamically via arch_task_struct_size:
++config ARCH_WANTS_DYNAMIC_TASK_STRUCT
++	bool
++
+ config HAVE_REGS_AND_STACK_ACCESS_API
+ 	bool
+ 	help
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 3dbb7e7909ca..b3a1a5d77d92 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -41,6 +41,7 @@ config X86
+ 	select ARCH_USE_CMPXCHG_LOCKREF		if X86_64
+ 	select ARCH_USE_QUEUED_RWLOCKS
+ 	select ARCH_USE_QUEUED_SPINLOCKS
++	select ARCH_WANTS_DYNAMIC_TASK_STRUCT
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select ARCH_WANT_IPC_PARSE_VERSION	if X86_32
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+diff --git a/arch/x86/kernel/fpu/init.c b/arch/x86/kernel/fpu/init.c
+index deacbfa6b33e..0b39173dd971 100644
+--- a/arch/x86/kernel/fpu/init.c
++++ b/arch/x86/kernel/fpu/init.c
+@@ -4,6 +4,8 @@
+ #include <asm/fpu/internal.h>
+ #include <asm/tlbflush.h>
+ 
++#include <linux/sched.h>
++
+ /*
+  * Initialize the TS bit in CR0 according to the style of context-switches
+  * we are using:
+@@ -136,16 +138,14 @@ static void __init fpu__init_system_generic(void)
+ unsigned int xstate_size;
+ EXPORT_SYMBOL_GPL(xstate_size);
+ 
+-#define CHECK_MEMBER_AT_END_OF(TYPE, MEMBER)	\
+-	BUILD_BUG_ON((sizeof(TYPE) -			\
+-			offsetof(TYPE, MEMBER) -	\
+-			sizeof(((TYPE *)0)->MEMBER)) > 	\
+-			0)				\
++/* Enforce that 'MEMBER' is the last field of 'TYPE': */
++#define CHECK_MEMBER_AT_END_OF(TYPE, MEMBER) \
++	BUILD_BUG_ON(sizeof(TYPE) != offsetofend(TYPE, MEMBER))
+ 
+ /*
+- * We append the 'struct fpu' to the task_struct.
++ * We append the 'struct fpu' to the task_struct:
+  */
+-int __weak arch_task_struct_size(void)
++static void __init fpu__init_task_struct_size(void)
+ {
+ 	int task_size = sizeof(struct task_struct);
+ 
+@@ -172,7 +172,7 @@ int __weak arch_task_struct_size(void)
+ 	CHECK_MEMBER_AT_END_OF(struct thread_struct, fpu);
+ 	CHECK_MEMBER_AT_END_OF(struct task_struct, thread);
+ 
+-	return task_size;
++	arch_task_struct_size = task_size;
+ }
+ 
+ /*
+@@ -326,6 +326,7 @@ void __init fpu__init_system(struct cpuinfo_x86 *c)
+ 	fpu__init_system_generic();
+ 	fpu__init_system_xstate_size_legacy();
+ 	fpu__init_system_xstate();
++	fpu__init_task_struct_size();
+ 
+ 	fpu__init_system_ctx_switch();
+ }
+diff --git a/arch/x86/kernel/process.c b/arch/x86/kernel/process.c
+index 975420eac105..397688beed4b 100644
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@ -81,7 +81,7 @@ EXPORT_SYMBOL_GPL(idle_notifier_unregister);
+  */
+ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
+ {
+-	memcpy(dst, src, arch_task_struct_size());
++	memcpy(dst, src, arch_task_struct_size);
+ 
+ 	return fpu__copy(&dst->thread.fpu, &src->thread.fpu);
+ }
+diff --git a/fs/proc/kcore.c b/fs/proc/kcore.c
+index a0fe99485687..92e6726f6e37 100644
+--- a/fs/proc/kcore.c
++++ b/fs/proc/kcore.c
+@@ -92,7 +92,7 @@ static size_t get_kcore_size(int *nphdr, size_t *elf_buflen)
+ 			     roundup(sizeof(CORE_STR), 4)) +
+ 			roundup(sizeof(struct elf_prstatus), 4) +
+ 			roundup(sizeof(struct elf_prpsinfo), 4) +
+-			roundup(arch_task_struct_size(), 4);
++			roundup(arch_task_struct_size, 4);
+ 	*elf_buflen = PAGE_ALIGN(*elf_buflen);
+ 	return size + *elf_buflen;
+ }
+@@ -415,7 +415,7 @@ static void elf_kcore_store_hdr(char *bufp, int nphdr, int dataoff)
+ 	/* set up the task structure */
+ 	notes[2].name	= CORE_STR;
+ 	notes[2].type	= NT_TASKSTRUCT;
+-	notes[2].datasz	= arch_task_struct_size();
++	notes[2].datasz	= arch_task_struct_size;
+ 	notes[2].data	= current;
+ 
+ 	nhdr->p_filesz	+= notesize(&notes[2]);
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index e43a41d892b6..04b5ada460b4 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1786,7 +1786,11 @@ struct task_struct {
+  */
+ };
+ 
+-extern int arch_task_struct_size(void);
++#ifdef CONFIG_ARCH_WANTS_DYNAMIC_TASK_STRUCT
++extern int arch_task_struct_size __read_mostly;
++#else
++# define arch_task_struct_size (sizeof(struct task_struct))
++#endif
+ 
+ /* Future-safe accessor for struct task_struct's cpus_allowed. */
+ #define tsk_cpus_allowed(tsk) (&(tsk)->cpus_allowed)
+diff --git a/kernel/fork.c b/kernel/fork.c
+index 431b67a6098c..dbd9b8d7b7cc 100644
+--- a/kernel/fork.c
++++ b/kernel/fork.c
+@@ -287,21 +287,20 @@ static void set_max_threads(unsigned int max_threads_suggested)
+ 	max_threads = clamp_t(u64, threads, MIN_THREADS, MAX_THREADS);
+ }
+ 
+-int __weak arch_task_struct_size(void)
+-{
+-	return sizeof(struct task_struct);
+-}
++#ifdef CONFIG_ARCH_WANTS_DYNAMIC_TASK_STRUCT
++/* Initialized by the architecture: */
++int arch_task_struct_size __read_mostly;
++#endif
+ 
+ void __init fork_init(void)
+ {
+-	int task_struct_size = arch_task_struct_size();
+ #ifndef CONFIG_ARCH_TASK_STRUCT_ALLOCATOR
+ #ifndef ARCH_MIN_TASKALIGN
+ #define ARCH_MIN_TASKALIGN	L1_CACHE_BYTES
+ #endif
+ 	/* create a slab on which task_structs can be allocated */
+ 	task_struct_cachep =
+-		kmem_cache_create("task_struct", task_struct_size,
++		kmem_cache_create("task_struct", arch_task_struct_size,
+ 			ARCH_MIN_TASKALIGN, SLAB_PANIC | SLAB_NOTRACK, NULL);
+ #endif
+ 

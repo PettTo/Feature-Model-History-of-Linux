@@ -1,0 +1,9 @@
+commit 34e7724c0767f04f6199f2bd7232e9ab1207e1df
+Merge: c46a024ea5eb 1e6277de3a23 cad14bb9f8ef 501b32653ebf 956079e08142
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Wed Jun 3 10:05:18 2015 +0200
+
+    Merge branches 'x86/mm', 'x86/build', 'x86/apic' and 'x86/platform' into x86/core, to apply dependent patch
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+

@@ -1,0 +1,34 @@
+commit cad14bb9f8ef8bed42c3118adc0d9756e2aeeaa1
+Author: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Date:   Fri May 8 13:25:26 2015 +0300
+
+    x86/kconfig: Fix the CONFIG_NR_CPUS description
+    
+    Since:
+    
+      b53b5eda8194 ("x86/cpu: Increase max CPU count to 8192")
+    
+    ... the maximum supported NR_CPUS for CPUMASK_OFFSTACK case
+    is 8192. Let's adjust the description to reflect the change.
+    
+    Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1431080726-2490-1-git-send-email-kirill.shutemov@linux.intel.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 83cd1c7aa409..c3333e5be5d7 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -856,7 +856,7 @@ config NR_CPUS
+ 	---help---
+ 	  This allows you to specify the maximum number of CPUs which this
+ 	  kernel will support.  If CPUMASK_OFFSTACK is enabled, the maximum
+-	  supported value is 4096, otherwise the maximum value is 512.  The
++	  supported value is 8192, otherwise the maximum value is 512.  The
+ 	  minimum value which makes sense is 2.
+ 
+ 	  This is purely to save memory - each supported CPU adds

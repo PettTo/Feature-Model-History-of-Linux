@@ -1,0 +1,110 @@
+commit 1d9c5d79e6e4385aea6f69c23ba543717434ed70
+Merge: 870fd0f5df4e f638f4dc0880
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Feb 10 18:35:40 2015 -0800
+
+    Merge branch 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/jikos/livepatching
+    
+    Pull live patching infrastructure from Jiri Kosina:
+     "Let me provide a bit of history first, before describing what is in
+      this pile.
+    
+      Originally, there was kSplice as a standalone project that implemented
+      stop_machine()-based patching for the linux kernel.  This project got
+      later acquired, and the current owner is providing live patching as a
+      proprietary service, without any intentions to have their
+      implementation merged.
+    
+      Then, due to rising user/customer demand, both Red Hat and SUSE
+      started working on their own implementation (not knowing about each
+      other), and announced first versions roughly at the same time [1] [2].
+    
+      The principle difference between the two solutions is how they are
+      making sure that the patching is performed in a consistent way when it
+      comes to different execution threads with respect to the semantic
+      nature of the change that is being introduced.
+    
+      In a nutshell, kPatch is issuing stop_machine(), then looking at
+      stacks of all existing processess, and if it decides that the system
+      is in a state that can be patched safely, it proceeds insterting code
+      redirection machinery to the patched functions.
+    
+      On the other hand, kGraft provides a per-thread consistency during one
+      single pass of a process through the kernel and performs a lazy
+      contignuous migration of threads from "unpatched" universe to the
+      "patched" one at safe checkpoints.
+    
+      If interested in a more detailed discussion about the consistency
+      models and its possible combinations, please see the thread that
+      evolved around [3].
+    
+      It pretty quickly became obvious to the interested parties that it's
+      absolutely impractical in this case to have several isolated solutions
+      for one task to co-exist in the kernel.  During a dedicated Live
+      Kernel Patching track at LPC in Dusseldorf, all the interested parties
+      sat together and came up with a joint aproach that would work for both
+      distro vendors.  Steven Rostedt took notes [4] from this meeting.
+    
+      And the foundation for that aproach is what's present in this pull
+      request.
+    
+      It provides a basic infrastructure for function "live patching" (i.e.
+      code redirection), including API for kernel modules containing the
+      actual patches, and API/ABI for userspace to be able to operate on the
+      patches (look up what patches are applied, enable/disable them, etc).
+    
+      It's relatively simple and minimalistic, as it's making use of
+      existing kernel infrastructure (namely ftrace) as much as possible.
+      It's also self-contained, in a sense that it doesn't hook itself in
+      any other kernel subsystem (it doesn't even touch any other code).
+      It's now implemented for x86 only as a reference architecture, but
+      support for powerpc, s390 and arm is already in the works (adding
+      arch-specific support basically boils down to teaching ftrace about
+      regs-saving).
+    
+      Once this common infrastructure gets merged, both Red Hat and SUSE
+      have agreed to immediately start porting their current solutions on
+      top of this, abandoning their out-of-tree code.  The plan basically is
+      that each patch will be marked by flag(s) that would indicate which
+      consistency model it is willing to use (again, the details have been
+      sketched out already in the thread at [3]).
+    
+      Before this happens, the current codebase can be used to patch a large
+      group of secruity/stability problems the patches for which are not too
+      complex (in a sense that they don't introduce non-trivial change of
+      function's return value semantics, they don't change layout of data
+      structures, etc) -- this corresponds to LEAVE_FUNCTION &&
+      SWITCH_FUNCTION semantics described at [3].
+    
+      This tree has been in linux-next since December.
+    
+        [1] https://lkml.org/lkml/2014/4/30/477
+        [2] https://lkml.org/lkml/2014/7/14/857
+        [3] https://lkml.org/lkml/2014/11/7/354
+        [4] http://linuxplumbersconf.org/2014/wp-content/uploads/2014/10/LPC2014_LivePatching.txt
+    
+      [ The core code is introduced by the three commits authored by Seth
+        Jennings, which got a lot of changes incorporated during numerous
+        respins and reviews of the initial implementation.  All the followup
+        commits have materialized only after public tree has been created,
+        so they were not folded into initial three commits so that the
+        public tree doesn't get rebased ]"
+    
+    * 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/jikos/livepatching:
+      livepatch: add missing newline to error message
+      livepatch: rename config to CONFIG_LIVEPATCH
+      livepatch: fix uninitialized return value
+      livepatch: support for repatching a function
+      livepatch: enforce patch stacking semantics
+      livepatch: change ARCH_HAVE_LIVE_PATCHING to HAVE_LIVE_PATCHING
+      livepatch: fix deferred module patching order
+      livepatch: handle ancient compilers with more grace
+      livepatch: kconfig: use bool instead of boolean
+      livepatch: samples: fix usage example comments
+      livepatch: MAINTAINERS: add git tree location
+      livepatch: use FTRACE_OPS_FL_IPMODIFY
+      livepatch: move x86 specific ftrace handler code to arch/x86
+      livepatch: samples: add sample live patching module
+      livepatch: kernel: add support for live patching
+      livepatch: kernel: add TAINT_LIVEPATCH
+

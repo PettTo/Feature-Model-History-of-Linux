@@ -1,0 +1,227 @@
+commit 12f03ee606914317e7e6a0815e53a48205c31dae
+Merge: d9241b22b58e 004f1afbe199
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Sep 8 14:35:59 2015 -0700
+
+    Merge tag 'libnvdimm-for-4.3' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm
+    
+    Pull libnvdimm updates from Dan Williams:
+     "This update has successfully completed a 0day-kbuild run and has
+      appeared in a linux-next release.  The changes outside of the typical
+      drivers/nvdimm/ and drivers/acpi/nfit.[ch] paths are related to the
+      removal of IORESOURCE_CACHEABLE, the introduction of memremap(), and
+      the introduction of ZONE_DEVICE + devm_memremap_pages().
+    
+      Summary:
+    
+       - Introduce ZONE_DEVICE and devm_memremap_pages() as a generic
+         mechanism for adding device-driver-discovered memory regions to the
+         kernel's direct map.
+    
+         This facility is used by the pmem driver to enable pfn_to_page()
+         operations on the page frames returned by DAX ('direct_access' in
+         'struct block_device_operations').
+    
+         For now, the 'memmap' allocation for these "device" pages comes
+         from "System RAM".  Support for allocating the memmap from device
+         memory will arrive in a later kernel.
+    
+       - Introduce memremap() to replace usages of ioremap_cache() and
+         ioremap_wt().  memremap() drops the __iomem annotation for these
+         mappings to memory that do not have i/o side effects.  The
+         replacement of ioremap_cache() with memremap() is limited to the
+         pmem driver to ease merging the api change in v4.3.
+    
+         Completion of the conversion is targeted for v4.4.
+    
+       - Similar to the usage of memcpy_to_pmem() + wmb_pmem() in the pmem
+         driver, update the VFS DAX implementation and PMEM api to provide
+         persistence guarantees for kernel operations on a DAX mapping.
+    
+       - Convert the ACPI NFIT 'BLK' driver to map the block apertures as
+         cacheable to improve performance.
+    
+       - Miscellaneous updates and fixes to libnvdimm including support for
+         issuing "address range scrub" commands, clarifying the optimal
+         'sector size' of pmem devices, a clarification of the usage of the
+         ACPI '_STA' (status) property for DIMM devices, and other minor
+         fixes"
+    
+    * tag 'libnvdimm-for-4.3' of git://git.kernel.org/pub/scm/linux/kernel/git/nvdimm/nvdimm: (34 commits)
+      libnvdimm, pmem: direct map legacy pmem by default
+      libnvdimm, pmem: 'struct page' for pmem
+      libnvdimm, pfn: 'struct page' provider infrastructure
+      x86, pmem: clarify that ARCH_HAS_PMEM_API implies PMEM mapped WB
+      add devm_memremap_pages
+      mm: ZONE_DEVICE for "device memory"
+      mm: move __phys_to_pfn and __pfn_to_phys to asm/generic/memory_model.h
+      dax: drop size parameter to ->direct_access()
+      nd_blk: change aperture mapping from WC to WB
+      nvdimm: change to use generic kvfree()
+      pmem, dax: have direct_access use __pmem annotation
+      dax: update I/O path to do proper PMEM flushing
+      pmem: add copy_from_iter_pmem() and clear_pmem()
+      pmem, x86: clean up conditional pmem includes
+      pmem: remove layer when calling arch_has_wmb_pmem()
+      pmem, x86: move x86 PMEM API to new pmem.h header
+      libnvdimm, e820: make CONFIG_X86_PMEM_LEGACY a tristate option
+      pmem: switch to devm_ allocations
+      devres: add devm_memremap
+      libnvdimm, btt: write and validate parent_uuid
+      ...
+
+diff --cc arch/arm/mach-shmobile/pm-rcar.c
+index 4092ad16e0a4,9d3dde00c2fe..0af05d288b09
+--- a/arch/arm/mach-shmobile/pm-rcar.c
++++ b/arch/arm/mach-shmobile/pm-rcar.c
+@@@ -12,41 -12,24 +12,41 @@@
+  #include <linux/err.h>
+  #include <linux/mm.h>
+  #include <linux/spinlock.h>
+- #include <asm/io.h>
++ #include <linux/io.h>
+  #include "pm-rcar.h"
+  
+ -/* SYSC */
+ -#define SYSCSR 0x00
+ -#define SYSCISR 0x04
+ -#define SYSCISCR 0x08
+ +/* SYSC Common */
+ +#define SYSCSR			0x00	/* SYSC Status Register */
+ +#define SYSCISR			0x04	/* Interrupt Status Register */
+ +#define SYSCISCR		0x08	/* Interrupt Status Clear Register */
+ +#define SYSCIER			0x0c	/* Interrupt Enable Register */
+ +#define SYSCIMR			0x10	/* Interrupt Mask Register */
+  
+ -#define PWRSR_OFFS 0x00
+ -#define PWROFFCR_OFFS 0x04
+ -#define PWRONCR_OFFS 0x0c
+ -#define PWRER_OFFS 0x14
+ +/* SYSC Status Register */
+ +#define SYSCSR_PONENB		1	/* Ready for power resume requests */
+ +#define SYSCSR_POFFENB		0	/* Ready for power shutoff requests */
+  
+ -#define SYSCSR_RETRIES 100
+ -#define SYSCSR_DELAY_US 1
+ +/*
+ + * Power Control Register Offsets inside the register block for each domain
+ + * Note: The "CR" registers for ARM cores exist on H1 only
+ + *       Use WFI to power off, CPG/APMU to resume ARM cores on R-Car Gen2
+ + */
+ +#define PWRSR_OFFS		0x00	/* Power Status Register */
+ +#define PWROFFCR_OFFS		0x04	/* Power Shutoff Control Register */
+ +#define PWROFFSR_OFFS		0x08	/* Power Shutoff Status Register */
+ +#define PWRONCR_OFFS		0x0c	/* Power Resume Control Register */
+ +#define PWRONSR_OFFS		0x10	/* Power Resume Status Register */
+ +#define PWRER_OFFS		0x14	/* Power Shutoff/Resume Error */
+ +
+ +
+ +#define SYSCSR_RETRIES		100
+ +#define SYSCSR_DELAY_US		1
+ +
+ +#define PWRER_RETRIES		100
+ +#define PWRER_DELAY_US		1
+  
+ -#define SYSCISR_RETRIES 1000
+ -#define SYSCISR_DELAY_US 1
+ +#define SYSCISR_RETRIES		1000
+ +#define SYSCISR_DELAY_US	1
+  
+  static void __iomem *rcar_sysc_base;
+  static DEFINE_SPINLOCK(rcar_sysc_lock); /* SMP CPUs + I/O devices */
+diff --cc arch/s390/mm/init.c
+index 2963b563621c,48ee78be88ba..c3c07d3505ba
+--- a/arch/s390/mm/init.c
++++ b/arch/s390/mm/init.c
+@@@ -169,14 -168,13 +169,14 @@@ void __init free_initrd_mem(unsigned lo
+  #endif
+  
+  #ifdef CONFIG_MEMORY_HOTPLUG
+- int arch_add_memory(int nid, u64 start, u64 size)
++ int arch_add_memory(int nid, u64 start, u64 size, bool for_device)
+  {
+ -	unsigned long zone_start_pfn, zone_end_pfn, nr_pages;
+ +	unsigned long normal_end_pfn = PFN_DOWN(memblock_end_of_DRAM());
+ +	unsigned long dma_end_pfn = PFN_DOWN(MAX_DMA_ADDRESS);
+  	unsigned long start_pfn = PFN_DOWN(start);
+  	unsigned long size_pages = PFN_DOWN(size);
+ -	struct zone *zone;
+ -	int rc;
+ +	unsigned long nr_pages;
+ +	int rc, zone_enum;
+  
+  	rc = vmem_add_mapping(start, size);
+  	if (rc)
+diff --cc arch/sh/mm/init.c
+index 17f486233db0,c1490096b863..75491862d900
+--- a/arch/sh/mm/init.c
++++ b/arch/sh/mm/init.c
+@@@ -485,10 -485,10 +485,10 @@@ void free_initrd_mem(unsigned long star
+  #endif
+  
+  #ifdef CONFIG_MEMORY_HOTPLUG
+- int arch_add_memory(int nid, u64 start, u64 size)
++ int arch_add_memory(int nid, u64 start, u64 size, bool for_device)
+  {
+  	pg_data_t *pgdat;
+ -	unsigned long start_pfn = start >> PAGE_SHIFT;
+ +	unsigned long start_pfn = PFN_DOWN(start);
+  	unsigned long nr_pages = size >> PAGE_SHIFT;
+  	int ret;
+  
+diff --cc drivers/acpi/nfit.c
+index cf0fd96a7602,f61e69fa2ad1..c1b8d03e262e
+--- a/drivers/acpi/nfit.c
++++ b/drivers/acpi/nfit.c
+@@@ -1032,7 -1018,7 +1018,7 @@@ static u32 read_blk_stat(struct nfit_bl
+  	if (mmio->num_lines)
+  		offset = to_interleave_offset(offset, mmio);
+  
+- 	return readl(mmio->base + offset);
+ -	return readq(mmio->addr.base + offset);
+++	return readl(mmio->addr.base + offset);
+  }
+  
+  static void write_blk_ctl(struct nfit_blk *nfit_blk, unsigned int bw,
+diff --cc drivers/scsi/mvsas/mv_init.c
+index f466a6aa8830,e654b5cec69e..e2d555c1bffc
+--- a/drivers/scsi/mvsas/mv_init.c
++++ b/drivers/scsi/mvsas/mv_init.c
+@@@ -338,17 -334,11 +334,14 @@@ int mvs_ioremap(struct mvs_info *mvi, i
+  
+  	res_start = pci_resource_start(pdev, bar);
+  	res_len = pci_resource_len(pdev, bar);
+ -	if (!res_start || !res_len)
+ +	if (!res_start || !res_len) {
+ +		iounmap(mvi->regs_ex);
+ +		mvi->regs_ex = NULL;
+  		goto err_out;
+ +	}
+  
+  	res_flag = pci_resource_flags(pdev, bar);
+- 	if (res_flag & IORESOURCE_CACHEABLE)
+- 		mvi->regs = ioremap(res_start, res_len);
+- 	else
+- 		mvi->regs = ioremap_nocache(res_start, res_len);
++ 	mvi->regs = ioremap(res_start, res_len);
+  
+  	if (!mvi->regs) {
+  		if (mvi->regs_ex && (res_flag_ex & IORESOURCE_MEM))
+diff --cc drivers/staging/unisys/visorbus/visorchannel.c
+index 6da7e49a6627,19c4a78a3617..2693c46afdc0
+--- a/drivers/staging/unisys/visorbus/visorchannel.c
++++ b/drivers/staging/unisys/visorbus/visorchannel.c
+@@@ -258,11 -261,10 +260,11 @@@ visorchannel_write(struct visorchannel 
+  
+  	if (offset < chdr_size) {
+  		copy_size = min(chdr_size - offset, nbytes);
+ -		memcpy(&channel->chan_hdr + offset, local, copy_size);
+ +		memcpy(((char *)(&channel->chan_hdr)) + offset,
+ +		       local, copy_size);
+  	}
+  
+- 	memcpy_toio(channel->mapped + offset, local, nbytes);
++ 	memcpy(channel->mapped + offset, local, nbytes);
+  
+  	return 0;
+  }

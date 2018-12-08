@@ -1,0 +1,327 @@
+commit 5f141548824cebbff2e838ff401c34e667797467
+Author: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+Date:   Mon Aug 10 16:34:33 2015 -0400
+
+    xen/PMU: Sysfs interface for setting Xen PMU mode
+    
+    Set Xen's PMU mode via /sys/hypervisor/pmu/pmu_mode. Add XENPMU hypercall.
+    
+    Signed-off-by: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+    Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+    Signed-off-by: David Vrabel <david.vrabel@citrix.com>
+
+diff --git a/Documentation/ABI/testing/sysfs-hypervisor-pmu b/Documentation/ABI/testing/sysfs-hypervisor-pmu
+new file mode 100644
+index 000000000000..224faa105e18
+--- /dev/null
++++ b/Documentation/ABI/testing/sysfs-hypervisor-pmu
+@@ -0,0 +1,23 @@
++What:		/sys/hypervisor/pmu/pmu_mode
++Date:		August 2015
++KernelVersion:	4.3
++Contact:	Boris Ostrovsky <boris.ostrovsky@oracle.com>
++Description:
++		Describes mode that Xen's performance-monitoring unit (PMU)
++		uses. Accepted values are
++			"off"  -- PMU is disabled
++			"self" -- The guest can profile itself
++			"hv"   -- The guest can profile itself and, if it is
++				  privileged (e.g. dom0), the hypervisor
++			"all" --  The guest can profile itself, the hypervisor
++				  and all other guests. Only available to
++				  privileged guests.
++
++What:           /sys/hypervisor/pmu/pmu_features
++Date:           August 2015
++KernelVersion:  4.3
++Contact:        Boris Ostrovsky <boris.ostrovsky@oracle.com>
++Description:
++		Describes Xen PMU features (as an integer). A set bit indicates
++		that the corresponding feature is enabled. See
++		include/xen/interface/xenpmu.h for available features
+diff --git a/arch/x86/include/asm/xen/hypercall.h b/arch/x86/include/asm/xen/hypercall.h
+index ca08a27b90b3..83aea8055119 100644
+--- a/arch/x86/include/asm/xen/hypercall.h
++++ b/arch/x86/include/asm/xen/hypercall.h
+@@ -465,6 +465,12 @@ HYPERVISOR_tmem_op(
+ 	return _hypercall1(int, tmem_op, op);
+ }
+ 
++static inline int
++HYPERVISOR_xenpmu_op(unsigned int op, void *arg)
++{
++	return _hypercall2(int, xenpmu_op, op, arg);
++}
++
+ static inline void
+ MULTI_fpu_taskswitch(struct multicall_entry *mcl, int set)
+ {
+diff --git a/arch/x86/xen/Kconfig b/arch/x86/xen/Kconfig
+index 7bcf21b865d1..a8ffdb85656f 100644
+--- a/arch/x86/xen/Kconfig
++++ b/arch/x86/xen/Kconfig
+@@ -7,6 +7,7 @@ config XEN
+ 	depends on PARAVIRT
+ 	select PARAVIRT_CLOCK
+ 	select XEN_HAVE_PVMMU
++	select XEN_HAVE_VPMU
+ 	depends on X86_64 || (X86_32 && X86_PAE)
+ 	depends on X86_TSC
+ 	help
+diff --git a/drivers/xen/Kconfig b/drivers/xen/Kconfig
+index 936760455dd5..73708acce3ca 100644
+--- a/drivers/xen/Kconfig
++++ b/drivers/xen/Kconfig
+@@ -288,4 +288,7 @@ config XEN_SYMS
+           Exports hypervisor symbols (along with their types and addresses) via
+           /proc/xen/xensyms file, similar to /proc/kallsyms
+ 
++config XEN_HAVE_VPMU
++       bool
++
+ endmenu
+diff --git a/drivers/xen/sys-hypervisor.c b/drivers/xen/sys-hypervisor.c
+index 96453f8a85c5..b5a7342e0ba5 100644
+--- a/drivers/xen/sys-hypervisor.c
++++ b/drivers/xen/sys-hypervisor.c
+@@ -20,6 +20,9 @@
+ #include <xen/xenbus.h>
+ #include <xen/interface/xen.h>
+ #include <xen/interface/version.h>
++#ifdef CONFIG_XEN_HAVE_VPMU
++#include <xen/interface/xenpmu.h>
++#endif
+ 
+ #define HYPERVISOR_ATTR_RO(_name) \
+ static struct hyp_sysfs_attr  _name##_attr = __ATTR_RO(_name)
+@@ -368,6 +371,126 @@ static void xen_properties_destroy(void)
+ 	sysfs_remove_group(hypervisor_kobj, &xen_properties_group);
+ }
+ 
++#ifdef CONFIG_XEN_HAVE_VPMU
++struct pmu_mode {
++	const char *name;
++	uint32_t mode;
++};
++
++static struct pmu_mode pmu_modes[] = {
++	{"off", XENPMU_MODE_OFF},
++	{"self", XENPMU_MODE_SELF},
++	{"hv", XENPMU_MODE_HV},
++	{"all", XENPMU_MODE_ALL}
++};
++
++static ssize_t pmu_mode_store(struct hyp_sysfs_attr *attr,
++			      const char *buffer, size_t len)
++{
++	int ret;
++	struct xen_pmu_params xp;
++	int i;
++
++	for (i = 0; i < ARRAY_SIZE(pmu_modes); i++) {
++		if (strncmp(buffer, pmu_modes[i].name, len - 1) == 0) {
++			xp.val = pmu_modes[i].mode;
++			break;
++		}
++	}
++
++	if (i == ARRAY_SIZE(pmu_modes))
++		return -EINVAL;
++
++	xp.version.maj = XENPMU_VER_MAJ;
++	xp.version.min = XENPMU_VER_MIN;
++	ret = HYPERVISOR_xenpmu_op(XENPMU_mode_set, &xp);
++	if (ret)
++		return ret;
++
++	return len;
++}
++
++static ssize_t pmu_mode_show(struct hyp_sysfs_attr *attr, char *buffer)
++{
++	int ret;
++	struct xen_pmu_params xp;
++	int i;
++	uint32_t mode;
++
++	xp.version.maj = XENPMU_VER_MAJ;
++	xp.version.min = XENPMU_VER_MIN;
++	ret = HYPERVISOR_xenpmu_op(XENPMU_mode_get, &xp);
++	if (ret)
++		return ret;
++
++	mode = (uint32_t)xp.val;
++	for (i = 0; i < ARRAY_SIZE(pmu_modes); i++) {
++		if (mode == pmu_modes[i].mode)
++			return sprintf(buffer, "%s\n", pmu_modes[i].name);
++	}
++
++	return -EINVAL;
++}
++HYPERVISOR_ATTR_RW(pmu_mode);
++
++static ssize_t pmu_features_store(struct hyp_sysfs_attr *attr,
++				  const char *buffer, size_t len)
++{
++	int ret;
++	uint32_t features;
++	struct xen_pmu_params xp;
++
++	ret = kstrtou32(buffer, 0, &features);
++	if (ret)
++		return ret;
++
++	xp.val = features;
++	xp.version.maj = XENPMU_VER_MAJ;
++	xp.version.min = XENPMU_VER_MIN;
++	ret = HYPERVISOR_xenpmu_op(XENPMU_feature_set, &xp);
++	if (ret)
++		return ret;
++
++	return len;
++}
++
++static ssize_t pmu_features_show(struct hyp_sysfs_attr *attr, char *buffer)
++{
++	int ret;
++	struct xen_pmu_params xp;
++
++	xp.version.maj = XENPMU_VER_MAJ;
++	xp.version.min = XENPMU_VER_MIN;
++	ret = HYPERVISOR_xenpmu_op(XENPMU_feature_get, &xp);
++	if (ret)
++		return ret;
++
++	return sprintf(buffer, "0x%x\n", (uint32_t)xp.val);
++}
++HYPERVISOR_ATTR_RW(pmu_features);
++
++static struct attribute *xen_pmu_attrs[] = {
++	&pmu_mode_attr.attr,
++	&pmu_features_attr.attr,
++	NULL
++};
++
++static const struct attribute_group xen_pmu_group = {
++	.name = "pmu",
++	.attrs = xen_pmu_attrs,
++};
++
++static int __init xen_pmu_init(void)
++{
++	return sysfs_create_group(hypervisor_kobj, &xen_pmu_group);
++}
++
++static void xen_pmu_destroy(void)
++{
++	sysfs_remove_group(hypervisor_kobj, &xen_pmu_group);
++}
++#endif
++
+ static int __init hyper_sysfs_init(void)
+ {
+ 	int ret;
+@@ -390,7 +513,15 @@ static int __init hyper_sysfs_init(void)
+ 	ret = xen_properties_init();
+ 	if (ret)
+ 		goto prop_out;
+-
++#ifdef CONFIG_XEN_HAVE_VPMU
++	if (xen_initial_domain()) {
++		ret = xen_pmu_init();
++		if (ret) {
++			xen_properties_destroy();
++			goto prop_out;
++		}
++	}
++#endif
+ 	goto out;
+ 
+ prop_out:
+@@ -407,6 +538,9 @@ static int __init hyper_sysfs_init(void)
+ 
+ static void __exit hyper_sysfs_exit(void)
+ {
++#ifdef CONFIG_XEN_HAVE_VPMU
++	xen_pmu_destroy();
++#endif
+ 	xen_properties_destroy();
+ 	xen_compilation_destroy();
+ 	xen_sysfs_uuid_destroy();
+diff --git a/include/xen/interface/xen.h b/include/xen/interface/xen.h
+index 8194270edcf0..e9d4501d1f5e 100644
+--- a/include/xen/interface/xen.h
++++ b/include/xen/interface/xen.h
+@@ -80,6 +80,7 @@
+ #define __HYPERVISOR_kexec_op             37
+ #define __HYPERVISOR_tmem_op              38
+ #define __HYPERVISOR_xc_reserved_op       39 /* reserved for XenClient */
++#define __HYPERVISOR_xenpmu_op            40
+ 
+ /* Architecture-specific hypercall definitions. */
+ #define __HYPERVISOR_arch_0               48
+diff --git a/include/xen/interface/xenpmu.h b/include/xen/interface/xenpmu.h
+new file mode 100644
+index 000000000000..eac1b498b89f
+--- /dev/null
++++ b/include/xen/interface/xenpmu.h
+@@ -0,0 +1,59 @@
++#ifndef __XEN_PUBLIC_XENPMU_H__
++#define __XEN_PUBLIC_XENPMU_H__
++
++#include "xen.h"
++
++#define XENPMU_VER_MAJ    0
++#define XENPMU_VER_MIN    1
++
++/*
++ * ` enum neg_errnoval
++ * ` HYPERVISOR_xenpmu_op(enum xenpmu_op cmd, struct xenpmu_params *args);
++ *
++ * @cmd  == XENPMU_* (PMU operation)
++ * @args == struct xenpmu_params
++ */
++/* ` enum xenpmu_op { */
++#define XENPMU_mode_get        0 /* Also used for getting PMU version */
++#define XENPMU_mode_set        1
++#define XENPMU_feature_get     2
++#define XENPMU_feature_set     3
++#define XENPMU_init            4
++#define XENPMU_finish          5
++
++/* ` } */
++
++/* Parameters structure for HYPERVISOR_xenpmu_op call */
++struct xen_pmu_params {
++	/* IN/OUT parameters */
++	struct {
++		uint32_t maj;
++		uint32_t min;
++	} version;
++	uint64_t val;
++
++	/* IN parameters */
++	uint32_t vcpu;
++	uint32_t pad;
++};
++
++/* PMU modes:
++ * - XENPMU_MODE_OFF:   No PMU virtualization
++ * - XENPMU_MODE_SELF:  Guests can profile themselves
++ * - XENPMU_MODE_HV:    Guests can profile themselves, dom0 profiles
++ *                      itself and Xen
++ * - XENPMU_MODE_ALL:   Only dom0 has access to VPMU and it profiles
++ *                      everyone: itself, the hypervisor and the guests.
++ */
++#define XENPMU_MODE_OFF           0
++#define XENPMU_MODE_SELF          (1<<0)
++#define XENPMU_MODE_HV            (1<<1)
++#define XENPMU_MODE_ALL           (1<<2)
++
++/*
++ * PMU features:
++ * - XENPMU_FEATURE_INTEL_BTS: Intel BTS support (ignored on AMD)
++ */
++#define XENPMU_FEATURE_INTEL_BTS  1
++
++#endif /* __XEN_PUBLIC_XENPMU_H__ */

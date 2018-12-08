@@ -1,0 +1,254 @@
+commit 5778077d03cb25aac9b6a428e18970642fc019e3
+Merge: 65a99597f044 7e01ebffffed
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Sep 1 08:40:25 2015 -0700
+
+    Merge branch 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 asm changes from Ingo Molnar:
+     "The biggest changes in this cycle were:
+    
+       - Revamp, simplify (and in some cases fix) Time Stamp Counter (TSC)
+         primitives.  (Andy Lutomirski)
+    
+       - Add new, comprehensible entry and exit handlers written in C.
+         (Andy Lutomirski)
+    
+       - vm86 mode cleanups and fixes.  (Brian Gerst)
+    
+       - 32-bit compat code cleanups.  (Brian Gerst)
+    
+      The amount of simplification in low level assembly code is already
+      palpable:
+    
+         arch/x86/entry/entry_32.S                          | 130 +----
+         arch/x86/entry/entry_64.S                          | 197 ++-----
+    
+      but more simplifications are planned.
+    
+      There's also the usual laudry mix of low level changes - see the
+      changelog for details"
+    
+    * 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (83 commits)
+      x86/asm: Drop repeated macro of X86_EFLAGS_AC definition
+      x86/asm/msr: Make wrmsrl() a function
+      x86/asm/delay: Introduce an MWAITX-based delay with a configurable timer
+      x86/asm: Add MONITORX/MWAITX instruction support
+      x86/traps: Weaken context tracking entry assertions
+      x86/asm/tsc: Add rdtscll() merge helper
+      selftests/x86: Add syscall_nt selftest
+      selftests/x86: Disable sigreturn_64
+      x86/vdso: Emit a GNU hash
+      x86/entry: Remove do_notify_resume(), syscall_trace_leave(), and their TIF masks
+      x86/entry/32: Migrate to C exit path
+      x86/entry/32: Remove 32-bit syscall audit optimizations
+      x86/vm86: Rename vm86->v86flags and v86mask
+      x86/vm86: Rename vm86->vm86_info to user_vm86
+      x86/vm86: Clean up vm86.h includes
+      x86/vm86: Move the vm86 IRQ definitions to vm86.h
+      x86/vm86: Use the normal pt_regs area for vm86
+      x86/vm86: Eliminate 'struct kernel_vm86_struct'
+      x86/vm86: Move fields from 'struct kernel_vm86_struct' to 'struct vm86'
+      x86/vm86: Move vm86 fields out of 'thread_struct'
+      ...
+
+diff --cc arch/x86/kernel/irq.c
+index c7dfe1be784e,d596eba9586e..4616672a4049
+--- a/arch/x86/kernel/irq.c
++++ b/arch/x86/kernel/irq.c
+@@@ -216,8 -216,23 +216,23 @@@ __visible unsigned int __irq_entry do_I
+  	unsigned vector = ~regs->orig_ax;
+  	unsigned irq;
+  
++ 	/*
++ 	 * NB: Unlike exception entries, IRQ entries do not reliably
++ 	 * handle context tracking in the low-level entry code.  This is
++ 	 * because syscall entries execute briefly with IRQs on before
++ 	 * updating context tracking state, so we can take an IRQ from
++ 	 * kernel mode with CONTEXT_USER.  The low-level entry code only
++ 	 * updates the context if we came from user mode, so we won't
++ 	 * switch to CONTEXT_KERNEL.  We'll fix that once the syscall
++ 	 * code is cleaned up enough that we can cleanly defer enabling
++ 	 * IRQs.
++ 	 */
++ 
+  	entering_irq();
+  
++ 	/* entering_irq() tells RCU that we're not quiescent.  Check it. */
+ -	rcu_lockdep_assert(rcu_is_watching(), "IRQ failed to wake up RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "IRQ failed to wake up RCU");
++ 
+  	irq = __this_cpu_read(vector_irq[vector]);
+  
+  	if (!handle_irq(irq, regs)) {
+diff --cc arch/x86/kernel/process.c
+index d83740ab85b0,2199d9b774c8..6d0e62ae8516
+--- a/arch/x86/kernel/process.c
++++ b/arch/x86/kernel/process.c
+@@@ -29,7 -29,7 +29,8 @@@
+  #include <asm/debugreg.h>
+  #include <asm/nmi.h>
+  #include <asm/tlbflush.h>
+ +#include <asm/mce.h>
++ #include <asm/vm86.h>
+  
+  /*
+   * per-CPU TSS segments. Threads are completely 'soft' on Linux,
+diff --cc arch/x86/kernel/traps.c
+index c5a5231d1d11,45e8d9891fa3..346eec73f7db
+--- a/arch/x86/kernel/traps.c
++++ b/arch/x86/kernel/traps.c
+@@@ -108,13 -109,10 +109,10 @@@ static inline void preempt_conditional_
+  	preempt_count_dec();
+  }
+  
+- enum ctx_state ist_enter(struct pt_regs *regs)
++ void ist_enter(struct pt_regs *regs)
+  {
+- 	enum ctx_state prev_state;
+- 
+  	if (user_mode(regs)) {
+- 		/* Other than that, we're just an exception. */
+- 		prev_state = exception_enter();
+ -		rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++		RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  	} else {
+  		/*
+  		 * We might have interrupted pretty much anything.  In
+@@@ -136,19 -132,14 +132,14 @@@
+  	preempt_count_add(HARDIRQ_OFFSET);
+  
+  	/* This code is a bit fragile.  Test it. */
+ -	rcu_lockdep_assert(rcu_is_watching(), "ist_enter didn't work");
+ +	RCU_LOCKDEP_WARN(!rcu_is_watching(), "ist_enter didn't work");
+- 
+- 	return prev_state;
+  }
+  
+- void ist_exit(struct pt_regs *regs, enum ctx_state prev_state)
++ void ist_exit(struct pt_regs *regs)
+  {
+- 	/* Must be before exception_exit. */
+  	preempt_count_sub(HARDIRQ_OFFSET);
+  
+- 	if (user_mode(regs))
+- 		return exception_exit(prev_state);
+- 	else
++ 	if (!user_mode(regs))
+  		rcu_nmi_exit();
+  }
+  
+@@@ -289,9 -280,10 +280,10 @@@ NOKPROBE_SYMBOL(do_trap)
+  static void do_error_trap(struct pt_regs *regs, long error_code, char *str,
+  			  unsigned long trapnr, int signr)
+  {
+- 	enum ctx_state prev_state = exception_enter();
+  	siginfo_t info;
+  
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
++ 
+  	if (notify_die(DIE_TRAP, str, regs, error_code, trapnr, signr) !=
+  			NOTIFY_STOP) {
+  		conditional_sti(regs);
+@@@ -374,11 -364,10 +364,10 @@@ dotraplinkage void do_bounds(struct pt_
+  	const struct bndcsr *bndcsr;
+  	siginfo_t *info;
+  
+- 	prev_state = exception_enter();
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  	if (notify_die(DIE_TRAP, "bounds", regs, error_code,
+  			X86_TRAP_BR, SIGSEGV) == NOTIFY_STOP)
+- 		goto exit;
++ 		return;
+  	conditional_sti(regs);
+  
+  	if (!user_mode(regs))
+@@@ -454,9 -441,8 +441,8 @@@ dotraplinkage voi
+  do_general_protection(struct pt_regs *regs, long error_code)
+  {
+  	struct task_struct *tsk;
+- 	enum ctx_state prev_state;
+  
+- 	prev_state = exception_enter();
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  	conditional_sti(regs);
+  
+  	if (v8086_mode(regs)) {
+@@@ -513,7 -495,8 +495,8 @@@ dotraplinkage void notrace do_int3(stru
+  	if (poke_int3_handler(regs))
+  		return;
+  
+- 	prev_state = ist_enter(regs);
++ 	ist_enter(regs);
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  #ifdef CONFIG_KGDB_LOW_LEVEL_TRAP
+  	if (kgdb_ll_trap(DIE_INT3, "int3", regs, error_code, X86_TRAP_BP,
+  				SIGTRAP) == NOTIFY_STOP)
+@@@ -747,21 -729,15 +729,15 @@@ static void math_error(struct pt_regs *
+  
+  dotraplinkage void do_coprocessor_error(struct pt_regs *regs, long error_code)
+  {
+- 	enum ctx_state prev_state;
+- 
+- 	prev_state = exception_enter();
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  	math_error(regs, error_code, X86_TRAP_MF);
+- 	exception_exit(prev_state);
+  }
+  
+  dotraplinkage void
+  do_simd_coprocessor_error(struct pt_regs *regs, long error_code)
+  {
+- 	enum ctx_state prev_state;
+- 
+- 	prev_state = exception_enter();
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  	math_error(regs, error_code, X86_TRAP_XF);
+- 	exception_exit(prev_state);
+  }
+  
+  dotraplinkage void
+@@@ -773,9 -749,7 +749,7 @@@ do_spurious_interrupt_bug(struct pt_reg
+  dotraplinkage void
+  do_device_not_available(struct pt_regs *regs, long error_code)
+  {
+- 	enum ctx_state prev_state;
+- 
+- 	prev_state = exception_enter();
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  	BUG_ON(use_eager_fpu());
+  
+  #ifdef CONFIG_MATH_EMULATION
+@@@ -802,9 -774,8 +774,8 @@@ NOKPROBE_SYMBOL(do_device_not_available
+  dotraplinkage void do_iret_error(struct pt_regs *regs, long error_code)
+  {
+  	siginfo_t info;
+- 	enum ctx_state prev_state;
+  
+- 	prev_state = exception_enter();
+ -	rcu_lockdep_assert(rcu_is_watching(), "entry code didn't wake RCU");
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(), "entry code didn't wake RCU");
+  	local_irq_enable();
+  
+  	info.si_signo = SIGILL;
+diff --cc kernel/notifier.c
+index ae9fc7cc360e,980e4330fb59..fd2c9acbcc19
+--- a/kernel/notifier.c
++++ b/kernel/notifier.c
+@@@ -544,6 -544,8 +544,8 @@@ int notrace notify_die(enum die_val val
+  		.signr	= sig,
+  
+  	};
+ -	rcu_lockdep_assert(rcu_is_watching(),
+++	RCU_LOCKDEP_WARN(!rcu_is_watching(),
++ 			   "notify_die called but RCU thinks we're quiescent");
+  	return atomic_notifier_call_chain(&die_chain, val, &args);
+  }
+  NOKPROBE_SYMBOL(notify_die);

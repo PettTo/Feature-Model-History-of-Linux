@@ -1,0 +1,170 @@
+commit 9a2bc335f100a0f6ee6392b9f97ac4188d84db1d
+Author: Borislav Petkov <bp@suse.de>
+Date:   Tue Oct 20 11:54:44 2015 +0200
+
+    x86/microcode: Unmodularize the microcode driver
+    
+    Make CONFIG_MICROCODE a bool. It was practically a bool already anyway,
+    since early loader was forcing it to =y.
+    
+    Regardless, there's no real reason to have something be a module which
+    gets built-in on the majority of installations out there. And its not
+    like there's noticeable change in functionality - we still can load late
+    microcode - just the module glue disappears.
+    
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Arjan van de Ven <arjan@linux.intel.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Dave Jones <davej@codemonkey.org.uk>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Len Brown <len.brown@intel.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Link: http://lkml.kernel.org/r/1445334889-300-2-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 96d058a87100..fdf1f0cdf6b6 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1123,7 +1123,8 @@ config X86_REBOOTFIXUPS
+ 	  Say N otherwise.
+ 
+ config MICROCODE
+-	tristate "CPU microcode loading support"
++	bool "CPU microcode loading support"
++	default y
+ 	depends on CPU_SUP_AMD || CPU_SUP_INTEL
+ 	select FW_LOADER
+ 	---help---
+@@ -1174,7 +1175,7 @@ config MICROCODE_AMD_EARLY
+ 
+ config MICROCODE_EARLY
+ 	bool "Early load microcode"
+-	depends on MICROCODE=y && BLK_DEV_INITRD
++	depends on MICROCODE && BLK_DEV_INITRD
+ 	select MICROCODE_INTEL_EARLY if MICROCODE_INTEL
+ 	select MICROCODE_AMD_EARLY if MICROCODE_AMD
+ 	default y
+diff --git a/arch/x86/include/asm/microcode.h b/arch/x86/include/asm/microcode.h
+index 9e6278c7140e..d1ff724f352b 100644
+--- a/arch/x86/include/asm/microcode.h
++++ b/arch/x86/include/asm/microcode.h
+@@ -55,6 +55,12 @@ struct ucode_cpu_info {
+ };
+ extern struct ucode_cpu_info ucode_cpu_info[];
+ 
++#ifdef CONFIG_MICROCODE
++int __init microcode_init(void);
++#else
++static inline int __init microcode_init(void)	{ return 0; };
++#endif
++
+ #ifdef CONFIG_MICROCODE_INTEL
+ extern struct microcode_ops * __init init_intel_microcode(void);
+ #else
+diff --git a/arch/x86/kernel/cpu/microcode/amd.c b/arch/x86/kernel/cpu/microcode/amd.c
+index da922d1e2f71..5dcce5dc39b9 100644
+--- a/arch/x86/kernel/cpu/microcode/amd.c
++++ b/arch/x86/kernel/cpu/microcode/amd.c
+@@ -523,7 +523,7 @@ static struct microcode_ops microcode_amd_ops = {
+ 
+ struct microcode_ops * __init init_amd_microcode(void)
+ {
+-	struct cpuinfo_x86 *c = &cpu_data(0);
++	struct cpuinfo_x86 *c = &boot_cpu_data;
+ 
+ 	if (c->x86_vendor != X86_VENDOR_AMD || c->x86 < 0x10) {
+ 		pr_warning("AMD CPU family 0x%x not supported\n", c->x86);
+diff --git a/arch/x86/kernel/cpu/microcode/core.c b/arch/x86/kernel/cpu/microcode/core.c
+index 9e3f3c7dd5d7..15491dd3131e 100644
+--- a/arch/x86/kernel/cpu/microcode/core.c
++++ b/arch/x86/kernel/cpu/microcode/core.c
+@@ -487,9 +487,9 @@ static struct attribute_group cpu_root_microcode_group = {
+ 	.attrs = cpu_root_microcode_attrs,
+ };
+ 
+-static int __init microcode_init(void)
++int __init microcode_init(void)
+ {
+-	struct cpuinfo_x86 *c = &cpu_data(0);
++	struct cpuinfo_x86 *c = &boot_cpu_data;
+ 	int error;
+ 
+ 	if (paravirt_enabled() || dis_ucode_ldr)
+@@ -560,35 +560,3 @@ static int __init microcode_init(void)
+ 	return error;
+ 
+ }
+-module_init(microcode_init);
+-
+-static void __exit microcode_exit(void)
+-{
+-	struct cpuinfo_x86 *c = &cpu_data(0);
+-
+-	microcode_dev_exit();
+-
+-	unregister_hotcpu_notifier(&mc_cpu_notifier);
+-	unregister_syscore_ops(&mc_syscore_ops);
+-
+-	sysfs_remove_group(&cpu_subsys.dev_root->kobj,
+-			   &cpu_root_microcode_group);
+-
+-	get_online_cpus();
+-	mutex_lock(&microcode_mutex);
+-
+-	subsys_interface_unregister(&mc_cpu_interface);
+-
+-	mutex_unlock(&microcode_mutex);
+-	put_online_cpus();
+-
+-	platform_device_unregister(microcode_pdev);
+-
+-	microcode_ops = NULL;
+-
+-	if (c->x86_vendor == X86_VENDOR_AMD)
+-		exit_amd_microcode();
+-
+-	pr_info("Microcode Update Driver: v" MICROCODE_VERSION " removed.\n");
+-}
+-module_exit(microcode_exit);
+diff --git a/arch/x86/kernel/cpu/microcode/intel.c b/arch/x86/kernel/cpu/microcode/intel.c
+index 969dc17eb1b4..bfd6fcd242ea 100644
+--- a/arch/x86/kernel/cpu/microcode/intel.c
++++ b/arch/x86/kernel/cpu/microcode/intel.c
+@@ -264,7 +264,7 @@ static struct microcode_ops microcode_intel_ops = {
+ 
+ struct microcode_ops * __init init_intel_microcode(void)
+ {
+-	struct cpuinfo_x86 *c = &cpu_data(0);
++	struct cpuinfo_x86 *c = &boot_cpu_data;
+ 
+ 	if (c->x86_vendor != X86_VENDOR_INTEL || c->x86 < 6 ||
+ 	    cpu_has(c, X86_FEATURE_IA64)) {
+diff --git a/arch/x86/kernel/setup.c b/arch/x86/kernel/setup.c
+index 3f75297d5fd0..3a896109e1df 100644
+--- a/arch/x86/kernel/setup.c
++++ b/arch/x86/kernel/setup.c
+@@ -111,6 +111,7 @@
+ #include <asm/mce.h>
+ #include <asm/alternative.h>
+ #include <asm/prom.h>
++#include <asm/microcode.h>
+ 
+ /*
+  * max_low_pfn_mapped: highest direct mapped pfn under 4GB
+@@ -1239,6 +1240,8 @@ void __init setup_arch(char **cmdline_p)
+ 	if (efi_enabled(EFI_BOOT))
+ 		efi_apply_memmap_quirks();
+ #endif
++
++	microcode_init();
+ }
+ 
+ #ifdef CONFIG_X86_32

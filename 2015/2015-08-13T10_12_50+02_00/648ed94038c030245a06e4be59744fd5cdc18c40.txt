@@ -1,0 +1,209 @@
+commit 648ed94038c030245a06e4be59744fd5cdc18c40
+Author: Chen, Gong <gong.chen@linux.intel.com>
+Date:   Wed Aug 12 18:29:34 2015 +0200
+
+    x86/mce: Provide a lockless memory pool to save error records
+    
+    printk() is not safe to use in MCE context. Add a lockless
+    memory allocator pool to save error records in MCE context.
+    Those records will be issued later, in a printk-safe context.
+    The idea is inspired by the APEI/GHES driver.
+    
+    We're very conservative and allocate only two pages for it but
+    since we're going to use those pages throughout the system's
+    lifetime, we allocate them statically to avoid early boot time
+    allocation woes.
+    
+    Signed-off-by: Chen, Gong <gong.chen@linux.intel.com>
+    [ Rewrite. ]
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Link: http://lkml.kernel.org/r/1439396985-12812-3-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index b3a1a5d77d92..06dbb5da90c6 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -955,6 +955,7 @@ config X86_REROUTE_FOR_BROKEN_BOOT_IRQS
+ 
+ config X86_MCE
+ 	bool "Machine Check / overheating reporting"
++	select GENERIC_ALLOCATOR
+ 	default y
+ 	---help---
+ 	  Machine Check support allows the processor to notify the
+diff --git a/arch/x86/kernel/cpu/mcheck/Makefile b/arch/x86/kernel/cpu/mcheck/Makefile
+index bb34b03af252..a3311c886194 100644
+--- a/arch/x86/kernel/cpu/mcheck/Makefile
++++ b/arch/x86/kernel/cpu/mcheck/Makefile
+@@ -1,4 +1,4 @@
+-obj-y				=  mce.o mce-severity.o
++obj-y				=  mce.o mce-severity.o mce-genpool.o
+ 
+ obj-$(CONFIG_X86_ANCIENT_MCE)	+= winchip.o p5.o
+ obj-$(CONFIG_X86_MCE_INTEL)	+= mce_intel.o
+diff --git a/arch/x86/kernel/cpu/mcheck/mce-genpool.c b/arch/x86/kernel/cpu/mcheck/mce-genpool.c
+new file mode 100644
+index 000000000000..0a850100c594
+--- /dev/null
++++ b/arch/x86/kernel/cpu/mcheck/mce-genpool.c
+@@ -0,0 +1,99 @@
++/*
++ * MCE event pool management in MCE context
++ *
++ * Copyright (C) 2015 Intel Corp.
++ * Author: Chen, Gong <gong.chen@linux.intel.com>
++ *
++ * This file is licensed under GPLv2.
++ */
++#include <linux/smp.h>
++#include <linux/mm.h>
++#include <linux/genalloc.h>
++#include <linux/llist.h>
++#include "mce-internal.h"
++
++/*
++ * printk() is not safe in MCE context. This is a lock-less memory allocator
++ * used to save error information organized in a lock-less list.
++ *
++ * This memory pool is only to be used to save MCE records in MCE context.
++ * MCE events are rare, so a fixed size memory pool should be enough. Use
++ * 2 pages to save MCE events for now (~80 MCE records at most).
++ */
++#define MCE_POOLSZ	(2 * PAGE_SIZE)
++
++static struct gen_pool *mce_evt_pool;
++static LLIST_HEAD(mce_event_llist);
++static char gen_pool_buf[MCE_POOLSZ];
++
++void mce_gen_pool_process(void)
++{
++	struct llist_node *head;
++	struct mce_evt_llist *node;
++	struct mce *mce;
++
++	head = llist_del_all(&mce_event_llist);
++	if (!head)
++		return;
++
++	head = llist_reverse_order(head);
++	llist_for_each_entry(node, head, llnode) {
++		mce = &node->mce;
++		atomic_notifier_call_chain(&x86_mce_decoder_chain, 0, mce);
++		gen_pool_free(mce_evt_pool, (unsigned long)node, sizeof(*node));
++	}
++}
++
++bool mce_gen_pool_empty(void)
++{
++	return llist_empty(&mce_event_llist);
++}
++
++int mce_gen_pool_add(struct mce *mce)
++{
++	struct mce_evt_llist *node;
++
++	if (!mce_evt_pool)
++		return -EINVAL;
++
++	node = (void *)gen_pool_alloc(mce_evt_pool, sizeof(*node));
++	if (!node) {
++		pr_warn_ratelimited("MCE records pool full!\n");
++		return -ENOMEM;
++	}
++
++	memcpy(&node->mce, mce, sizeof(*mce));
++	llist_add(&node->llnode, &mce_event_llist);
++
++	return 0;
++}
++
++static int mce_gen_pool_create(void)
++{
++	struct gen_pool *tmpp;
++	int ret = -ENOMEM;
++
++	tmpp = gen_pool_create(ilog2(sizeof(struct mce_evt_llist)), -1);
++	if (!tmpp)
++		goto out;
++
++	ret = gen_pool_add(tmpp, (unsigned long)gen_pool_buf, MCE_POOLSZ, -1);
++	if (ret) {
++		gen_pool_destroy(tmpp);
++		goto out;
++	}
++
++	mce_evt_pool = tmpp;
++
++out:
++	return ret;
++}
++
++int mce_gen_pool_init(void)
++{
++	/* Just init mce_gen_pool once. */
++	if (mce_evt_pool)
++		return 0;
++
++	return mce_gen_pool_create();
++}
+diff --git a/arch/x86/kernel/cpu/mcheck/mce-internal.h b/arch/x86/kernel/cpu/mcheck/mce-internal.h
+index fe32074b865b..ea8b62264c14 100644
+--- a/arch/x86/kernel/cpu/mcheck/mce-internal.h
++++ b/arch/x86/kernel/cpu/mcheck/mce-internal.h
+@@ -13,6 +13,8 @@ enum severity_level {
+ 	MCE_PANIC_SEVERITY,
+ };
+ 
++extern struct atomic_notifier_head x86_mce_decoder_chain;
++
+ #define ATTR_LEN		16
+ #define INITIAL_CHECK_INTERVAL	5 * 60 /* 5 minutes */
+ 
+@@ -24,6 +26,16 @@ struct mce_bank {
+ 	char			attrname[ATTR_LEN];	/* attribute name */
+ };
+ 
++struct mce_evt_llist {
++	struct llist_node llnode;
++	struct mce mce;
++};
++
++void mce_gen_pool_process(void);
++bool mce_gen_pool_empty(void);
++int mce_gen_pool_add(struct mce *mce);
++int mce_gen_pool_init(void);
++
+ extern int (*mce_severity)(struct mce *a, int tolerant, char **msg, bool is_excp);
+ struct dentry *mce_get_debugfs_dir(void);
+ 
+diff --git a/arch/x86/kernel/cpu/mcheck/mce.c b/arch/x86/kernel/cpu/mcheck/mce.c
+index df919ff103c3..a41c014e5cde 100644
+--- a/arch/x86/kernel/cpu/mcheck/mce.c
++++ b/arch/x86/kernel/cpu/mcheck/mce.c
+@@ -118,7 +118,7 @@ static void (*quirk_no_way_out)(int bank, struct mce *m, struct pt_regs *regs);
+  * CPU/chipset specific EDAC code can register a notifier call here to print
+  * MCE errors in a human-readable form.
+  */
+-static ATOMIC_NOTIFIER_HEAD(x86_mce_decoder_chain);
++ATOMIC_NOTIFIER_HEAD(x86_mce_decoder_chain);
+ 
+ /* Do initial initialization of a struct mce */
+ void mce_setup(struct mce *m)
+@@ -1731,6 +1731,12 @@ void mcheck_cpu_init(struct cpuinfo_x86 *c)
+ 		return;
+ 	}
+ 
++	if (mce_gen_pool_init()) {
++		mca_cfg.disabled = true;
++		pr_emerg("Couldn't allocate MCE records pool!\n");
++		return;
++	}
++
+ 	machine_check_vector = do_machine_check;
+ 
+ 	__mcheck_cpu_init_generic();

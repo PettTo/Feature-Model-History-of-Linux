@@ -1,0 +1,91 @@
+commit 10971ab269bbf22120edac95fcfa3c873a549bea
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Thu Mar 5 08:18:23 2015 +0100
+
+    x86/mm: Further simplify 1 GB kernel linear mappings handling
+    
+    It's a bit pointless to allow Kconfig configuration for 1GB kernel
+    mappings, it's already hidden behind a 'default y' and CONFIG_EXPERT.
+    
+    Remove this complication and simplify the code by renaming
+    CONFIG_ENABLE_DIRECT_GBPAGES to CONFIG_X86_DIRECT_GBPAGES and
+    document the DEBUG_PAGE_ALLOC and KMEMCHECK quirks.
+    
+    Cc: Luis R. Rodriguez <mcgrof@suse.com>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Borislav Petkov <bp@suse.de>
+    Cc: Dave Hansen <dave.hansen@linux.intel.com>
+    Cc: David Vrabel <david.vrabel@citrix.com>
+    Cc: Dexuan Cui <decui@microsoft.com>
+    Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: JBeulich@suse.com
+    Cc: Jan Beulich <JBeulich@suse.com>
+    Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+    Cc: Juergen Gross <jgross@suse.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Pavel Machek <pavel@ucw.cz>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Lindgren <tony@atomide.com>
+    Cc: Toshi Kani <toshi.kani@hp.com>
+    Cc: Vlastimil Babka <vbabka@suse.cz>
+    Cc: Xishi Qiu <qiuxishi@huawei.com>
+    Cc: julia.lawall@lip6.fr
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 4d06e1c8294a..d03847513b6d 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1299,22 +1299,14 @@ config ARCH_DMA_ADDR_T_64BIT
+ 	def_bool y
+ 	depends on X86_64 || HIGHMEM64G
+ 
+-config ENABLE_DIRECT_GBPAGES
++config X86_DIRECT_GBPAGES
+ 	def_bool y
+ 	depends on X86_64 && !DEBUG_PAGEALLOC && !KMEMCHECK
+-
+-config DIRECT_GBPAGES
+-	bool "Enable 1GB pages for kernel pagetables" if EXPERT
+-	default y
+-	depends on ENABLE_DIRECT_GBPAGES
+-	---help---
+-	  Enable by default the kernel linear mapping to use 1GB pages on CPUs
+-	  that support it. This can improve the kernel's performance a tiny bit
+-	  by reducing TLB pressure. If in doubt, say "Y". If you've disabled
+-	  option but your platform is capable of handling support for this
+-	  you can use the gbpages kernel parameter. Likewise if you've enabled
+-	  this but you'd like to force disable this option you can use the
+-	  nogbpages kernel parameter.
++	---help---
++	  Certain kernel features effectively disable kernel
++	  linear 1 GB mappings (even if the CPU otherwise
++	  supports them), so don't confuse the user by printing
++	  that we have them enabled.
+ 
+ # Common NUMA Features
+ config NUMA
+diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+index c35ba8bce7cb..8704153f2675 100644
+--- a/arch/x86/mm/init.c
++++ b/arch/x86/mm/init.c
+@@ -133,15 +133,10 @@ int after_bootmem;
+ 
+ static int page_size_mask;
+ 
+-early_param_on_off("gbpages", "nogbpages",
+-		   direct_gbpages, CONFIG_DIRECT_GBPAGES);
++early_param_on_off("gbpages", "nogbpages", direct_gbpages, CONFIG_X86_DIRECT_GBPAGES);
+ 
+ static void __init init_gbpages(void)
+ {
+-	if (!IS_ENABLED(CONFIG_ENABLE_DIRECT_GBPAGES)) {
+-		direct_gbpages = 0;
+-		return;
+-	}
+ 	if (direct_gbpages && cpu_has_gbpages) {
+ 		printk(KERN_INFO "Using GB pages for direct mapping\n");
+ 		page_size_mask |= 1 << PG_LEVEL_1G;

@@ -1,0 +1,266 @@
+commit ec776ef6bbe1734c29cd6bd05219cd93b2731bd4
+Author: Christoph Hellwig <hch@lst.de>
+Date:   Wed Apr 1 09:12:18 2015 +0200
+
+    x86/mm: Add support for the non-standard protected e820 type
+    
+    Various recent BIOSes support NVDIMMs or ADR using a
+    non-standard e820 memory type, and Intel supplied reference
+    Linux code using this type to various vendors.
+    
+    Wire this e820 table type up to export platform devices for the
+    pmem driver so that we can use it in Linux.
+    
+    Based on earlier work from:
+    
+       Dave Jiang <dave.jiang@intel.com>
+       Dan Williams <dan.j.williams@intel.com>
+    
+    Includes fixes for NUMA regions from Boaz Harrosh.
+    
+    Tested-by: Ross Zwisler <ross.zwisler@linux.intel.com>
+    Signed-off-by: Christoph Hellwig <hch@lst.de>
+    Acked-by: Dan Williams <dan.j.williams@intel.com>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Boaz Harrosh <boaz@plexistor.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Jens Axboe <axboe@fb.com>
+    Cc: Jens Axboe <axboe@kernel.dk>
+    Cc: Keith Busch <keith.busch@intel.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Matthew Wilcox <willy@linux.intel.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: linux-nvdimm@ml01.01.org
+    Link: http://lkml.kernel.org/r/1427872339-6688-2-git-send-email-hch@lst.de
+    [ Minor cleanups. ]
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
+index bfcb1a62a7b4..c87122dd790f 100644
+--- a/Documentation/kernel-parameters.txt
++++ b/Documentation/kernel-parameters.txt
+@@ -1965,6 +1965,12 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
+ 			         or
+ 			         memmap=0x10000$0x18690000
+ 
++	memmap=nn[KMG]!ss[KMG]
++			[KNL,X86] Mark specific memory as protected.
++			Region of memory to be used, from ss to ss+nn.
++			The memory region may be marked as e820 type 12 (0xc)
++			and is NVDIMM or ADR memory.
++
+ 	memory_corruption_check=0/1 [X86]
+ 			Some BIOSes seem to corrupt the first 64k of
+ 			memory when doing things like suspend/resume.
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index b7d31ca55187..9e3bcd6f4a48 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1430,6 +1430,16 @@ config ILLEGAL_POINTER_VALUE
+ 
+ source "mm/Kconfig"
+ 
++config X86_PMEM_LEGACY
++	bool "Support non-standard NVDIMMs and ADR protected memory"
++	help
++	  Treat memory marked using the non-standard e820 type of 12 as used
++	  by the Intel Sandy Bridge-EP reference BIOS as protected memory.
++	  The kernel will offer these regions to the 'pmem' driver so
++	  they can be used for persistent storage.
++
++	  Say Y if unsure.
++
+ config HIGHPTE
+ 	bool "Allocate 3rd-level pagetables from highmem"
+ 	depends on HIGHMEM
+diff --git a/arch/x86/include/uapi/asm/e820.h b/arch/x86/include/uapi/asm/e820.h
+index d993e33f5236..960a8a9dc4ab 100644
+--- a/arch/x86/include/uapi/asm/e820.h
++++ b/arch/x86/include/uapi/asm/e820.h
+@@ -33,6 +33,16 @@
+ #define E820_NVS	4
+ #define E820_UNUSABLE	5
+ 
++/*
++ * This is a non-standardized way to represent ADR or NVDIMM regions that
++ * persist over a reboot.  The kernel will ignore their special capabilities
++ * unless the CONFIG_X86_PMEM_LEGACY=y option is set.
++ *
++ * ( Note that older platforms also used 6 for the same type of memory,
++ *   but newer versions switched to 12 as 6 was assigned differently.  Some
++ *   time they will learn... )
++ */
++#define E820_PRAM	12
+ 
+ /*
+  * reserved RAM used by kernel itself
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index cdb1b70ddad0..971f18cd9ca0 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -94,6 +94,7 @@ obj-$(CONFIG_KVM_GUEST)		+= kvm.o kvmclock.o
+ obj-$(CONFIG_PARAVIRT)		+= paravirt.o paravirt_patch_$(BITS).o
+ obj-$(CONFIG_PARAVIRT_SPINLOCKS)+= paravirt-spinlocks.o
+ obj-$(CONFIG_PARAVIRT_CLOCK)	+= pvclock.o
++obj-$(CONFIG_X86_PMEM_LEGACY)	+= pmem.o
+ 
+ obj-$(CONFIG_PCSPKR_PLATFORM)	+= pcspeaker.o
+ 
+diff --git a/arch/x86/kernel/e820.c b/arch/x86/kernel/e820.c
+index 46201deee923..11cc7d54ec3f 100644
+--- a/arch/x86/kernel/e820.c
++++ b/arch/x86/kernel/e820.c
+@@ -149,6 +149,9 @@ static void __init e820_print_type(u32 type)
+ 	case E820_UNUSABLE:
+ 		printk(KERN_CONT "unusable");
+ 		break;
++	case E820_PRAM:
++		printk(KERN_CONT "persistent (type %u)", type);
++		break;
+ 	default:
+ 		printk(KERN_CONT "type %u", type);
+ 		break;
+@@ -343,7 +346,7 @@ int __init sanitize_e820_map(struct e820entry *biosmap, int max_nr_map,
+ 		 * continue building up new bios map based on this
+ 		 * information
+ 		 */
+-		if (current_type != last_type)	{
++		if (current_type != last_type || current_type == E820_PRAM) {
+ 			if (last_type != 0)	 {
+ 				new_bios[new_bios_entry].size =
+ 					change_point[chgidx]->addr - last_addr;
+@@ -688,6 +691,7 @@ void __init e820_mark_nosave_regions(unsigned long limit_pfn)
+ 			register_nosave_region(pfn, PFN_UP(ei->addr));
+ 
+ 		pfn = PFN_DOWN(ei->addr + ei->size);
++
+ 		if (ei->type != E820_RAM && ei->type != E820_RESERVED_KERN)
+ 			register_nosave_region(PFN_UP(ei->addr), pfn);
+ 
+@@ -748,7 +752,7 @@ u64 __init early_reserve_e820(u64 size, u64 align)
+ /*
+  * Find the highest page frame number we have available
+  */
+-static unsigned long __init e820_end_pfn(unsigned long limit_pfn, unsigned type)
++static unsigned long __init e820_end_pfn(unsigned long limit_pfn)
+ {
+ 	int i;
+ 	unsigned long last_pfn = 0;
+@@ -759,7 +763,11 @@ static unsigned long __init e820_end_pfn(unsigned long limit_pfn, unsigned type)
+ 		unsigned long start_pfn;
+ 		unsigned long end_pfn;
+ 
+-		if (ei->type != type)
++		/*
++		 * Persistent memory is accounted as ram for purposes of
++		 * establishing max_pfn and mem_map.
++		 */
++		if (ei->type != E820_RAM && ei->type != E820_PRAM)
+ 			continue;
+ 
+ 		start_pfn = ei->addr >> PAGE_SHIFT;
+@@ -784,12 +792,12 @@ static unsigned long __init e820_end_pfn(unsigned long limit_pfn, unsigned type)
+ }
+ unsigned long __init e820_end_of_ram_pfn(void)
+ {
+-	return e820_end_pfn(MAX_ARCH_PFN, E820_RAM);
++	return e820_end_pfn(MAX_ARCH_PFN);
+ }
+ 
+ unsigned long __init e820_end_of_low_ram_pfn(void)
+ {
+-	return e820_end_pfn(1UL<<(32 - PAGE_SHIFT), E820_RAM);
++	return e820_end_pfn(1UL << (32-PAGE_SHIFT));
+ }
+ 
+ static void early_panic(char *msg)
+@@ -866,6 +874,9 @@ static int __init parse_memmap_one(char *p)
+ 	} else if (*p == '$') {
+ 		start_at = memparse(p+1, &p);
+ 		e820_add_region(start_at, mem_size, E820_RESERVED);
++	} else if (*p == '!') {
++		start_at = memparse(p+1, &p);
++		e820_add_region(start_at, mem_size, E820_PRAM);
+ 	} else
+ 		e820_remove_range(mem_size, ULLONG_MAX - mem_size, E820_RAM, 1);
+ 
+@@ -907,6 +918,7 @@ static inline const char *e820_type_to_string(int e820_type)
+ 	case E820_ACPI:	return "ACPI Tables";
+ 	case E820_NVS:	return "ACPI Non-volatile Storage";
+ 	case E820_UNUSABLE:	return "Unusable memory";
++	case E820_PRAM: return "Persistent RAM";
+ 	default:	return "reserved";
+ 	}
+ }
+@@ -940,7 +952,9 @@ void __init e820_reserve_resources(void)
+ 		 * pci device BAR resource and insert them later in
+ 		 * pcibios_resource_survey()
+ 		 */
+-		if (e820.map[i].type != E820_RESERVED || res->start < (1ULL<<20)) {
++		if (((e820.map[i].type != E820_RESERVED) &&
++		     (e820.map[i].type != E820_PRAM)) ||
++		     res->start < (1ULL<<20)) {
+ 			res->flags |= IORESOURCE_BUSY;
+ 			insert_resource(&iomem_resource, res);
+ 		}
+diff --git a/arch/x86/kernel/pmem.c b/arch/x86/kernel/pmem.c
+new file mode 100644
+index 000000000000..3420c874ddc5
+--- /dev/null
++++ b/arch/x86/kernel/pmem.c
+@@ -0,0 +1,53 @@
++/*
++ * Copyright (c) 2015, Christoph Hellwig.
++ */
++#include <linux/memblock.h>
++#include <linux/platform_device.h>
++#include <linux/slab.h>
++#include <asm/e820.h>
++#include <asm/page_types.h>
++#include <asm/setup.h>
++
++static __init void register_pmem_device(struct resource *res)
++{
++	struct platform_device *pdev;
++	int error;
++
++	pdev = platform_device_alloc("pmem", PLATFORM_DEVID_AUTO);
++	if (!pdev)
++		return;
++
++	error = platform_device_add_resources(pdev, res, 1);
++	if (error)
++		goto out_put_pdev;
++
++	error = platform_device_add(pdev);
++	if (error)
++		goto out_put_pdev;
++	return;
++
++out_put_pdev:
++	dev_warn(&pdev->dev, "failed to add 'pmem' (persistent memory) device!\n");
++	platform_device_put(pdev);
++}
++
++static __init int register_pmem_devices(void)
++{
++	int i;
++
++	for (i = 0; i < e820.nr_map; i++) {
++		struct e820entry *ei = &e820.map[i];
++
++		if (ei->type == E820_PRAM) {
++			struct resource res = {
++				.flags	= IORESOURCE_MEM,
++				.start	= ei->addr,
++				.end	= ei->addr + ei->size - 1,
++			};
++			register_pmem_device(&res);
++		}
++	}
++
++	return 0;
++}
++device_initcall(register_pmem_devices);

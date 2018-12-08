@@ -1,0 +1,135 @@
+commit 6c36dfe949187dc2729abfad4b083758ac5c2e0e
+Author: Borislav Petkov <bp@suse.de>
+Date:   Wed Aug 12 18:29:45 2015 +0200
+
+    x86/ras: Move AMD MCE injector to arch/x86/ras/
+    
+    This is an x86-specific module and would benefit from being
+    closer to the arch code. Move it there. Update copyright while
+    at it.
+    
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Link: http://lkml.kernel.org/r/1439396985-12812-14-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Makefile b/arch/x86/Makefile
+index 118e6debc483..0f38418719ab 100644
+--- a/arch/x86/Makefile
++++ b/arch/x86/Makefile
+@@ -212,6 +212,8 @@ drivers-$(CONFIG_PM) += arch/x86/power/
+ 
+ drivers-$(CONFIG_FB) += arch/x86/video/
+ 
++drivers-$(CONFIG_RAS) += arch/x86/ras/
++
+ ####
+ # boot loader support. Several targets are kept for legacy purposes
+ 
+diff --git a/arch/x86/ras/Kconfig b/arch/x86/ras/Kconfig
+new file mode 100644
+index 000000000000..10fea5fc821e
+--- /dev/null
++++ b/arch/x86/ras/Kconfig
+@@ -0,0 +1,11 @@
++config AMD_MCE_INJ
++	tristate "Simple MCE injection interface for AMD processors"
++	depends on RAS && EDAC_DECODE_MCE && DEBUG_FS
++	default n
++	help
++	  This is a simple debugfs interface to inject MCEs and test different
++	  aspects of the MCE handling code.
++
++	  WARNING: Do not even assume this interface is staying stable!
++
++
+diff --git a/arch/x86/ras/Makefile b/arch/x86/ras/Makefile
+new file mode 100644
+index 000000000000..dd2c98b84037
+--- /dev/null
++++ b/arch/x86/ras/Makefile
+@@ -0,0 +1,2 @@
++obj-$(CONFIG_AMD_MCE_INJ)		+= mce_amd_inj.o
++
+diff --git a/drivers/edac/mce_amd_inj.c b/arch/x86/ras/mce_amd_inj.c
+similarity index 98%
+rename from drivers/edac/mce_amd_inj.c
+rename to arch/x86/ras/mce_amd_inj.c
+index 4c73e4d03d46..17e35b5bf779 100644
+--- a/drivers/edac/mce_amd_inj.c
++++ b/arch/x86/ras/mce_amd_inj.c
+@@ -6,7 +6,7 @@
+  * This file may be distributed under the terms of the GNU General Public
+  * License version 2.
+  *
+- * Copyright (c) 2010-14:  Borislav Petkov <bp@alien8.de>
++ * Copyright (c) 2010-15:  Borislav Petkov <bp@alien8.de>
+  *			Advanced Micro Devices Inc.
+  */
+ 
+@@ -19,7 +19,7 @@
+ #include <linux/uaccess.h>
+ #include <asm/mce.h>
+ 
+-#include "mce_amd.h"
++#include "../kernel/cpu/mcheck/mce-internal.h"
+ 
+ /*
+  * Collect all the MCi_XXX settings
+@@ -195,7 +195,7 @@ static void do_inject(void)
+ 		i_mce.status |= MCI_STATUS_MISCV;
+ 
+ 	if (inj_type == SW_INJ) {
+-		amd_decode_mce(NULL, 0, &i_mce);
++		mce_inject_log(&i_mce);
+ 		return;
+ 	}
+ 
+diff --git a/drivers/edac/Kconfig b/drivers/edac/Kconfig
+index 8677ead2a8e1..ef25000a5bc6 100644
+--- a/drivers/edac/Kconfig
++++ b/drivers/edac/Kconfig
+@@ -61,16 +61,6 @@ config EDAC_DECODE_MCE
+ 	  which occur really early upon boot, before the module infrastructure
+ 	  has been initialized.
+ 
+-config EDAC_MCE_INJ
+-	tristate "Simple MCE injection interface"
+-	depends on EDAC_DECODE_MCE && DEBUG_FS
+-	default n
+-	help
+-	  This is a simple debugfs interface to inject MCEs and test different
+-	  aspects of the MCE handling code.
+-
+-	  WARNING: Do not even assume this interface is staying stable!
+-
+ config EDAC_MM_EDAC
+ 	tristate "Main Memory EDAC (Error Detection And Correction) reporting"
+ 	select RAS
+diff --git a/drivers/edac/Makefile b/drivers/edac/Makefile
+index 28ef2a519f65..ae3c5f3ce405 100644
+--- a/drivers/edac/Makefile
++++ b/drivers/edac/Makefile
+@@ -17,7 +17,6 @@ edac_core-y	+= edac_pci.o edac_pci_sysfs.o
+ endif
+ 
+ obj-$(CONFIG_EDAC_GHES)			+= ghes_edac.o
+-obj-$(CONFIG_EDAC_MCE_INJ)		+= mce_amd_inj.o
+ 
+ edac_mce_amd-y				:= mce_amd.o
+ obj-$(CONFIG_EDAC_DECODE_MCE)		+= edac_mce_amd.o
+diff --git a/drivers/ras/Kconfig b/drivers/ras/Kconfig
+index e5f0a43998d2..4c3c67d13254 100644
+--- a/drivers/ras/Kconfig
++++ b/drivers/ras/Kconfig
+@@ -29,4 +29,7 @@ menuconfig RAS
+ 	  data corruption.
+ 
+ if RAS
++
++source arch/x86/ras/Kconfig
++
+ endif

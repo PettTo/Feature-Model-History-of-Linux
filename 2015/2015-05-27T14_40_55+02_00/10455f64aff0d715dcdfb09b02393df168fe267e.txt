@@ -1,0 +1,42 @@
+commit 10455f64aff0d715dcdfb09b02393df168fe267e
+Author: Toshi Kani <toshi.kani@hp.com>
+Date:   Tue May 26 10:28:04 2015 +0200
+
+    x86/mm/kconfig: Simplify conditions for HAVE_ARCH_HUGE_VMAP
+    
+    Simplify the conditions selecting HAVE_ARCH_HUGE_VMAP since
+    X86_PAE depends on X86_32 already.
+    
+    Signed-off-by: Toshi Kani <toshi.kani@hp.com>
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: Elliott@hp.com
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Luis R. Rodriguez <mcgrof@suse.com>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: dave.hansen@intel.com
+    Cc: linux-mm <linux-mm@kvack.org>
+    Cc: pebolle@tiscali.nl
+    Link: http://lkml.kernel.org/r/1431714237-880-2-git-send-email-toshi.kani@hp.com
+    Link: http://lkml.kernel.org/r/1432628901-18044-2-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 226d5696e1d1..4eb0b0ffae85 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -100,7 +100,7 @@ config X86
+ 	select IRQ_FORCED_THREADING
+ 	select HAVE_BPF_JIT if X86_64
+ 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+-	select HAVE_ARCH_HUGE_VMAP if X86_64 || (X86_32 && X86_PAE)
++	select HAVE_ARCH_HUGE_VMAP if X86_64 || X86_PAE
+ 	select ARCH_HAS_SG_CHAIN
+ 	select CLKEVT_I8253
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG

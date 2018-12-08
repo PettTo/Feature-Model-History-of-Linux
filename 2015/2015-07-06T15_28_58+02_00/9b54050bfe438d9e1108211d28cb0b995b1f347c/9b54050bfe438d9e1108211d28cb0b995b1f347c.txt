@@ -1,0 +1,35 @@
+commit 9b54050bfe438d9e1108211d28cb0b995b1f347c
+Author: Brian Gerst <brgerst@gmail.com>
+Date:   Mon Jun 22 07:55:21 2015 -0400
+
+    x86/compat: Separate ia32 and x32 compat ABIs
+    
+    The x32 ABI is now independent of the ia32 compat ABI.  Common
+    code is now conditional on CONFIG_COMPAT, but unshared code like
+    syscall entry, signal handling, and the VDSO are under separate
+    config options.
+    
+    Signed-off-by: Brian Gerst <brgerst@gmail.com>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1434974121-32575-13-git-send-email-brgerst@gmail.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d823a3320c63..aa94fd014fa2 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -2530,7 +2530,7 @@ config IA32_AOUT
+ 
+ config X86_X32
+ 	bool "x32 ABI for 64-bit mode"
+-	depends on X86_64 && IA32_EMULATION
++	depends on X86_64
+ 	---help---
+ 	  Include code to run binaries for the x32 native 32-bit ABI
+ 	  for 64-bit processors.  An x32 process gets access to the

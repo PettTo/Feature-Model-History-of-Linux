@@ -1,0 +1,43 @@
+commit c5c19941ad1bb18f010ae47f1db333c00b276d55
+Author: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+Date:   Fri May 8 13:25:45 2015 +0300
+
+    x86/kconfig: Bump default NR_CPUS from 8 to 64 for 64-bit configuration
+    
+    Default NR_CPUS==8 is not enough to cover high-end desktop
+    configuration: Haswell-E has upto 16 threads.
+    
+    Let's increase default NR_CPUS to 64 on 64-bit configuration.
+    With this value CPU bitmask will still fit into one unsigned long.
+    
+    Default for 32-bit configuration is still 8: it's unlikely
+    anybody will run 32-bit kernels on modern hardware.
+    
+    As an alternative we could bump NR_CPUS to 128 to cover all
+    dual-processor servers with some margin.
+    
+    For reference: Debian and Suse build their kernels with
+    NR_CPUS==512, Fedora -- 1024.
+    
+    Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1431080745-19792-1-git-send-email-kirill.shutemov@linux.intel.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 226d5696e1d1..83cd1c7aa409 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -851,7 +851,8 @@ config NR_CPUS
+ 	default "1" if !SMP
+ 	default "8192" if MAXSMP
+ 	default "32" if SMP && X86_BIGSMP
+-	default "8" if SMP
++	default "8" if SMP && X86_32
++	default "64" if SMP
+ 	---help---
+ 	  This allows you to specify the maximum number of CPUs which this
+ 	  kernel will support.  If CPUMASK_OFFSTACK is enabled, the maximum

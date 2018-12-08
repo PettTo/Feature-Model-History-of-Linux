@@ -1,0 +1,73 @@
+commit c7114b4e6c53111d415485875725b60213ffc675
+Author: Waiman Long <Waiman.Long@hp.com>
+Date:   Mon May 11 13:57:11 2015 -0400
+
+    locking/qrwlock: Rename QUEUE_RWLOCK to QUEUED_RWLOCKS
+    
+    To be consistent with the queued spinlocks which use
+    CONFIG_QUEUED_SPINLOCKS config parameter, the one for the queued
+    rwlocks is now renamed to CONFIG_QUEUED_RWLOCKS.
+    
+    Signed-off-by: Waiman Long <Waiman.Long@hp.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Douglas Hatch <doug.hatch@hp.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Scott J Norton <scott.norton@hp.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1431367031-36697-1-git-send-email-Waiman.Long@hp.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index f8dc6abbe6ae..4e986e809861 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -128,7 +128,7 @@ config X86
+ 	select CLONE_BACKWARDS if X86_32
+ 	select ARCH_USE_BUILTIN_BSWAP
+ 	select ARCH_USE_QUEUED_SPINLOCKS
+-	select ARCH_USE_QUEUE_RWLOCK
++	select ARCH_USE_QUEUED_RWLOCKS
+ 	select OLD_SIGSUSPEND3 if X86_32 || IA32_EMULATION
+ 	select OLD_SIGACTION if X86_32
+ 	select COMPAT_OLD_SIGACTION if IA32_EMULATION
+diff --git a/kernel/Kconfig.locks b/kernel/Kconfig.locks
+index 65d755b6a663..ebdb0043203a 100644
+--- a/kernel/Kconfig.locks
++++ b/kernel/Kconfig.locks
+@@ -242,9 +242,9 @@ config QUEUED_SPINLOCKS
+ 	def_bool y if ARCH_USE_QUEUED_SPINLOCKS
+ 	depends on SMP
+ 
+-config ARCH_USE_QUEUE_RWLOCK
++config ARCH_USE_QUEUED_RWLOCKS
+ 	bool
+ 
+-config QUEUE_RWLOCK
+-	def_bool y if ARCH_USE_QUEUE_RWLOCK
++config QUEUED_RWLOCKS
++	def_bool y if ARCH_USE_QUEUED_RWLOCKS
+ 	depends on SMP
+diff --git a/kernel/locking/Makefile b/kernel/locking/Makefile
+index 132aff9d3fbe..7dd5c9918e4c 100644
+--- a/kernel/locking/Makefile
++++ b/kernel/locking/Makefile
+@@ -26,5 +26,5 @@ obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock_debug.o
+ obj-$(CONFIG_RWSEM_GENERIC_SPINLOCK) += rwsem-spinlock.o
+ obj-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += rwsem-xadd.o
+ obj-$(CONFIG_PERCPU_RWSEM) += percpu-rwsem.o
+-obj-$(CONFIG_QUEUE_RWLOCK) += qrwlock.o
++obj-$(CONFIG_QUEUED_RWLOCKS) += qrwlock.o
+ obj-$(CONFIG_LOCK_TORTURE_TEST) += locktorture.o
+diff --git a/kernel/locking/qrwlock.c b/kernel/locking/qrwlock.c
+index f956ede7f90d..00c12bb390b5 100644
+--- a/kernel/locking/qrwlock.c
++++ b/kernel/locking/qrwlock.c
+@@ -1,5 +1,5 @@
+ /*
+- * Queue read/write lock
++ * Queued read/write locks
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License as published by

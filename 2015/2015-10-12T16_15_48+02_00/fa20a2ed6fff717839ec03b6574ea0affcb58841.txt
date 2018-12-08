@@ -1,0 +1,135 @@
+commit fa20a2ed6fff717839ec03b6574ea0affcb58841
+Author: Aravind Gopalakrishnan <Aravind.Gopalakrishnan@amd.com>
+Date:   Mon Oct 12 11:22:40 2015 +0200
+
+    x86/ras/mce_amd_inj: Inject bank 4 errors on the NBC
+    
+    Bank 4 MCEs are logged and reported only on the node base core
+    (NBC) in a socket. Refer to the D18F3x44[NbMcaToMstCpuEn] field
+    in Fam10h and later BKDGs. The node base core (NBC) is the
+    lowest numbered core in the node.
+    
+    This patch ensures that we inject the error on the NBC for bank
+    4 errors. Otherwise, triggering #MC or APIC interrupts on a core
+    which is not the NBC would not have any effect on the system,
+    i.e. we would not see any relevant output on kernel logs for the
+    error we just injected.
+    
+    Signed-off-by: Aravind Gopalakrishnan <Aravind.Gopalakrishnan@amd.com>
+    [ Cleanup comments. ]
+    [ Add a missing dependency on AMD_NB caught by Randy Dunlap. ]
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Acked-by: Randy Dunlap <rdunlap@infradead.org>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Luck <tony.luck@intel.com>
+    Link: http://lkml.kernel.org/r/1443190851-2172-4-git-send-email-Aravind.Gopalakrishnan@amd.com
+    Link: http://lkml.kernel.org/r/1444641762-9437-5-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/ras/Kconfig b/arch/x86/ras/Kconfig
+index 10fea5fc821e..df280da34825 100644
+--- a/arch/x86/ras/Kconfig
++++ b/arch/x86/ras/Kconfig
+@@ -1,11 +1,9 @@
+ config AMD_MCE_INJ
+ 	tristate "Simple MCE injection interface for AMD processors"
+-	depends on RAS && EDAC_DECODE_MCE && DEBUG_FS
++	depends on RAS && EDAC_DECODE_MCE && DEBUG_FS && AMD_NB
+ 	default n
+ 	help
+ 	  This is a simple debugfs interface to inject MCEs and test different
+ 	  aspects of the MCE handling code.
+ 
+ 	  WARNING: Do not even assume this interface is staying stable!
+-
+-
+diff --git a/arch/x86/ras/mce_amd_inj.c b/arch/x86/ras/mce_amd_inj.c
+index 4d3bafb540c2..55d38cfa46c2 100644
+--- a/arch/x86/ras/mce_amd_inj.c
++++ b/arch/x86/ras/mce_amd_inj.c
+@@ -17,8 +17,10 @@
+ #include <linux/cpu.h>
+ #include <linux/string.h>
+ #include <linux/uaccess.h>
++#include <linux/pci.h>
+ 
+ #include <asm/mce.h>
++#include <asm/amd_nb.h>
+ #include <asm/irq_vectors.h>
+ 
+ #include "../kernel/cpu/mcheck/mce-internal.h"
+@@ -32,6 +34,7 @@ static struct dentry *dfs_inj;
+ static u8 n_banks;
+ 
+ #define MAX_FLAG_OPT_SIZE	3
++#define NBCFG			0x44
+ 
+ enum injection_type {
+ 	SW_INJ = 0,	/* SW injection, simply decode the error */
+@@ -198,6 +201,45 @@ static void trigger_thr_int(void *info)
+ 	asm volatile("int %0" :: "i" (THRESHOLD_APIC_VECTOR));
+ }
+ 
++static u32 get_nbc_for_node(int node_id)
++{
++	struct cpuinfo_x86 *c = &boot_cpu_data;
++	u32 cores_per_node;
++
++	cores_per_node = c->x86_max_cores / amd_get_nodes_per_socket();
++
++	return cores_per_node * node_id;
++}
++
++static void toggle_nb_mca_mst_cpu(u16 nid)
++{
++	struct pci_dev *F3 = node_to_amd_nb(nid)->misc;
++	u32 val;
++	int err;
++
++	if (!F3)
++		return;
++
++	err = pci_read_config_dword(F3, NBCFG, &val);
++	if (err) {
++		pr_err("%s: Error reading F%dx%03x.\n",
++		       __func__, PCI_FUNC(F3->devfn), NBCFG);
++		return;
++	}
++
++	if (val & BIT(27))
++		return;
++
++	pr_err("%s: Set D18F3x44[NbMcaToMstCpuEn] which BIOS hasn't done.\n",
++	       __func__);
++
++	val |= BIT(27);
++	err = pci_write_config_dword(F3, NBCFG, val);
++	if (err)
++		pr_err("%s: Error writing F%dx%03x.\n",
++		       __func__, PCI_FUNC(F3->devfn), NBCFG);
++}
++
+ static void do_inject(void)
+ {
+ 	u64 mcg_status = 0;
+@@ -228,6 +270,16 @@ static void do_inject(void)
+ 		i_mce.status |= (i_mce.status & ~MCI_STATUS_UC);
+ 	}
+ 
++	/*
++	 * For multi node CPUs, logging and reporting of bank 4 errors happens
++	 * only on the node base core. Refer to D18F3x44[NbMcaToMstCpuEn] for
++	 * Fam10h and later BKDGs.
++	 */
++	if (static_cpu_has(X86_FEATURE_AMD_DCM) && b == 4) {
++		toggle_nb_mca_mst_cpu(amd_get_nb_id(cpu));
++		cpu = get_nbc_for_node(amd_get_nb_id(cpu));
++	}
++
+ 	get_online_cpus();
+ 	if (!cpu_online(cpu))
+ 		goto err;

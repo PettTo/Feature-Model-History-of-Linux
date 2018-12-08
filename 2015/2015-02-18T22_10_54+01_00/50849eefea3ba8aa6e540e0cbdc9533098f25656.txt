@@ -1,0 +1,42 @@
+commit 50849eefea3ba8aa6e540e0cbdc9533098f25656
+Author: Jan Beulich <JBeulich@suse.com>
+Date:   Thu Feb 5 15:31:56 2015 +0000
+
+    x86/Kconfig: Simplify X86_UP_APIC handling
+    
+    We don't really need a helper symbol for that. For one, it's
+    pointlessly getting set to Y for all configurations (even 64-bit
+    ones). And then the purpose can be fulfilled by suitably
+    adjusting X86_UP_APIC: Hide its prompt when PCI_MSI, and default
+    it to PCI_MSI.
+    
+    Tested-by: Bryan O'Donoghue <pure.logic@nexus-software.ie>
+    Signed-off-by: Jan Beulich <jbeulich@suse.com>
+    Link: http://lkml.kernel.org/r/54D39AFC020000780005D684@mail.emea.novell.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index afb75f5c243c..c226c2bda7f3 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -859,7 +859,8 @@ config UP_LATE_INIT
+        depends on !SMP && X86_LOCAL_APIC
+ 
+ config X86_UP_APIC
+-	bool "Local APIC support on uniprocessors"
++	bool "Local APIC support on uniprocessors" if !PCI_MSI
++	default PCI_MSI
+ 	depends on X86_32 && !SMP && !X86_32_NON_STANDARD
+ 	---help---
+ 	  A local APIC (Advanced Programmable Interrupt Controller) is an
+@@ -871,10 +872,6 @@ config X86_UP_APIC
+ 	  performance counters), and the NMI watchdog which detects hard
+ 	  lockups.
+ 
+-config X86_UP_APIC_MSI
+-	def_bool y
+-	select X86_UP_APIC if X86_32 && !SMP && !X86_32_NON_STANDARD && PCI_MSI
+-
+ config X86_UP_IOAPIC
+ 	bool "IO-APIC support on uniprocessors"
+ 	depends on X86_UP_APIC

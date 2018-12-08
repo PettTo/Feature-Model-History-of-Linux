@@ -1,0 +1,92 @@
+commit e80a4a9426adeaa34c009bc0bc61365e0580bf01
+Author: Paolo Bonzini <pbonzini@redhat.com>
+Date:   Thu Jun 4 16:32:48 2015 +0200
+
+    KVM: x86: mark legacy PCI device assignment as deprecated
+    
+    Follow up to commit e194bbdf362ba7d53cfd23ba24f1a7c90ef69a74.
+    
+    Suggested-by: Bandan Das <bsd@redhat.com>
+    Suggested-by: Alex Williamson <alex.williamson@redhat.com>
+    Signed-off-by: Paolo Bonzini <pbonzini@redhat.com>
+
+diff --git a/Documentation/virtual/kvm/api.txt b/Documentation/virtual/kvm/api.txt
+index 461956a0ee8e..a7926a90156f 100644
+--- a/Documentation/virtual/kvm/api.txt
++++ b/Documentation/virtual/kvm/api.txt
+@@ -1294,7 +1294,7 @@ The flags bitmap is defined as:
+    /* the host supports the ePAPR idle hcall
+    #define KVM_PPC_PVINFO_FLAGS_EV_IDLE   (1<<0)
+ 
+-4.48 KVM_ASSIGN_PCI_DEVICE
++4.48 KVM_ASSIGN_PCI_DEVICE (deprecated)
+ 
+ Capability: none
+ Architectures: x86
+@@ -1344,7 +1344,7 @@ Errors:
+   have their standard meanings.
+ 
+ 
+-4.49 KVM_DEASSIGN_PCI_DEVICE
++4.49 KVM_DEASSIGN_PCI_DEVICE (deprecated)
+ 
+ Capability: none
+ Architectures: x86
+@@ -1363,7 +1363,7 @@ Errors:
+   Other error conditions may be defined by individual device types or
+   have their standard meanings.
+ 
+-4.50 KVM_ASSIGN_DEV_IRQ
++4.50 KVM_ASSIGN_DEV_IRQ (deprecated)
+ 
+ Capability: KVM_CAP_ASSIGN_DEV_IRQ
+ Architectures: x86
+@@ -1403,7 +1403,7 @@ Errors:
+   have their standard meanings.
+ 
+ 
+-4.51 KVM_DEASSIGN_DEV_IRQ
++4.51 KVM_DEASSIGN_DEV_IRQ (deprecated)
+ 
+ Capability: KVM_CAP_ASSIGN_DEV_IRQ
+ Architectures: x86
+@@ -1477,7 +1477,7 @@ struct kvm_irq_routing_s390_adapter {
+ };
+ 
+ 
+-4.53 KVM_ASSIGN_SET_MSIX_NR
++4.53 KVM_ASSIGN_SET_MSIX_NR (deprecated)
+ 
+ Capability: none
+ Architectures: x86
+@@ -1499,7 +1499,7 @@ struct kvm_assigned_msix_nr {
+ #define KVM_MAX_MSIX_PER_DEV		256
+ 
+ 
+-4.54 KVM_ASSIGN_SET_MSIX_ENTRY
++4.54 KVM_ASSIGN_SET_MSIX_ENTRY (deprecated)
+ 
+ Capability: none
+ Architectures: x86
+@@ -1655,7 +1655,7 @@ should skip processing the bitmap and just invalidate everything.  It must
+ be set to the number of set bits in the bitmap.
+ 
+ 
+-4.61 KVM_ASSIGN_SET_INTX_MASK
++4.61 KVM_ASSIGN_SET_INTX_MASK (deprecated)
+ 
+ Capability: KVM_CAP_PCI_2_3
+ Architectures: x86
+diff --git a/arch/x86/kvm/Kconfig b/arch/x86/kvm/Kconfig
+index a0f06a5947c5..d8a1d56276e1 100644
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@ -86,7 +86,7 @@ config KVM_MMU_AUDIT
+ 	 auditing of KVM MMU events at runtime.
+ 
+ config KVM_DEVICE_ASSIGNMENT
+-	bool "KVM legacy PCI device assignment support"
++	bool "KVM legacy PCI device assignment support (DEPRECATED)"
+ 	depends on KVM && PCI && IOMMU_API
+ 	default n
+ 	---help---

@@ -1,0 +1,35 @@
+commit 1222e564cf4394af0b3c5e8a73330b20862c068b
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Wed May 6 06:23:59 2015 +0200
+
+    x86/platform/uv: Make SGI UV dependent on CONFIG_PCI
+    
+    Recent PCI changes stopped exporting PCI constants if !CONFIG_PCI,
+    which made the UV build fail:
+    
+      arch/x86/kernel/apic/x2apic_uv_x.c:843:16: error: ‘PCI_VGA_STATE_CHANGE_BRIDGE’ undeclared (first use in this function)
+      arch/x86/kernel/apic/x2apic_uv_x.c:1023:2: error: implicit declaration of function ‘pci_register_set_vga_state’ [-Werror=implicit-function-declaration]
+    
+    As it's unlikely that an UV bootup will get far without PCI
+    enumeration, make the platform Kconfig switch (CONFIG_X86_UV)
+    depend on CONFIG_PCI=y.
+    
+    Cc: Robin Holt <holt@sgi.com>
+    Cc: Dimitri Sivanich <sivanich@sgi.com>
+    Cc: Russ Anderson <rja@sgi.com>
+    Cc: Mike Travis <travis@sgi.com>
+    Cc: Jack Steiner <steiner@sgi.com>
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 226d5696e1d1..066d9bdc5496 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -441,6 +441,7 @@ config X86_UV
+ 	depends on X86_EXTENDED_PLATFORM
+ 	depends on NUMA
+ 	depends on X86_X2APIC
++	depends on PCI
+ 	---help---
+ 	  This option is needed in order to support SGI Ultraviolet systems.
+ 	  If you don't have one of these, you should say N here.

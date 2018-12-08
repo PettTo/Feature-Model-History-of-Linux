@@ -1,0 +1,478 @@
+commit b9085bcbf5f43adf60533f9b635b2e7faeed0fe9
+Merge: c7d7b9867155 6557bada461a
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Feb 13 09:55:09 2015 -0800
+
+    Merge tag 'for-linus' of git://git.kernel.org/pub/scm/virt/kvm/kvm
+    
+    Pull KVM update from Paolo Bonzini:
+     "Fairly small update, but there are some interesting new features.
+    
+      Common:
+         Optional support for adding a small amount of polling on each HLT
+         instruction executed in the guest (or equivalent for other
+         architectures).  This can improve latency up to 50% on some
+         scenarios (e.g. O_DSYNC writes or TCP_RR netperf tests).  This
+         also has to be enabled manually for now, but the plan is to
+         auto-tune this in the future.
+    
+      ARM/ARM64:
+         The highlights are support for GICv3 emulation and dirty page
+         tracking
+    
+      s390:
+         Several optimizations and bugfixes.  Also a first: a feature
+         exposed by KVM (UUID and long guest name in /proc/sysinfo) before
+         it is available in IBM's hypervisor! :)
+    
+      MIPS:
+         Bugfixes.
+    
+      x86:
+         Support for PML (page modification logging, a new feature in
+         Broadwell Xeons that speeds up dirty page tracking), nested
+         virtualization improvements (nested APICv---a nice optimization),
+         usual round of emulation fixes.
+    
+         There is also a new option to reduce latency of the TSC deadline
+         timer in the guest; this needs to be tuned manually.
+    
+         Some commits are common between this pull and Catalin's; I see you
+         have already included his tree.
+    
+      Powerpc:
+         Nothing yet.
+    
+         The KVM/PPC changes will come in through the PPC maintainers,
+         because I haven't received them yet and I might end up being
+         offline for some part of next week"
+    
+    * tag 'for-linus' of git://git.kernel.org/pub/scm/virt/kvm/kvm: (130 commits)
+      KVM: ia64: drop kvm.h from installed user headers
+      KVM: x86: fix build with !CONFIG_SMP
+      KVM: x86: emulate: correct page fault error code for NoWrite instructions
+      KVM: Disable compat ioctl for s390
+      KVM: s390: add cpu model support
+      KVM: s390: use facilities and cpu_id per KVM
+      KVM: s390/CPACF: Choose crypto control block format
+      s390/kernel: Update /proc/sysinfo file with Extended Name and UUID
+      KVM: s390: reenable LPP facility
+      KVM: s390: floating irqs: fix user triggerable endless loop
+      kvm: add halt_poll_ns module parameter
+      kvm: remove KVM_MMIO_SIZE
+      KVM: MIPS: Don't leak FPU/DSP to guest
+      KVM: MIPS: Disable HTW while in guest
+      KVM: nVMX: Enable nested posted interrupt processing
+      KVM: nVMX: Enable nested virtual interrupt delivery
+      KVM: nVMX: Enable nested apic register virtualization
+      KVM: nVMX: Make nested control MSRs per-cpu
+      KVM: nVMX: Enable nested virtualize x2apic mode
+      KVM: nVMX: Prepare for using hardware MSR bitmap
+      ...
+
+diff --cc arch/arm/kvm/Kconfig
+index 3afee5f40f4f,a8d1ace3ea51..338ace78ed18
+--- a/arch/arm/kvm/Kconfig
++++ b/arch/arm/kvm/Kconfig
+@@@ -21,9 -21,10 +21,11 @@@ config KV
+  	select PREEMPT_NOTIFIERS
+  	select ANON_INODES
+  	select HAVE_KVM_CPU_RELAX_INTERCEPT
++ 	select HAVE_KVM_ARCH_TLB_FLUSH_ALL
+  	select KVM_MMIO
+  	select KVM_ARM_HOST
++ 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
+ +	select SRCU
+  	depends on ARM_VIRT_EXT && ARM_LPAE
+  	---help---
+  	  Support hosting virtualized guest machines. You will also
+diff --cc arch/arm/kvm/mmu.c
+index 136662547ca6,6034697ede3f..3e6859bc3e11
+--- a/arch/arm/kvm/mmu.c
++++ b/arch/arm/kvm/mmu.c
+@@@ -58,26 -78,25 +78,45 @@@ static void kvm_tlb_flush_vmid_ipa(stru
+  		kvm_call_hyp(__kvm_tlb_flush_vmid_ipa, kvm, ipa);
+  }
+  
+ +/*
+ + * D-Cache management functions. They take the page table entries by
+ + * value, as they are flushing the cache using the kernel mapping (or
+ + * kmap on 32bit).
+ + */
+ +static void kvm_flush_dcache_pte(pte_t pte)
+ +{
+ +	__kvm_flush_dcache_pte(pte);
+ +}
+ +
+ +static void kvm_flush_dcache_pmd(pmd_t pmd)
+ +{
+ +	__kvm_flush_dcache_pmd(pmd);
+ +}
+ +
+ +static void kvm_flush_dcache_pud(pud_t pud)
+ +{
+ +	__kvm_flush_dcache_pud(pud);
+ +}
+ +
++ /**
++  * stage2_dissolve_pmd() - clear and flush huge PMD entry
++  * @kvm:	pointer to kvm structure.
++  * @addr:	IPA
++  * @pmd:	pmd pointer for IPA
++  *
++  * Function clears a PMD entry, flushes addr 1st and 2nd stage TLBs. Marks all
++  * pages in the range dirty.
++  */
++ static void stage2_dissolve_pmd(struct kvm *kvm, phys_addr_t addr, pmd_t *pmd)
++ {
++ 	if (!kvm_pmd_huge(*pmd))
++ 		return;
++ 
++ 	pmd_clear(pmd);
++ 	kvm_tlb_flush_vmid_ipa(kvm, addr);
++ 	put_page(virt_to_page(pmd));
++ }
++ 
+  static int mmu_topup_memory_cache(struct kvm_mmu_memory_cache *cache,
+  				  int min, int max)
+  {
+@@@ -957,12 -957,165 +1009,171 @@@ static bool kvm_is_device_pfn(unsigned 
+  	return !pfn_valid(pfn);
+  }
+  
++ /**
++  * stage2_wp_ptes - write protect PMD range
++  * @pmd:	pointer to pmd entry
++  * @addr:	range start address
++  * @end:	range end address
++  */
++ static void stage2_wp_ptes(pmd_t *pmd, phys_addr_t addr, phys_addr_t end)
++ {
++ 	pte_t *pte;
++ 
++ 	pte = pte_offset_kernel(pmd, addr);
++ 	do {
++ 		if (!pte_none(*pte)) {
++ 			if (!kvm_s2pte_readonly(pte))
++ 				kvm_set_s2pte_readonly(pte);
++ 		}
++ 	} while (pte++, addr += PAGE_SIZE, addr != end);
++ }
++ 
++ /**
++  * stage2_wp_pmds - write protect PUD range
++  * @pud:	pointer to pud entry
++  * @addr:	range start address
++  * @end:	range end address
++  */
++ static void stage2_wp_pmds(pud_t *pud, phys_addr_t addr, phys_addr_t end)
++ {
++ 	pmd_t *pmd;
++ 	phys_addr_t next;
++ 
++ 	pmd = pmd_offset(pud, addr);
++ 
++ 	do {
++ 		next = kvm_pmd_addr_end(addr, end);
++ 		if (!pmd_none(*pmd)) {
++ 			if (kvm_pmd_huge(*pmd)) {
++ 				if (!kvm_s2pmd_readonly(pmd))
++ 					kvm_set_s2pmd_readonly(pmd);
++ 			} else {
++ 				stage2_wp_ptes(pmd, addr, next);
++ 			}
++ 		}
++ 	} while (pmd++, addr = next, addr != end);
++ }
++ 
++ /**
++   * stage2_wp_puds - write protect PGD range
++   * @pgd:	pointer to pgd entry
++   * @addr:	range start address
++   * @end:	range end address
++   *
++   * Process PUD entries, for a huge PUD we cause a panic.
++   */
++ static void  stage2_wp_puds(pgd_t *pgd, phys_addr_t addr, phys_addr_t end)
++ {
++ 	pud_t *pud;
++ 	phys_addr_t next;
++ 
++ 	pud = pud_offset(pgd, addr);
++ 	do {
++ 		next = kvm_pud_addr_end(addr, end);
++ 		if (!pud_none(*pud)) {
++ 			/* TODO:PUD not supported, revisit later if supported */
++ 			BUG_ON(kvm_pud_huge(*pud));
++ 			stage2_wp_pmds(pud, addr, next);
++ 		}
++ 	} while (pud++, addr = next, addr != end);
++ }
++ 
++ /**
++  * stage2_wp_range() - write protect stage2 memory region range
++  * @kvm:	The KVM pointer
++  * @addr:	Start address of range
++  * @end:	End address of range
++  */
++ static void stage2_wp_range(struct kvm *kvm, phys_addr_t addr, phys_addr_t end)
++ {
++ 	pgd_t *pgd;
++ 	phys_addr_t next;
++ 
++ 	pgd = kvm->arch.pgd + pgd_index(addr);
++ 	do {
++ 		/*
++ 		 * Release kvm_mmu_lock periodically if the memory region is
++ 		 * large. Otherwise, we may see kernel panics with
++ 		 * CONFIG_DETECT_HUNG_TASK, CONFIG_LOCKUP_DETECTOR,
++ 		 * CONFIG_LOCKDEP. Additionally, holding the lock too long
++ 		 * will also starve other vCPUs.
++ 		 */
++ 		if (need_resched() || spin_needbreak(&kvm->mmu_lock))
++ 			cond_resched_lock(&kvm->mmu_lock);
++ 
++ 		next = kvm_pgd_addr_end(addr, end);
++ 		if (pgd_present(*pgd))
++ 			stage2_wp_puds(pgd, addr, next);
++ 	} while (pgd++, addr = next, addr != end);
++ }
++ 
++ /**
++  * kvm_mmu_wp_memory_region() - write protect stage 2 entries for memory slot
++  * @kvm:	The KVM pointer
++  * @slot:	The memory slot to write protect
++  *
++  * Called to start logging dirty pages after memory region
++  * KVM_MEM_LOG_DIRTY_PAGES operation is called. After this function returns
++  * all present PMD and PTEs are write protected in the memory region.
++  * Afterwards read of dirty page log can be called.
++  *
++  * Acquires kvm_mmu_lock. Called with kvm->slots_lock mutex acquired,
++  * serializing operations for VM memory regions.
++  */
++ void kvm_mmu_wp_memory_region(struct kvm *kvm, int slot)
++ {
++ 	struct kvm_memory_slot *memslot = id_to_memslot(kvm->memslots, slot);
++ 	phys_addr_t start = memslot->base_gfn << PAGE_SHIFT;
++ 	phys_addr_t end = (memslot->base_gfn + memslot->npages) << PAGE_SHIFT;
++ 
++ 	spin_lock(&kvm->mmu_lock);
++ 	stage2_wp_range(kvm, start, end);
++ 	spin_unlock(&kvm->mmu_lock);
++ 	kvm_flush_remote_tlbs(kvm);
++ }
++ 
++ /**
++  * kvm_mmu_write_protect_pt_masked() - write protect dirty pages
++  * @kvm:	The KVM pointer
++  * @slot:	The memory slot associated with mask
++  * @gfn_offset:	The gfn offset in memory slot
++  * @mask:	The mask of dirty pages at offset 'gfn_offset' in this memory
++  *		slot to be write protected
++  *
++  * Walks bits set in mask write protects the associated pte's. Caller must
++  * acquire kvm_mmu_lock.
++  */
++ static void kvm_mmu_write_protect_pt_masked(struct kvm *kvm,
++ 		struct kvm_memory_slot *slot,
++ 		gfn_t gfn_offset, unsigned long mask)
++ {
++ 	phys_addr_t base_gfn = slot->base_gfn + gfn_offset;
++ 	phys_addr_t start = (base_gfn +  __ffs(mask)) << PAGE_SHIFT;
++ 	phys_addr_t end = (base_gfn + __fls(mask) + 1) << PAGE_SHIFT;
++ 
++ 	stage2_wp_range(kvm, start, end);
++ }
++ 
++ /*
++  * kvm_arch_mmu_enable_log_dirty_pt_masked - enable dirty logging for selected
++  * dirty pages.
++  *
++  * It calls kvm_mmu_write_protect_pt_masked to write protect selected pages to
++  * enable dirty logging for them.
++  */
++ void kvm_arch_mmu_enable_log_dirty_pt_masked(struct kvm *kvm,
++ 		struct kvm_memory_slot *slot,
++ 		gfn_t gfn_offset, unsigned long mask)
++ {
++ 	kvm_mmu_write_protect_pt_masked(kvm, slot, gfn_offset, mask);
++ }
++ 
+ +static void coherent_cache_guest_page(struct kvm_vcpu *vcpu, pfn_t pfn,
+ +				      unsigned long size, bool uncached)
+ +{
+ +	__coherent_cache_guest_page(vcpu, pfn, size, uncached);
+ +}
+ +
+  static int user_mem_abort(struct kvm_vcpu *vcpu, phys_addr_t fault_ipa,
+  			  struct kvm_memory_slot *memslot, unsigned long hva,
+  			  unsigned long fault_status)
+@@@ -1059,13 -1234,13 +1291,12 @@@
+  		if (writable) {
+  			kvm_set_s2pte_writable(&new_pte);
+  			kvm_set_pfn_dirty(pfn);
++ 			mark_page_dirty(kvm, gfn);
+  		}
+ -		coherent_cache_guest_page(vcpu, hva, PAGE_SIZE,
+ -					  fault_ipa_uncached);
+ +		coherent_cache_guest_page(vcpu, pfn, PAGE_SIZE, fault_ipa_uncached);
+- 		ret = stage2_set_pte(kvm, memcache, fault_ipa, &new_pte,
+- 			pgprot_val(mem_type) == pgprot_val(PAGE_S2_DEVICE));
++ 		ret = stage2_set_pte(kvm, memcache, fault_ipa, &new_pte, flags);
+  	}
+  
+- 
+  out_unlock:
+  	spin_unlock(&kvm->mmu_lock);
+  	kvm_release_pfn_clean(pfn);
+diff --cc arch/arm64/kvm/Kconfig
+index b334084d3675,3ce389b3c21c..f5590c81d95f
+--- a/arch/arm64/kvm/Kconfig
++++ b/arch/arm64/kvm/Kconfig
+@@@ -26,7 -27,7 +27,8 @@@ config KV
+  	select KVM_ARM_HOST
+  	select KVM_ARM_VGIC
+  	select KVM_ARM_TIMER
++ 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
+ +	select SRCU
+  	---help---
+  	  Support hosting virtualized guest machines.
+  
+diff --cc arch/arm64/kvm/sys_regs.c
+index b96afdf6cee4,7ad7af51856f..c370b4014799
+--- a/arch/arm64/kvm/sys_regs.c
++++ b/arch/arm64/kvm/sys_regs.c
+@@@ -605,7 -693,9 +638,9 @@@ static const struct sys_reg_desc cp14_6
+   * register).
+   */
+  static const struct sys_reg_desc cp15_regs[] = {
++ 	{ Op1( 0), CRn( 0), CRm(12), Op2( 0), access_gic_sgi },
++ 
+ -	{ Op1( 0), CRn( 1), CRm( 0), Op2( 0), access_sctlr, NULL, c1_SCTLR },
+ +	{ Op1( 0), CRn( 1), CRm( 0), Op2( 0), access_vm_reg, NULL, c1_SCTLR },
+  	{ Op1( 0), CRn( 2), CRm( 0), Op2( 0), access_vm_reg, NULL, c2_TTBR0 },
+  	{ Op1( 0), CRn( 2), CRm( 0), Op2( 1), access_vm_reg, NULL, c2_TTBR1 },
+  	{ Op1( 0), CRn( 2), CRm( 0), Op2( 2), access_vm_reg, NULL, c2_TTBCR },
+diff --cc arch/s390/include/asm/sclp.h
+index edb453cfc2c6,425e6cc240ff..f1096bab5199
+--- a/arch/s390/include/asm/sclp.h
++++ b/arch/s390/include/asm/sclp.h
+@@@ -69,8 -67,7 +70,9 @@@ int memcpy_hsa(void *dest, unsigned lon
+  unsigned long sclp_get_hsa_size(void);
+  void sclp_early_detect(void);
+  int sclp_has_siif(void);
++ int sclp_has_sigpif(void);
+  unsigned int sclp_get_ibc(void);
+  
+ +long _sclp_print_early(const char *);
+ +
+  #endif /* _ASM_S390_SCLP_H */
+diff --cc arch/s390/kernel/sysinfo.c
+index 85565f1ff474,cebab77c138c..99babea026ca
+--- a/arch/s390/kernel/sysinfo.c
++++ b/arch/s390/kernel/sysinfo.c
+@@@ -194,16 -194,35 +194,43 @@@ static void stsi_2_2_2(struct seq_file 
+  	seq_printf(m, "LPAR CPUs Reserved:   %d\n", info->cpus_reserved);
+  	seq_printf(m, "LPAR CPUs Dedicated:  %d\n", info->cpus_dedicated);
+  	seq_printf(m, "LPAR CPUs Shared:     %d\n", info->cpus_shared);
+ +	if (info->mt_installed & 0x80) {
+ +		seq_printf(m, "LPAR CPUs G-MTID:     %d\n",
+ +			   info->mt_general & 0x1f);
+ +		seq_printf(m, "LPAR CPUs S-MTID:     %d\n",
+ +			   info->mt_installed & 0x1f);
+ +		seq_printf(m, "LPAR CPUs PS-MTID:    %d\n",
+ +			   info->mt_psmtid & 0x1f);
+ +	}
+  }
+  
++ static void print_ext_name(struct seq_file *m, int lvl,
++ 			   struct sysinfo_3_2_2 *info)
++ {
++ 	if (info->vm[lvl].ext_name_encoding == 0)
++ 		return;
++ 	if (info->ext_names[lvl][0] == 0)
++ 		return;
++ 	switch (info->vm[lvl].ext_name_encoding) {
++ 	case 1: /* EBCDIC */
++ 		EBCASC(info->ext_names[lvl], sizeof(info->ext_names[lvl]));
++ 		break;
++ 	case 2:	/* UTF-8 */
++ 		break;
++ 	default:
++ 		return;
++ 	}
++ 	seq_printf(m, "VM%02d Extended Name:   %-.256s\n", lvl,
++ 		   info->ext_names[lvl]);
++ }
++ 
++ static void print_uuid(struct seq_file *m, int i, struct sysinfo_3_2_2 *info)
++ {
++ 	if (!memcmp(&info->vm[i].uuid, &NULL_UUID_BE, sizeof(uuid_be)))
++ 		return;
++ 	seq_printf(m, "VM%02d UUID:            %pUb\n", i, &info->vm[i].uuid);
++ }
++ 
+  static void stsi_3_2_2(struct seq_file *m, struct sysinfo_3_2_2 *info)
+  {
+  	int i;
+diff --cc arch/x86/include/uapi/asm/msr-index.h
+index 536240fa9a95,d0050f25ea80..3ce079136c11
+--- a/arch/x86/include/uapi/asm/msr-index.h
++++ b/arch/x86/include/uapi/asm/msr-index.h
+@@@ -364,9 -356,11 +364,12 @@@
+  #define MSR_IA32_UCODE_WRITE		0x00000079
+  #define MSR_IA32_UCODE_REV		0x0000008b
+  
++ #define MSR_IA32_SMM_MONITOR_CTL	0x0000009b
++ #define MSR_IA32_SMBASE			0x0000009e
++ 
+  #define MSR_IA32_PERF_STATUS		0x00000198
+  #define MSR_IA32_PERF_CTL		0x00000199
+ +#define INTEL_PERF_CTL_MASK		0xffff
+  #define MSR_AMD_PSTATE_DEF_BASE		0xc0010064
+  #define MSR_AMD_PERF_STATUS		0xc0010063
+  #define MSR_AMD_PERF_CTL		0xc0010062
+diff --cc arch/x86/kvm/Kconfig
+index 7dc7ba577ecd,d07359466d5d..413a7bf9efbb
+--- a/arch/x86/kvm/Kconfig
++++ b/arch/x86/kvm/Kconfig
+@@@ -39,8 -39,8 +39,9 @@@ config KV
+  	select PERF_EVENTS
+  	select HAVE_KVM_MSI
+  	select HAVE_KVM_CPU_RELAX_INTERCEPT
++ 	select KVM_GENERIC_DIRTYLOG_READ_PROTECT
+  	select KVM_VFIO
+ +	select SRCU
+  	---help---
+  	  Support hosting fully virtualized guest machines using hardware
+  	  virtualization extensions.  You will need a fairly recent
+diff --cc drivers/s390/char/sclp_early.c
+index daf6cd5079ec,b8a5bf5f1f3d..1efa4fdb7fe2
+--- a/drivers/s390/char/sclp_early.c
++++ b/drivers/s390/char/sclp_early.c
+@@@ -54,11 -49,8 +54,12 @@@ static unsigned long sclp_hsa_size
+  static unsigned int sclp_max_cpu;
+  static struct sclp_ipl_info sclp_ipl_info;
+  static unsigned char sclp_siif;
++ static unsigned char sclp_sigpif;
+  static u32 sclp_ibc;
+ +static unsigned int sclp_mtid;
+ +static unsigned int sclp_mtid_cp;
+ +static unsigned int sclp_mtid_max;
+ +static unsigned int sclp_mtid_prev;
+  
+  u64 sclp_facilities;
+  u8 sclp_fac84;
+@@@ -137,9 -129,10 +138,10 @@@ static void __init sclp_facilities_dete
+  	boot_cpu_address = stap();
+  	cpue = (void *)sccb + sccb->cpuoff;
+  	for (cpu = 0; cpu < sccb->ncpurl; cpue++, cpu++) {
+ -		if (boot_cpu_address != cpue->address)
+ +		if (boot_cpu_address != cpue->core_id)
+  			continue;
+  		sclp_siif = cpue->siif;
++ 		sclp_sigpif = cpue->sigpif;
+  		break;
+  	}
+  

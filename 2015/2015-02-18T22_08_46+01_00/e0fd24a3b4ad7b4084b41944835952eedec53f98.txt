@@ -1,0 +1,49 @@
+commit e0fd24a3b4ad7b4084b41944835952eedec53f98
+Author: Jan Beulich <JBeulich@suse.com>
+Date:   Thu Feb 5 15:39:34 2015 +0000
+
+    x86/Kconfig: Avoid issuing pointless turned off entries to .config
+    
+    Settings without prompts shouldn't normally have defaults other
+    than Y, as otherwise they (a) needlessly enlarge the resulting
+    .config and (b) if they ever get a prompt added later, the
+    tracked setting of off will prevent the devloper from then being
+    prompted for his/her choice when doing an incremental update of
+    the configuration (make oldconfig).
+    
+    Signed-off-by: Jan Beulich <jbeulich@suse.com>
+    Link: http://lkml.kernel.org/r/54D39CC6020000780005D6AE@mail.emea.novell.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 5e28e2be3a41..463d8838f1db 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -233,12 +233,10 @@ config ARCH_WANT_GENERAL_HUGETLB
+ 	def_bool y
+ 
+ config ZONE_DMA32
+-	bool
+-	default X86_64
++	def_bool y if X86_64
+ 
+ config AUDIT_ARCH
+-	bool
+-	default X86_64
++	def_bool y if X86_64
+ 
+ config ARCH_SUPPORTS_OPTIMIZED_INLINING
+ 	def_bool y
+@@ -1115,10 +1113,10 @@ config MICROCODE_OLD_INTERFACE
+ 	depends on MICROCODE
+ 
+ config MICROCODE_INTEL_EARLY
+-	def_bool n
++	bool
+ 
+ config MICROCODE_AMD_EARLY
+-	def_bool n
++	bool
+ 
+ config MICROCODE_EARLY
+ 	bool "Early load microcode"

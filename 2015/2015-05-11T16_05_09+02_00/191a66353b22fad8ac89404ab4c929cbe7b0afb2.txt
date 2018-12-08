@@ -1,0 +1,67 @@
+commit 191a66353b22fad8ac89404ab4c929cbe7b0afb2
+Merge: f5d6a52f5111 f21262b8e092
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Mon May 11 16:05:09 2015 +0200
+
+    Merge branch 'x86/asm' into x86/apic, to resolve a conflict
+    
+    Conflicts:
+            arch/x86/kernel/apic/io_apic.c
+            arch/x86/kernel/apic/vector.c
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --cc arch/x86/kernel/apic/vector.c
+index 426496862be0,82d44c314a3f..2766747e1a3b
+--- a/arch/x86/kernel/apic/vector.c
++++ b/arch/x86/kernel/apic/vector.c
+@@@ -358,46 -258,8 +358,43 @@@ int __init arch_probe_nr_irqs(void
+  	return nr_legacy_irqs();
+  }
+  
+ +#ifdef	CONFIG_X86_IO_APIC
+ +static void init_legacy_irqs(void)
+ +{
+ +	int i, node = cpu_to_node(0);
+ +	struct apic_chip_data *data;
+ +
+ +	/*
+ +	 * For legacy IRQ's, start with assigning irq0 to irq15 to
+- 	 * IRQ0_VECTOR to IRQ15_VECTOR for all cpu's.
+++	 * ISA_IRQ_VECTOR(i) for all cpu's.
+ +	 */
+ +	for (i = 0; i < nr_legacy_irqs(); i++) {
+ +		data = legacy_irq_data[i] = alloc_apic_chip_data(node);
+ +		BUG_ON(!data);
+- 		/*
+- 		 * For legacy IRQ's, start with assigning irq0 to irq15 to
+- 		 * IRQ0_VECTOR to IRQ15_VECTOR for all cpu's.
+- 		 */
+- 		data->cfg.vector = IRQ0_VECTOR + i;
+++
+++		data->cfg.vector = ISA_IRQ_VECTOR(i);
+ +		cpumask_setall(data->domain);
+ +		irq_set_chip_data(i, data);
+ +	}
+ +}
+ +#else
+ +static void init_legacy_irqs(void) { }
+ +#endif
+ +
+  int __init arch_early_irq_init(void)
+  {
+ +	init_legacy_irqs();
+ +
+ +	x86_vector_domain = irq_domain_add_tree(NULL, &x86_vector_domain_ops,
+ +						NULL);
+ +	BUG_ON(x86_vector_domain == NULL);
+ +	irq_set_default_host(x86_vector_domain);
+ +
+ +	arch_init_msi_domain(x86_vector_domain);
+ +	arch_init_htirq_domain(x86_vector_domain);
+ +
+ +	BUG_ON(!alloc_cpumask_var(&vector_cpumask, GFP_KERNEL));
+ +
+  	return arch_early_ioapic_init();
+  }
+  

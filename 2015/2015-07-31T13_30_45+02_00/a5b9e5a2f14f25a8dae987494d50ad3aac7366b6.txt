@@ -1,0 +1,249 @@
+commit a5b9e5a2f14f25a8dae987494d50ad3aac7366b6
+Author: Andy Lutomirski <luto@kernel.org>
+Date:   Thu Jul 30 14:31:34 2015 -0700
+
+    x86/ldt: Make modify_ldt() optional
+    
+    The modify_ldt syscall exposes a large attack surface and is
+    unnecessary for modern userspace.  Make it optional.
+    
+    Signed-off-by: Andy Lutomirski <luto@kernel.org>
+    Reviewed-by: Kees Cook <keescook@chromium.org>
+    Cc: Andrew Cooper <andrew.cooper3@citrix.com>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Boris Ostrovsky <boris.ostrovsky@oracle.com>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Brian Gerst <brgerst@gmail.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Jan Beulich <jbeulich@suse.com>
+    Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Sasha Levin <sasha.levin@oracle.com>
+    Cc: Steven Rostedt <rostedt@goodmis.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: security@kernel.org <security@kernel.org>
+    Cc: xen-devel <xen-devel@lists.xen.org>
+    Link: http://lkml.kernel.org/r/a605166a771c343fd64802dece77a903507333bd.1438291540.git.luto@kernel.org
+    [ Made MATH_EMULATION dependent on MODIFY_LDT_SYSCALL. ]
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index e26fe7a5b9e6..798658048db3 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1036,6 +1036,7 @@ config VM86
+ config X86_16BIT
+ 	bool "Enable support for 16-bit segments" if EXPERT
+ 	default y
++	depends on MODIFY_LDT_SYSCALL
+ 	---help---
+ 	  This option is required by programs like Wine to run 16-bit
+ 	  protected mode legacy code on x86 processors.  Disabling
+@@ -1530,6 +1531,7 @@ config X86_RESERVE_LOW
+ 
+ config MATH_EMULATION
+ 	bool
++	depends on MODIFY_LDT_SYSCALL
+ 	prompt "Math emulation" if X86_32
+ 	---help---
+ 	  Linux can emulate a math coprocessor (used for floating point
+@@ -2074,6 +2076,22 @@ config CMDLINE_OVERRIDE
+ 	  This is used to work around broken boot loaders.  This should
+ 	  be set to 'N' under normal conditions.
+ 
++config MODIFY_LDT_SYSCALL
++	bool "Enable the LDT (local descriptor table)" if EXPERT
++	default y
++	---help---
++	  Linux can allow user programs to install a per-process x86
++	  Local Descriptor Table (LDT) using the modify_ldt(2) system
++	  call.  This is required to run 16-bit or segmented code such as
++	  DOSEMU or some Wine programs.  It is also used by some very old
++	  threading libraries.
++
++	  Enabling this feature adds a small amount of overhead to
++	  context switches and increases the low-level kernel attack
++	  surface.  Disabling it removes the modify_ldt(2) system call.
++
++	  Saying 'N' here may make sense for embedded or server kernels.
++
+ source "kernel/livepatch/Kconfig"
+ 
+ endmenu
+diff --git a/arch/x86/include/asm/mmu.h b/arch/x86/include/asm/mmu.h
+index 364d27481a52..55234d5e7160 100644
+--- a/arch/x86/include/asm/mmu.h
++++ b/arch/x86/include/asm/mmu.h
+@@ -9,7 +9,9 @@
+  * we put the segment information here.
+  */
+ typedef struct {
++#ifdef CONFIG_MODIFY_LDT_SYSCALL
+ 	struct ldt_struct *ldt;
++#endif
+ 
+ #ifdef CONFIG_X86_64
+ 	/* True if mm supports a task running in 32 bit compatibility mode. */
+diff --git a/arch/x86/include/asm/mmu_context.h b/arch/x86/include/asm/mmu_context.h
+index 984abfe47edc..379cd3658799 100644
+--- a/arch/x86/include/asm/mmu_context.h
++++ b/arch/x86/include/asm/mmu_context.h
+@@ -33,6 +33,7 @@ static inline void load_mm_cr4(struct mm_struct *mm)
+ static inline void load_mm_cr4(struct mm_struct *mm) {}
+ #endif
+ 
++#ifdef CONFIG_MODIFY_LDT_SYSCALL
+ /*
+  * ldt_structs can be allocated, used, and freed, but they are never
+  * modified while live.
+@@ -48,8 +49,23 @@ struct ldt_struct {
+ 	int size;
+ };
+ 
++/*
++ * Used for LDT copy/destruction.
++ */
++int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
++void destroy_context(struct mm_struct *mm);
++#else	/* CONFIG_MODIFY_LDT_SYSCALL */
++static inline int init_new_context(struct task_struct *tsk,
++				   struct mm_struct *mm)
++{
++	return 0;
++}
++static inline void destroy_context(struct mm_struct *mm) {}
++#endif
++
+ static inline void load_mm_ldt(struct mm_struct *mm)
+ {
++#ifdef CONFIG_MODIFY_LDT_SYSCALL
+ 	struct ldt_struct *ldt;
+ 
+ 	/* lockless_dereference synchronizes with smp_store_release */
+@@ -73,17 +89,13 @@ static inline void load_mm_ldt(struct mm_struct *mm)
+ 		set_ldt(ldt->entries, ldt->size);
+ 	else
+ 		clear_LDT();
++#else
++	clear_LDT();
++#endif
+ 
+ 	DEBUG_LOCKS_WARN_ON(preemptible());
+ }
+ 
+-/*
+- * Used for LDT copy/destruction.
+- */
+-int init_new_context(struct task_struct *tsk, struct mm_struct *mm);
+-void destroy_context(struct mm_struct *mm);
+-
+-
+ static inline void enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
+ {
+ #ifdef CONFIG_SMP
+@@ -114,6 +126,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ 		/* Load per-mm CR4 state */
+ 		load_mm_cr4(next);
+ 
++#ifdef CONFIG_MODIFY_LDT_SYSCALL
+ 		/*
+ 		 * Load the LDT, if the LDT is different.
+ 		 *
+@@ -128,6 +141,7 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ 		 */
+ 		if (unlikely(prev->context.ldt != next->context.ldt))
+ 			load_mm_ldt(next);
++#endif
+ 	}
+ #ifdef CONFIG_SMP
+ 	  else {
+diff --git a/arch/x86/kernel/Makefile b/arch/x86/kernel/Makefile
+index dc19730ad0db..514064897d55 100644
+--- a/arch/x86/kernel/Makefile
++++ b/arch/x86/kernel/Makefile
+@@ -25,7 +25,8 @@ CFLAGS_irq.o := -I$(src)/../include/asm/trace
+ obj-y			:= process_$(BITS).o signal.o
+ obj-$(CONFIG_COMPAT)	+= signal_compat.o
+ obj-y			+= traps.o irq.o irq_$(BITS).o dumpstack_$(BITS).o
+-obj-y			+= time.o ioport.o ldt.o dumpstack.o nmi.o
++obj-y			+= time.o ioport.o dumpstack.o nmi.o
++obj-$(CONFIG_MODIFY_LDT_SYSCALL)	+= ldt.o
+ obj-y			+= setup.o x86_init.o i8259.o irqinit.o jump_label.o
+ obj-$(CONFIG_IRQ_WORK)  += irq_work.o
+ obj-y			+= probe_roms.o
+diff --git a/arch/x86/kernel/cpu/perf_event.c b/arch/x86/kernel/cpu/perf_event.c
+index 09f9ff271df4..cc25c8f3512d 100644
+--- a/arch/x86/kernel/cpu/perf_event.c
++++ b/arch/x86/kernel/cpu/perf_event.c
+@@ -2179,6 +2179,7 @@ static unsigned long get_segment_base(unsigned int segment)
+ 	int idx = segment >> 3;
+ 
+ 	if ((segment & SEGMENT_TI_MASK) == SEGMENT_LDT) {
++#ifdef CONFIG_MODIFY_LDT_SYSCALL
+ 		struct ldt_struct *ldt;
+ 
+ 		if (idx > LDT_ENTRIES)
+@@ -2190,6 +2191,9 @@ static unsigned long get_segment_base(unsigned int segment)
+ 			return 0;
+ 
+ 		desc = &ldt->entries[idx];
++#else
++		return 0;
++#endif
+ 	} else {
+ 		if (idx > GDT_ENTRIES)
+ 			return 0;
+diff --git a/arch/x86/kernel/process_64.c b/arch/x86/kernel/process_64.c
+index 7ff035c6c54d..3c1bbcf12924 100644
+--- a/arch/x86/kernel/process_64.c
++++ b/arch/x86/kernel/process_64.c
+@@ -121,6 +121,7 @@ void __show_regs(struct pt_regs *regs, int all)
+ void release_thread(struct task_struct *dead_task)
+ {
+ 	if (dead_task->mm) {
++#ifdef CONFIG_MODIFY_LDT_SYSCALL
+ 		if (dead_task->mm->context.ldt) {
+ 			pr_warn("WARNING: dead process %s still has LDT? <%p/%d>\n",
+ 				dead_task->comm,
+@@ -128,6 +129,7 @@ void release_thread(struct task_struct *dead_task)
+ 				dead_task->mm->context.ldt->size);
+ 			BUG();
+ 		}
++#endif
+ 	}
+ }
+ 
+diff --git a/arch/x86/kernel/step.c b/arch/x86/kernel/step.c
+index 6273324186ac..fd88e152d584 100644
+--- a/arch/x86/kernel/step.c
++++ b/arch/x86/kernel/step.c
+@@ -18,6 +18,7 @@ unsigned long convert_ip_to_linear(struct task_struct *child, struct pt_regs *re
+ 		return addr;
+ 	}
+ 
++#ifdef CONFIG_MODIFY_LDT_SYSCALL
+ 	/*
+ 	 * We'll assume that the code segments in the GDT
+ 	 * are all zero-based. That is largely true: the
+@@ -45,6 +46,7 @@ unsigned long convert_ip_to_linear(struct task_struct *child, struct pt_regs *re
+ 		}
+ 		mutex_unlock(&child->mm->context.lock);
+ 	}
++#endif
+ 
+ 	return addr;
+ }
+diff --git a/kernel/sys_ni.c b/kernel/sys_ni.c
+index 7995ef5868d8..ca7d84f438f1 100644
+--- a/kernel/sys_ni.c
++++ b/kernel/sys_ni.c
+@@ -140,6 +140,7 @@ cond_syscall(sys_sgetmask);
+ cond_syscall(sys_ssetmask);
+ cond_syscall(sys_vm86old);
+ cond_syscall(sys_vm86);
++cond_syscall(sys_modify_ldt);
+ cond_syscall(sys_ipc);
+ cond_syscall(compat_sys_ipc);
+ cond_syscall(compat_sys_sysctl);

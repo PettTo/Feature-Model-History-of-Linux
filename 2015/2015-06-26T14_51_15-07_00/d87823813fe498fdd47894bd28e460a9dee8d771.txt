@@ -1,0 +1,85 @@
+commit d87823813fe498fdd47894bd28e460a9dee8d771
+Merge: e382608254e0 3dc196eae1db
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Jun 26 14:51:15 2015 -0700
+
+    Merge tag 'char-misc-4.2-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/char-misc
+    
+    Pull char/misc driver updates from Greg KH:
+     "Here's the big char/misc driver pull request for 4.2-rc1.
+    
+      Lots of mei, extcon, coresight, uio, mic, and other driver updates in
+      here.  Full details in the shortlog.  All of these have been in
+      linux-next for some time with no reported problems"
+    
+    * tag 'char-misc-4.2-rc1' of git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/char-misc: (176 commits)
+      mei: me: wait for power gating exit confirmation
+      mei: reset flow control on the last client disconnection
+      MAINTAINERS: mei: add mei_cl_bus.h to maintained file list
+      misc: sram: sort and clean up included headers
+      misc: sram: move reserved block logic out of probe function
+      misc: sram: add private struct device and virt_base members
+      misc: sram: report correct SRAM pool size
+      misc: sram: bump error message level on unclean driver unbinding
+      misc: sram: fix device node reference leak on error
+      misc: sram: fix enabled clock leak on error path
+      misc: mic: Fix reported static checker warning
+      misc: mic: Fix randconfig build error by including errno.h
+      uio: pruss: Drop depends on ARCH_DAVINCI_DA850 from config
+      uio: pruss: Add CONFIG_HAS_IOMEM dependence
+      uio: pruss: Include <linux/sizes.h>
+      extcon: Redefine the unique id of supported external connectors without 'enum extcon' type
+      char:xilinx_hwicap:buffer_icap - change 1/0 to true/false for bool type variable in function buffer_icap_set_configuration().
+      Drivers: hv: vmbus: Allocate ring buffer memory in NUMA aware fashion
+      parport: check exclusive access before register
+      w1: use correct lock on error in w1_seq_show()
+      ...
+
+diff --cc include/dt-bindings/mfd/arizona.h
+index 555609910acb,fee48e624036..7b2000cead43
+--- a/include/dt-bindings/mfd/arizona.h
++++ b/include/dt-bindings/mfd/arizona.h
+@@@ -90,18 -90,8 +90,22 @@@
+  #define ARIZONA_INMODE_SE   1
+  #define ARIZONA_INMODE_DMIC 2
+  
+ +#define ARIZONA_MICD_TIME_CONTINUOUS                 0
+ +#define ARIZONA_MICD_TIME_250US                      1
+ +#define ARIZONA_MICD_TIME_500US                      2
+ +#define ARIZONA_MICD_TIME_1MS                        3
+ +#define ARIZONA_MICD_TIME_2MS                        4
+ +#define ARIZONA_MICD_TIME_4MS                        5
+ +#define ARIZONA_MICD_TIME_8MS                        6
+ +#define ARIZONA_MICD_TIME_16MS                       7
+ +#define ARIZONA_MICD_TIME_32MS                       8
+ +#define ARIZONA_MICD_TIME_64MS                       9
+ +#define ARIZONA_MICD_TIME_128MS                      10
+ +#define ARIZONA_MICD_TIME_256MS                      11
+ +#define ARIZONA_MICD_TIME_512MS                      12
+ +
++ #define ARIZONA_ACCDET_MODE_MIC 0
++ #define ARIZONA_ACCDET_MODE_HPL 1
++ #define ARIZONA_ACCDET_MODE_HPR 2
++ 
+  #endif
+diff --cc include/linux/mfd/axp20x.h
+index 02f97dc568ac,4ed8071d062e..c2aa853fb412
+--- a/include/linux/mfd/axp20x.h
++++ b/include/linux/mfd/axp20x.h
+@@@ -361,11 -275,9 +361,16 @@@ struct axp20x_fg_pdata 
+  	int thermistor_curve[MAX_THERM_CURVE_SIZE][2];
+  };
+  
+ +struct axp20x_chrg_pdata {
+ +	int max_cc;
+ +	int max_cv;
+ +	int def_cc;
+ +	int def_cv;
+ +};
+ +
++ struct axp288_extcon_pdata {
++ 	/* GPIO pin control to switch D+/D- lines b/w PMIC and SOC */
++ 	struct gpio_desc *gpio_mux_cntl;
++ };
++ 
+  #endif /* __LINUX_MFD_AXP20X_H */

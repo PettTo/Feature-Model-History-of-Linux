@@ -1,0 +1,105 @@
+commit 836ee4874e201a5907f9658fb2bf3527dd952d30
+Merge: fb65d872d7a8 7676fa70feb2
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Fri Apr 24 08:23:45 2015 -0700
+
+    Merge tag 'arm64-upstream' of git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux
+    
+    Pull initial ACPI support for arm64 from Will Deacon:
+     "This series introduces preliminary ACPI 5.1 support to the arm64
+      kernel using the "hardware reduced" profile.  We don't support any
+      peripherals yet, so it's fairly limited in scope:
+    
+       - MEMORY init (UEFI)
+    
+       - ACPI discovery (RSDP via UEFI)
+    
+       - CPU init (FADT)
+    
+       - GIC init (MADT)
+    
+       - SMP boot (MADT + PSCI)
+    
+       - ACPI Kconfig options (dependent on EXPERT)
+    
+      ACPI for arm64 has been in development for a while now and hardware
+      has been available that can boot with either FDT or ACPI tables.  This
+      has been made possible by both changes to the ACPI spec to cater for
+      ARM-based machines (known as "hardware-reduced" in ACPI parlance) but
+      also a Linaro-driven effort to get this supported on top of the Linux
+      kernel.  This pull request is the result of that work.
+    
+      These changes allow us to initialise the CPUs, interrupt controller,
+      and timers via ACPI tables, with memory information and cmdline coming
+      from EFI.  We don't support a hybrid ACPI/FDT scheme.  Of course,
+      there is still plenty of work to do (a serial console would be nice!)
+      but I expect that to happen on a per-driver basis after this core
+      series has been merged.
+    
+      Anyway, the diff stat here is fairly horrible, but splitting this up
+      and merging it via all the different subsystems would have been
+      extremely painful.  Instead, we've got all the relevant Acks in place
+      and I've not seen anything other than trivial (Kconfig) conflicts in
+      -next (for completeness, I've included my resolution below).  Nearly
+      half of the insertions fall under Documentation/.
+    
+      So, we'll see how this goes.  Right now, it all depends on EXPERT and
+      I fully expect people to use FDT by default for the immediate future"
+    
+    * tag 'arm64-upstream' of git://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux: (31 commits)
+      ARM64 / ACPI: make acpi_map_gic_cpu_interface() as void function
+      ARM64 / ACPI: Ignore the return error value of acpi_map_gic_cpu_interface()
+      ARM64 / ACPI: fix usage of acpi_map_gic_cpu_interface
+      ARM64: kernel: acpi: honour acpi=force command line parameter
+      ARM64: kernel: acpi: refactor ACPI tables init and checks
+      ARM64: kernel: psci: let ACPI probe PSCI version
+      ARM64: kernel: psci: factor out probe function
+      ACPI: move arm64 GSI IRQ model to generic GSI IRQ layer
+      ARM64 / ACPI: Don't unflatten device tree if acpi=force is passed
+      ARM64 / ACPI: additions of ACPI documentation for arm64
+      Documentation: ACPI for ARM64
+      ARM64 / ACPI: Enable ARM64 in Kconfig
+      XEN / ACPI: Make XEN ACPI depend on X86
+      ARM64 / ACPI: Select ACPI_REDUCED_HARDWARE_ONLY if ACPI is enabled on ARM64
+      clocksource / arch_timer: Parse GTDT to initialize arch timer
+      irqchip: Add GICv2 specific ACPI boot support
+      ARM64 / ACPI: Introduce ACPI_IRQ_MODEL_GIC and register device's gsi
+      ACPI / processor: Make it possible to get CPU hardware ID via GICC
+      ACPI / processor: Introduce phys_cpuid_t for CPU hardware ID
+      ARM64 / ACPI: Parse MADT for SMP initialization
+      ...
+
+diff --cc arch/arm64/Kconfig
+index da5f20e8cc50,0659db374731..4269dba63cf1
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@@ -1,7 -1,9 +1,9 @@@
+  config ARM64
+  	def_bool y
++ 	select ACPI_GENERIC_GSI if ACPI
++ 	select ACPI_REDUCED_HARDWARE_ONLY if ACPI
+ -	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
+  	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ +	select ARCH_HAS_ELF_RANDOMIZE
+  	select ARCH_HAS_GCOV_PROFILE_ALL
+  	select ARCH_HAS_SG_CHAIN
+  	select ARCH_HAS_TICK_BROADCAST if GENERIC_CLOCKEVENTS_BROADCAST
+diff --cc drivers/xen/Kconfig
+index a270004c9605,a31cd29b68a8..7cd226da15fe
+--- a/drivers/xen/Kconfig
++++ b/drivers/xen/Kconfig
+@@@ -270,10 -253,8 +270,14 @@@ config XEN_EF
+  	def_bool y
+  	depends on X86_64 && EFI
+  
+ +config XEN_AUTO_XLATE
+ +	def_bool y
+ +	depends on ARM || ARM64 || XEN_PVHVM
+ +	help
+ +	  Support for auto-translated physmap guests.
+ +
++ config XEN_ACPI
++ 	def_bool y
++ 	depends on X86 && ACPI
++ 
+  endmenu

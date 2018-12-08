@@ -1,0 +1,46 @@
+commit 23e8fe2e16587494268510c1bc9f6952f50f0311
+Merge: 30d46827c274 f49028292c13
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Feb 9 14:28:42 2015 -0800
+
+    Merge branch 'core-rcu-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull RCU updates from Ingo Molnar:
+     "The main RCU changes in this cycle are:
+    
+       - Documentation updates.
+    
+       - Miscellaneous fixes.
+    
+       - Preemptible-RCU fixes, including fixing an old bug in the
+         interaction of RCU priority boosting and CPU hotplug.
+    
+       - SRCU updates.
+    
+       - RCU CPU stall-warning updates.
+    
+       - RCU torture-test updates"
+    
+    * 'core-rcu-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (54 commits)
+      rcu: Initialize tiny RCU stall-warning timeouts at boot
+      rcu: Fix RCU CPU stall detection in tiny implementation
+      rcu: Add GP-kthread-starvation checks to CPU stall warnings
+      rcu: Make cond_resched_rcu_qs() apply to normal RCU flavors
+      rcu: Optionally run grace-period kthreads at real-time priority
+      ksoftirqd: Use new cond_resched_rcu_qs() function
+      ksoftirqd: Enable IRQs and call cond_resched() before poking RCU
+      rcutorture: Add more diagnostics in rcu_barrier() test failure case
+      torture: Flag console.log file to prevent holdovers from earlier runs
+      torture: Add "-enable-kvm -soundhw pcspk" to qemu command line
+      rcutorture: Handle different mpstat versions
+      rcutorture: Check from beginning to end of grace period
+      rcu: Remove redundant rcu_batches_completed() declaration
+      rcutorture: Drop rcu_torture_completed() and friends
+      rcu: Provide rcu_batches_completed_sched() for TINY_RCU
+      rcutorture: Use unsigned for Reader Batch computations
+      rcutorture: Make build-output parsing correctly flag RCU's warnings
+      rcu: Make _batches_completed() functions return unsigned long
+      rcutorture: Issue warnings on close calls due to Reader Batch blows
+      documentation: Fix smp typo in memory-barriers.txt
+      ...
+

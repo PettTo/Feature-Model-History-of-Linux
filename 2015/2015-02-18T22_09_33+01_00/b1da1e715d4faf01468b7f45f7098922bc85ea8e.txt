@@ -1,0 +1,32 @@
+commit b1da1e715d4faf01468b7f45f7098922bc85ea8e
+Author: Jan Beulich <JBeulich@suse.com>
+Date:   Thu Feb 5 15:35:21 2015 +0000
+
+    x86/Kconfig: Simplify X86_IO_APIC dependencies
+    
+    Since dependencies are transitive, we don't really need to
+    repeat those of X86_UP_IOAPIC.
+    
+    Furthermore avoid the symbol getting entered into .config when
+    it is off by having the default simply Y and the dependencies
+    solely handled via the intended for that purpose "depends on".
+    
+    Signed-off-by: Jan Beulich <jbeulich@suse.com>
+    Link: http://lkml.kernel.org/r/54D39BC9020000780005D688@mail.emea.novell.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 463d8838f1db..afb75f5c243c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -893,8 +893,8 @@ config X86_LOCAL_APIC
+ 	select GENERIC_IRQ_LEGACY_ALLOC_HWIRQ
+ 
+ config X86_IO_APIC
+-	def_bool X86_64 || SMP || X86_32_NON_STANDARD || X86_UP_IOAPIC
+-	depends on X86_LOCAL_APIC
++	def_bool y
++	depends on X86_LOCAL_APIC || X86_UP_IOAPIC
+ 	select IRQ_DOMAIN
+ 
+ config X86_REROUTE_FOR_BROKEN_BOOT_IRQS

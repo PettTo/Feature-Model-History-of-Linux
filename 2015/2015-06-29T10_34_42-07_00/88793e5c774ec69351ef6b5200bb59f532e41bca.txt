@@ -1,0 +1,425 @@
+commit 88793e5c774ec69351ef6b5200bb59f532e41bca
+Merge: 1bc5e157ed2b 61031952f4c8
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Jun 29 10:34:42 2015 -0700
+
+    Merge tag 'libnvdimm-for-4.2' of git://git.kernel.org/pub/scm/linux/kernel/git/djbw/nvdimm
+    
+    Pull libnvdimm subsystem from Dan Williams:
+     "The libnvdimm sub-system introduces, in addition to the
+      libnvdimm-core, 4 drivers / enabling modules:
+    
+      NFIT:
+        Instantiates an "nvdimm bus" with the core and registers memory
+        devices (NVDIMMs) enumerated by the ACPI 6.0 NFIT (NVDIMM Firmware
+        Interface table).
+    
+        After registering NVDIMMs the NFIT driver then registers "region"
+        devices.  A libnvdimm-region defines an access mode and the
+        boundaries of persistent memory media.  A region may span multiple
+        NVDIMMs that are interleaved by the hardware memory controller.  In
+        turn, a libnvdimm-region can be carved into a "namespace" device and
+        bound to the PMEM or BLK driver which will attach a Linux block
+        device (disk) interface to the memory.
+    
+      PMEM:
+        Initially merged in v4.1 this driver for contiguous spans of
+        persistent memory address ranges is re-worked to drive
+        PMEM-namespaces emitted by the libnvdimm-core.
+    
+        In this update the PMEM driver, on x86, gains the ability to assert
+        that writes to persistent memory have been flushed all the way
+        through the caches and buffers in the platform to persistent media.
+        See memcpy_to_pmem() and wmb_pmem().
+    
+      BLK:
+        This new driver enables access to persistent memory media through
+        "Block Data Windows" as defined by the NFIT.  The primary difference
+        of this driver to PMEM is that only a small window of persistent
+        memory is mapped into system address space at any given point in
+        time.
+    
+        Per-NVDIMM windows are reprogrammed at run time, per-I/O, to access
+        different portions of the media.  BLK-mode, by definition, does not
+        support DAX.
+    
+      BTT:
+        This is a library, optionally consumed by either PMEM or BLK, that
+        converts a byte-accessible namespace into a disk with atomic sector
+        update semantics (prevents sector tearing on crash or power loss).
+    
+        The sinister aspect of sector tearing is that most applications do
+        not know they have a atomic sector dependency.  At least today's
+        disk's rarely ever tear sectors and if they do one almost certainly
+        gets a CRC error on access.  NVDIMMs will always tear and always
+        silently.  Until an application is audited to be robust in the
+        presence of sector-tearing the usage of BTT is recommended.
+    
+      Thanks to: Ross Zwisler, Jeff Moyer, Vishal Verma, Christoph Hellwig,
+      Ingo Molnar, Neil Brown, Boaz Harrosh, Robert Elliott, Matthew Wilcox,
+      Andy Rudoff, Linda Knippers, Toshi Kani, Nicholas Moulin, Rafael
+      Wysocki, and Bob Moore"
+    
+    * tag 'libnvdimm-for-4.2' of git://git.kernel.org/pub/scm/linux/kernel/git/djbw/nvdimm: (33 commits)
+      arch, x86: pmem api for ensuring durability of persistent memory updates
+      libnvdimm: Add sysfs numa_node to NVDIMM devices
+      libnvdimm: Set numa_node to NVDIMM devices
+      acpi: Add acpi_map_pxm_to_online_node()
+      libnvdimm, nfit: handle unarmed dimms, mark namespaces read-only
+      pmem: flag pmem block devices as non-rotational
+      libnvdimm: enable iostat
+      pmem: make_request cleanups
+      libnvdimm, pmem: fix up max_hw_sectors
+      libnvdimm, blk: add support for blk integrity
+      libnvdimm, btt: add support for blk integrity
+      fs/block_dev.c: skip rw_page if bdev has integrity
+      libnvdimm: Non-Volatile Devices
+      tools/testing/nvdimm: libnvdimm unit test infrastructure
+      libnvdimm, nfit, nd_blk: driver for BLK-mode access persistent memory
+      nd_btt: atomic sector updates
+      libnvdimm: infrastructure for btt devices
+      libnvdimm: write blk label set
+      libnvdimm: write pmem label set
+      libnvdimm: blk labels and namespace instantiation
+      ...
+
+diff --cc arch/x86/Kconfig
+index 4fcf0ade7e91,62564ddf7f78..d05a42357ef0
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@@ -17,113 -22,62 +17,114 @@@ config X86_6
+  ### Arch settings
+  config X86
+  	def_bool y
+ -	select ACPI_SYSTEM_POWER_STATES_SUPPORT if ACPI
+ -	select ARCH_MIGHT_HAVE_ACPI_PDC if ACPI
+ +	select ACPI_LEGACY_TABLES_LOOKUP	if ACPI
+ +	select ACPI_SYSTEM_POWER_STATES_SUPPORT	if ACPI
+ +	select ANON_INODES
+ +	select ARCH_CLOCKSOURCE_DATA
+ +	select ARCH_DISCARD_MEMBLOCK
+ +	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+  	select ARCH_HAS_DEBUG_STRICT_USER_COPY_CHECKS
+ +	select ARCH_HAS_ELF_RANDOMIZE
+  	select ARCH_HAS_FAST_MULTIPLIER
+  	select ARCH_HAS_GCOV_PROFILE_ALL
++ 	select ARCH_HAS_PMEM_API
+ +	select ARCH_HAS_SG_CHAIN
+ +	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ +	select ARCH_MIGHT_HAVE_ACPI_PDC		if ACPI
+  	select ARCH_MIGHT_HAVE_PC_PARPORT
+  	select ARCH_MIGHT_HAVE_PC_SERIO
+ -	select HAVE_AOUT if X86_32
+ -	select HAVE_UNSTABLE_SCHED_CLOCK
+ -	select ARCH_SUPPORTS_NUMA_BALANCING if X86_64
+ -	select ARCH_SUPPORTS_INT128 if X86_64
+ -	select HAVE_IDE
+ -	select HAVE_OPROFILE
+ -	select HAVE_PCSPKR_PLATFORM
+ -	select HAVE_PERF_EVENTS
+ -	select HAVE_IOREMAP_PROT
+ -	select HAVE_KPROBES
+ -	select HAVE_MEMBLOCK
+ -	select HAVE_MEMBLOCK_NODE_MAP
+ -	select ARCH_DISCARD_MEMBLOCK
+ -	select ARCH_WANT_OPTIONAL_GPIOLIB
+ +	select ARCH_SUPPORTS_ATOMIC_RMW
+ +	select ARCH_SUPPORTS_INT128		if X86_64
+ +	select ARCH_SUPPORTS_NUMA_BALANCING	if X86_64
+ +	select ARCH_USE_BUILTIN_BSWAP
+ +	select ARCH_USE_CMPXCHG_LOCKREF		if X86_64
+ +	select ARCH_USE_QUEUED_RWLOCKS
+ +	select ARCH_USE_QUEUED_SPINLOCKS
+  	select ARCH_WANT_FRAME_POINTERS
+ -	select HAVE_DMA_ATTRS
+ -	select HAVE_DMA_CONTIGUOUS
+ -	select HAVE_KRETPROBES
+ +	select ARCH_WANT_IPC_PARSE_VERSION	if X86_32
+ +	select ARCH_WANT_OPTIONAL_GPIOLIB
+ +	select BUILDTIME_EXTABLE_SORT
+ +	select CLKEVT_I8253
+ +	select CLKSRC_I8253			if X86_32
+ +	select CLOCKSOURCE_VALIDATE_LAST_CYCLE
+ +	select CLOCKSOURCE_WATCHDOG
+ +	select CLONE_BACKWARDS			if X86_32
+ +	select COMPAT_OLD_SIGACTION		if IA32_EMULATION
+ +	select DCACHE_WORD_ACCESS
+ +	select EDAC_ATOMIC_SCRUB
+ +	select EDAC_SUPPORT
+ +	select GENERIC_CLOCKEVENTS
+ +	select GENERIC_CLOCKEVENTS_BROADCAST	if X86_64 || (X86_32 && X86_LOCAL_APIC)
+ +	select GENERIC_CLOCKEVENTS_MIN_ADJUST
+ +	select GENERIC_CMOS_UPDATE
+ +	select GENERIC_CPU_AUTOPROBE
+  	select GENERIC_EARLY_IOREMAP
+ -	select HAVE_OPTPROBES
+ -	select HAVE_KPROBES_ON_FTRACE
+ -	select HAVE_FTRACE_MCOUNT_RECORD
+ -	select HAVE_FENTRY if X86_64
+ +	select GENERIC_FIND_FIRST_BIT
+ +	select GENERIC_IOMAP
+ +	select GENERIC_IRQ_PROBE
+ +	select GENERIC_IRQ_SHOW
+ +	select GENERIC_PENDING_IRQ		if SMP
+ +	select GENERIC_SMP_IDLE_THREAD
+ +	select GENERIC_STRNCPY_FROM_USER
+ +	select GENERIC_STRNLEN_USER
+ +	select GENERIC_TIME_VSYSCALL
+ +	select HAVE_ACPI_APEI			if ACPI
+ +	select HAVE_ACPI_APEI_NMI		if ACPI
+ +	select HAVE_ALIGNED_STRUCT_PAGE		if SLUB
+ +	select HAVE_AOUT			if X86_32
+ +	select HAVE_ARCH_AUDITSYSCALL
+ +	select HAVE_ARCH_HUGE_VMAP		if X86_64 || X86_PAE
+ +	select HAVE_ARCH_JUMP_LABEL
+ +	select HAVE_ARCH_KASAN			if X86_64 && SPARSEMEM_VMEMMAP
+ +	select HAVE_ARCH_KGDB
+ +	select HAVE_ARCH_KMEMCHECK
+ +	select HAVE_ARCH_SECCOMP_FILTER
+ +	select HAVE_ARCH_SOFT_DIRTY		if X86_64
+ +	select HAVE_ARCH_TRACEHOOK
+ +	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+ +	select HAVE_BPF_JIT			if X86_64
+ +	select HAVE_CC_STACKPROTECTOR
+ +	select HAVE_CMPXCHG_DOUBLE
+ +	select HAVE_CMPXCHG_LOCAL
+ +	select HAVE_CONTEXT_TRACKING		if X86_64
+  	select HAVE_C_RECORDMCOUNT
+ +	select HAVE_DEBUG_KMEMLEAK
+ +	select HAVE_DEBUG_STACKOVERFLOW
+ +	select HAVE_DMA_API_DEBUG
+ +	select HAVE_DMA_ATTRS
+ +	select HAVE_DMA_CONTIGUOUS
+  	select HAVE_DYNAMIC_FTRACE
+  	select HAVE_DYNAMIC_FTRACE_WITH_REGS
+ -	select HAVE_FUNCTION_TRACER
+ -	select HAVE_FUNCTION_GRAPH_TRACER
+ -	select HAVE_FUNCTION_GRAPH_FP_TEST
+ -	select HAVE_SYSCALL_TRACEPOINTS
+ -	select SYSCTL_EXCEPTION_TRACE
+ -	select HAVE_KVM
+ -	select HAVE_ARCH_KGDB
+ -	select HAVE_ARCH_TRACEHOOK
+ -	select HAVE_GENERIC_DMA_COHERENT if X86_32
+  	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+ -	select USER_STACKTRACE_SUPPORT
+ -	select HAVE_REGS_AND_STACK_ACCESS_API
+ -	select HAVE_DMA_API_DEBUG
+ -	select HAVE_KERNEL_GZIP
+ +	select HAVE_FENTRY			if X86_64
+ +	select HAVE_FTRACE_MCOUNT_RECORD
+ +	select HAVE_FUNCTION_GRAPH_FP_TEST
+ +	select HAVE_FUNCTION_GRAPH_TRACER
+ +	select HAVE_FUNCTION_TRACER
+ +	select HAVE_GENERIC_DMA_COHERENT	if X86_32
+ +	select HAVE_HW_BREAKPOINT
+ +	select HAVE_IDE
+ +	select HAVE_IOREMAP_PROT
+ +	select HAVE_IRQ_EXIT_ON_IRQ_STACK	if X86_64
+ +	select HAVE_IRQ_TIME_ACCOUNTING
+  	select HAVE_KERNEL_BZIP2
+ +	select HAVE_KERNEL_GZIP
+ +	select HAVE_KERNEL_LZ4
+  	select HAVE_KERNEL_LZMA
+ -	select HAVE_KERNEL_XZ
+  	select HAVE_KERNEL_LZO
+ -	select HAVE_KERNEL_LZ4
+ -	select HAVE_HW_BREAKPOINT
+ +	select HAVE_KERNEL_XZ
+ +	select HAVE_KPROBES
+ +	select HAVE_KPROBES_ON_FTRACE
+ +	select HAVE_KRETPROBES
+ +	select HAVE_KVM
+ +	select HAVE_LIVEPATCH			if X86_64
+ +	select HAVE_MEMBLOCK
+ +	select HAVE_MEMBLOCK_NODE_MAP
+  	select HAVE_MIXED_BREAKPOINTS_REGS
+ -	select PERF_EVENTS
+ +	select HAVE_OPROFILE
+ +	select HAVE_OPTPROBES
+ +	select HAVE_PCSPKR_PLATFORM
+ +	select HAVE_PERF_EVENTS
+  	select HAVE_PERF_EVENTS_NMI
+  	select HAVE_PERF_REGS
+  	select HAVE_PERF_USER_STACK_DUMP
+diff --cc include/linux/acpi.h
+index c187817471fb,1b3bbb11d11c..1618cdfb38c7
+--- a/include/linux/acpi.h
++++ b/include/linux/acpi.h
+@@@ -258,11 -250,52 +258,16 @@@ extern long acpi_is_video_device(acpi_h
+  extern int acpi_blacklisted(void);
+  extern void acpi_dmi_osi_linux(int enable, const struct dmi_system_id *d);
+  extern void acpi_osi_setup(char *str);
+ +extern bool acpi_osi_is_win8(void);
+  
+  #ifdef CONFIG_ACPI_NUMA
++ int acpi_map_pxm_to_online_node(int pxm);
+  int acpi_get_node(acpi_handle handle);
+  #else
++ static inline int acpi_map_pxm_to_online_node(int pxm)
++ {
++ 	return 0;
++ }
+  static inline int acpi_get_node(acpi_handle handle)
+  {
+  	return 0;
+diff --cc include/linux/pmem.h
+index 000000000000,f6481a0b1d4f..d2114045a6c4
+mode 000000,100644..100644
+--- a/include/linux/pmem.h
++++ b/include/linux/pmem.h
+@@@ -1,0 -1,153 +1,152 @@@
++ /*
++  * Copyright(c) 2015 Intel Corporation. All rights reserved.
++  *
++  * This program is free software; you can redistribute it and/or modify
++  * it under the terms of version 2 of the GNU General Public License as
++  * published by the Free Software Foundation.
++  *
++  * This program is distributed in the hope that it will be useful, but
++  * WITHOUT ANY WARRANTY; without even the implied warranty of
++  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++  * General Public License for more details.
++  */
++ #ifndef __PMEM_H__
++ #define __PMEM_H__
++ 
++ #include <linux/io.h>
++ 
++ #ifdef CONFIG_ARCH_HAS_PMEM_API
++ #include <asm/cacheflush.h>
++ #else
++ static inline void arch_wmb_pmem(void)
++ {
++ 	BUG();
++ }
++ 
++ static inline bool __arch_has_wmb_pmem(void)
++ {
++ 	return false;
++ }
++ 
++ static inline void __pmem *arch_memremap_pmem(resource_size_t offset,
++ 		unsigned long size)
++ {
++ 	return NULL;
++ }
++ 
++ static inline void arch_memcpy_to_pmem(void __pmem *dst, const void *src,
++ 		size_t n)
++ {
++ 	BUG();
++ }
++ #endif
++ 
++ /*
++  * Architectures that define ARCH_HAS_PMEM_API must provide
++  * implementations for arch_memremap_pmem(), arch_memcpy_to_pmem(),
++  * arch_wmb_pmem(), and __arch_has_wmb_pmem().
++  */
++ 
++ static inline void memcpy_from_pmem(void *dst, void __pmem const *src, size_t size)
++ {
++ 	memcpy(dst, (void __force const *) src, size);
++ }
++ 
++ static inline void memunmap_pmem(void __pmem *addr)
++ {
++ 	iounmap((void __force __iomem *) addr);
++ }
++ 
++ /**
++  * arch_has_wmb_pmem - true if wmb_pmem() ensures durability
++  *
++  * For a given cpu implementation within an architecture it is possible
++  * that wmb_pmem() resolves to a nop.  In the case this returns
++  * false, pmem api users are unable to ensure durability and may want to
++  * fall back to a different data consistency model, or otherwise notify
++  * the user.
++  */
++ static inline bool arch_has_wmb_pmem(void)
++ {
++ 	if (IS_ENABLED(CONFIG_ARCH_HAS_PMEM_API))
++ 		return __arch_has_wmb_pmem();
++ 	return false;
++ }
++ 
++ static inline bool arch_has_pmem_api(void)
++ {
++ 	return IS_ENABLED(CONFIG_ARCH_HAS_PMEM_API) && arch_has_wmb_pmem();
++ }
++ 
++ /*
++  * These defaults seek to offer decent performance and minimize the
++  * window between i/o completion and writes being durable on media.
++  * However, it is undefined / architecture specific whether
++  * default_memremap_pmem + default_memcpy_to_pmem is sufficient for
++  * making data durable relative to i/o completion.
++  */
++ static void default_memcpy_to_pmem(void __pmem *dst, const void *src,
++ 		size_t size)
++ {
++ 	memcpy((void __force *) dst, src, size);
++ }
++ 
++ static void __pmem *default_memremap_pmem(resource_size_t offset,
++ 		unsigned long size)
++ {
+ -	/* TODO: convert to ioremap_wt() */
+ -	return (void __pmem __force *)ioremap_nocache(offset, size);
+++	return (void __pmem __force *)ioremap_wt(offset, size);
++ }
++ 
++ /**
++  * memremap_pmem - map physical persistent memory for pmem api
++  * @offset: physical address of persistent memory
++  * @size: size of the mapping
++  *
++  * Establish a mapping of the architecture specific memory type expected
++  * by memcpy_to_pmem() and wmb_pmem().  For example, it may be
++  * the case that an uncacheable or writethrough mapping is sufficient,
++  * or a writeback mapping provided memcpy_to_pmem() and
++  * wmb_pmem() arrange for the data to be written through the
++  * cache to persistent media.
++  */
++ static inline void __pmem *memremap_pmem(resource_size_t offset,
++ 		unsigned long size)
++ {
++ 	if (arch_has_pmem_api())
++ 		return arch_memremap_pmem(offset, size);
++ 	return default_memremap_pmem(offset, size);
++ }
++ 
++ /**
++  * memcpy_to_pmem - copy data to persistent memory
++  * @dst: destination buffer for the copy
++  * @src: source buffer for the copy
++  * @n: length of the copy in bytes
++  *
++  * Perform a memory copy that results in the destination of the copy
++  * being effectively evicted from, or never written to, the processor
++  * cache hierarchy after the copy completes.  After memcpy_to_pmem()
++  * data may still reside in cpu or platform buffers, so this operation
++  * must be followed by a wmb_pmem().
++  */
++ static inline void memcpy_to_pmem(void __pmem *dst, const void *src, size_t n)
++ {
++ 	if (arch_has_pmem_api())
++ 		arch_memcpy_to_pmem(dst, src, n);
++ 	else
++ 		default_memcpy_to_pmem(dst, src, n);
++ }
++ 
++ /**
++  * wmb_pmem - synchronize writes to persistent memory
++  *
++  * After a series of memcpy_to_pmem() operations this drains data from
++  * cpu write buffers and any platform (memory controller) buffers to
++  * ensure that written data is durable on persistent memory media.
++  */
++ static inline void wmb_pmem(void)
++ {
++ 	if (arch_has_pmem_api())
++ 		arch_wmb_pmem();
++ }
++ #endif /* __PMEM_H__ */

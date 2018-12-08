@@ -1,0 +1,38 @@
+commit 3b242c66ccbd60cf47ab0e8992119d9617548c23
+Author: Mel Gorman <mgorman@suse.de>
+Date:   Tue Jun 30 14:57:13 2015 -0700
+
+    x86: mm: enable deferred struct page initialisation on x86-64
+    
+    Subject says it all.  Other architectures may enable on a case-by-case
+    basis after auditing early_pfn_to_nid and testing.
+    
+    Signed-off-by: Mel Gorman <mgorman@suse.de>
+    Tested-by: Nate Zimmer <nzimmer@sgi.com>
+    Tested-by: Waiman Long <waiman.long@hp.com>
+    Tested-by: Daniel J Blueman <daniel@numascale.com>
+    Acked-by: Pekka Enberg <penberg@kernel.org>
+    Cc: Robin Holt <robinmholt@gmail.com>
+    Cc: Nate Zimmer <nzimmer@sgi.com>
+    Cc: Dave Hansen <dave.hansen@intel.com>
+    Cc: Waiman Long <waiman.long@hp.com>
+    Cc: Scott Norton <scott.norton@hp.com>
+    Cc: "Luck, Tony" <tony.luck@intel.com>
+    Cc: Ingo Molnar <mingo@elte.hu>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Linus Torvalds <torvalds@linux-foundation.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index d05a42357ef0..47365c7b9f47 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -34,6 +34,7 @@ config X86
+ 	select ARCH_MIGHT_HAVE_PC_PARPORT
+ 	select ARCH_MIGHT_HAVE_PC_SERIO
+ 	select ARCH_SUPPORTS_ATOMIC_RMW
++	select ARCH_SUPPORTS_DEFERRED_STRUCT_PAGE_INIT
+ 	select ARCH_SUPPORTS_INT128		if X86_64
+ 	select ARCH_SUPPORTS_NUMA_BALANCING	if X86_64
+ 	select ARCH_USE_BUILTIN_BSWAP

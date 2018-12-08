@@ -1,0 +1,26 @@
+commit 42dc2a3048247109b0a5ee6345226cbd3e4f6410
+Merge: 1345df21ac54 03da3ff1cfcd
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Thu Sep 17 11:01:34 2015 -0700
+
+    Merge branch 'x86-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 fixes from Ingo Molnar:
+     - misc fixes all around the map
+     - block non-root vm86(old) if mmap_min_addr != 0
+     - two small debuggability improvements
+     - removal of obsolete paravirt op
+    
+    * 'x86-urgent-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/platform: Fix Geode LX timekeeping in the generic x86 build
+      x86/apic: Serialize LVTT and TSC_DEADLINE writes
+      x86/ioapic: Force affinity setting in setup_ioapic_dest()
+      x86/paravirt: Remove the unused pv_time_ops::get_tsc_khz method
+      x86/ldt: Fix small LDT allocation for Xen
+      x86/vm86: Fix the misleading CONFIG_VM86 Kconfig help text
+      x86/cpu: Print family/model/stepping in hex
+      x86/vm86: Block non-root vm86(old) if mmap_min_addr != 0
+      x86/alternatives: Make optimize_nops() interrupt safe and synced
+      x86/mm/srat: Print non-volatile flag in SRAT
+      x86/cpufeatures: Enable cpuid for Intel SHA extensions
+

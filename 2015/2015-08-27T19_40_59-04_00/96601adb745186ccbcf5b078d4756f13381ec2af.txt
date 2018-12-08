@@ -1,0 +1,212 @@
+commit 96601adb745186ccbcf5b078d4756f13381ec2af
+Author: Dan Williams <dan.j.williams@intel.com>
+Date:   Mon Aug 24 18:29:38 2015 -0400
+
+    x86, pmem: clarify that ARCH_HAS_PMEM_API implies PMEM mapped WB
+    
+    Given that a write-back (WB) mapping plus non-temporal stores is
+    expected to be the most efficient way to access PMEM, update the
+    definition of ARCH_HAS_PMEM_API to imply arch support for
+    WB-mapped-PMEM.  This is needed as a pre-requisite for adding PMEM to
+    the direct map and mapping it with struct page.
+    
+    The above clarification for X86_64 means that memcpy_to_pmem() is
+    permitted to use the non-temporal arch_memcpy_to_pmem() rather than
+    needlessly fall back to default_memcpy_to_pmem() when the pcommit
+    instruction is not available.  When arch_memcpy_to_pmem() is not
+    guaranteed to flush writes out of cache, i.e. on older X86_32
+    implementations where non-temporal stores may just dirty cache,
+    ARCH_HAS_PMEM_API is simply disabled.
+    
+    The default fall back for persistent memory handling remains.  Namely,
+    map it with the WT (write-through) cache-type and hope for the best.
+    
+    arch_has_pmem_api() is updated to only indicate whether the arch
+    provides the proper helpers to meet the minimum "writes are visible
+    outside the cache hierarchy after memcpy_to_pmem() + wmb_pmem()".  Code
+    that cares whether wmb_pmem() actually flushes writes to pmem must now
+    call arch_has_wmb_pmem() directly.
+    
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Ingo Molnar <mingo@redhat.com>
+    Cc: "H. Peter Anvin" <hpa@zytor.com>
+    Reviewed-by: Ross Zwisler <ross.zwisler@linux.intel.com>
+    [hch: set ARCH_HAS_PMEM_API=n on x86_32]
+    Reviewed-by: Christoph Hellwig <hch@lst.de>
+    [toshi: x86_32 compile fixes]
+    Signed-off-by: Toshi Kani <toshi.kani@hp.com>
+    Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 03ab6122325a..ef4c6bbb3af1 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -27,7 +27,7 @@ config X86
+ 	select ARCH_HAS_ELF_RANDOMIZE
+ 	select ARCH_HAS_FAST_MULTIPLIER
+ 	select ARCH_HAS_GCOV_PROFILE_ALL
+-	select ARCH_HAS_PMEM_API
++	select ARCH_HAS_PMEM_API		if X86_64
+ 	select ARCH_HAS_MMIO_FLUSH
+ 	select ARCH_HAS_SG_CHAIN
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+diff --git a/arch/x86/include/asm/pmem.h b/arch/x86/include/asm/pmem.h
+index bb026c5adf8a..d8ce3ec816ab 100644
+--- a/arch/x86/include/asm/pmem.h
++++ b/arch/x86/include/asm/pmem.h
+@@ -18,8 +18,6 @@
+ #include <asm/cpufeature.h>
+ #include <asm/special_insns.h>
+ 
+-#define ARCH_MEMREMAP_PMEM MEMREMAP_WB
+-
+ #ifdef CONFIG_ARCH_HAS_PMEM_API
+ /**
+  * arch_memcpy_to_pmem - copy data to persistent memory
+@@ -143,18 +141,13 @@ static inline void arch_clear_pmem(void __pmem *addr, size_t size)
+ 	__arch_wb_cache_pmem(vaddr, size);
+ }
+ 
+-static inline bool arch_has_wmb_pmem(void)
++static inline bool __arch_has_wmb_pmem(void)
+ {
+-#ifdef CONFIG_X86_64
+ 	/*
+ 	 * We require that wmb() be an 'sfence', that is only guaranteed on
+ 	 * 64-bit builds
+ 	 */
+ 	return static_cpu_has(X86_FEATURE_PCOMMIT);
+-#else
+-	return false;
+-#endif
+ }
+ #endif /* CONFIG_ARCH_HAS_PMEM_API */
+-
+ #endif /* __ASM_X86_PMEM_H__ */
+diff --git a/drivers/acpi/nfit.c b/drivers/acpi/nfit.c
+index 56fff0141636..f61e69fa2ad1 100644
+--- a/drivers/acpi/nfit.c
++++ b/drivers/acpi/nfit.c
+@@ -20,6 +20,7 @@
+ #include <linux/sort.h>
+ #include <linux/pmem.h>
+ #include <linux/io.h>
++#include <asm/cacheflush.h>
+ #include "nfit.h"
+ 
+ /*
+@@ -1371,7 +1372,7 @@ static int acpi_nfit_blk_region_enable(struct nvdimm_bus *nvdimm_bus,
+ 			return -ENOMEM;
+ 	}
+ 
+-	if (!arch_has_pmem_api() && !nfit_blk->nvdimm_flush)
++	if (!arch_has_wmb_pmem() && !nfit_blk->nvdimm_flush)
+ 		dev_warn(dev, "unable to guarantee persistence of writes\n");
+ 
+ 	if (mmio->line_size == 0)
+diff --git a/drivers/nvdimm/pmem.c b/drivers/nvdimm/pmem.c
+index 3b5b9cb758b6..20bf122328da 100644
+--- a/drivers/nvdimm/pmem.c
++++ b/drivers/nvdimm/pmem.c
+@@ -125,7 +125,7 @@ static struct pmem_device *pmem_alloc(struct device *dev,
+ 
+ 	pmem->phys_addr = res->start;
+ 	pmem->size = resource_size(res);
+-	if (!arch_has_pmem_api())
++	if (!arch_has_wmb_pmem())
+ 		dev_warn(dev, "unable to guarantee persistence of writes\n");
+ 
+ 	if (!devm_request_mem_region(dev, pmem->phys_addr, pmem->size,
+diff --git a/include/linux/pmem.h b/include/linux/pmem.h
+index a9d84bf335ee..85f810b33917 100644
+--- a/include/linux/pmem.h
++++ b/include/linux/pmem.h
+@@ -17,16 +17,23 @@
+ #include <linux/uio.h>
+ 
+ #ifdef CONFIG_ARCH_HAS_PMEM_API
++#define ARCH_MEMREMAP_PMEM MEMREMAP_WB
+ #include <asm/pmem.h>
+ #else
+-static inline void arch_wmb_pmem(void)
++#define ARCH_MEMREMAP_PMEM MEMREMAP_WT
++/*
++ * These are simply here to enable compilation, all call sites gate
++ * calling these symbols with arch_has_pmem_api() and redirect to the
++ * implementation in asm/pmem.h.
++ */
++static inline bool __arch_has_wmb_pmem(void)
+ {
+-	BUG();
++	return false;
+ }
+ 
+-static inline bool arch_has_wmb_pmem(void)
++static inline void arch_wmb_pmem(void)
+ {
+-	return false;
++	BUG();
+ }
+ 
+ static inline void arch_memcpy_to_pmem(void __pmem *dst, const void *src,
+@@ -53,7 +60,6 @@ static inline void arch_clear_pmem(void __pmem *addr, size_t size)
+  * implementations for arch_memcpy_to_pmem(), arch_wmb_pmem(),
+  * arch_copy_from_iter_pmem(), arch_clear_pmem() and arch_has_wmb_pmem().
+  */
+-
+ static inline void memcpy_from_pmem(void *dst, void __pmem const *src, size_t size)
+ {
+ 	memcpy(dst, (void __force const *) src, size);
+@@ -64,8 +70,13 @@ static inline void memunmap_pmem(struct device *dev, void __pmem *addr)
+ 	devm_memunmap(dev, (void __force *) addr);
+ }
+ 
++static inline bool arch_has_pmem_api(void)
++{
++	return IS_ENABLED(CONFIG_ARCH_HAS_PMEM_API);
++}
++
+ /**
+- * arch_has_pmem_api - true if wmb_pmem() ensures durability
++ * arch_has_wmb_pmem - true if wmb_pmem() ensures durability
+  *
+  * For a given cpu implementation within an architecture it is possible
+  * that wmb_pmem() resolves to a nop.  In the case this returns
+@@ -73,9 +84,9 @@ static inline void memunmap_pmem(struct device *dev, void __pmem *addr)
+  * fall back to a different data consistency model, or otherwise notify
+  * the user.
+  */
+-static inline bool arch_has_pmem_api(void)
++static inline bool arch_has_wmb_pmem(void)
+ {
+-	return IS_ENABLED(CONFIG_ARCH_HAS_PMEM_API) && arch_has_wmb_pmem();
++	return arch_has_pmem_api() && __arch_has_wmb_pmem();
+ }
+ 
+ /*
+@@ -120,13 +131,8 @@ static inline void default_clear_pmem(void __pmem *addr, size_t size)
+ static inline void __pmem *memremap_pmem(struct device *dev,
+ 		resource_size_t offset, unsigned long size)
+ {
+-#ifdef ARCH_MEMREMAP_PMEM
+ 	return (void __pmem *) devm_memremap(dev, offset, size,
+ 			ARCH_MEMREMAP_PMEM);
+-#else
+-	return (void __pmem *) devm_memremap(dev, offset, size,
+-			MEMREMAP_WT);
+-#endif
+ }
+ 
+ /**
+@@ -158,8 +164,10 @@ static inline void memcpy_to_pmem(void __pmem *dst, const void *src, size_t n)
+  */
+ static inline void wmb_pmem(void)
+ {
+-	if (arch_has_pmem_api())
++	if (arch_has_wmb_pmem())
+ 		arch_wmb_pmem();
++	else
++		wmb();
+ }
+ 
+ /**

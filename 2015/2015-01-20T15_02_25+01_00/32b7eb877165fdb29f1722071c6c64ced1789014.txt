@@ -1,0 +1,46 @@
+commit 32b7eb877165fdb29f1722071c6c64ced1789014
+Author: Miroslav Benes <mbenes@suse.cz>
+Date:   Tue Jan 20 12:49:35 2015 +0100
+
+    livepatch: change ARCH_HAVE_LIVE_PATCHING to HAVE_LIVE_PATCHING
+    
+    Change ARCH_HAVE_LIVE_PATCHING to HAVE_LIVE_PATCHING in Kconfigs. HAVE_
+    bools are prevalent there and we should go with the flow.
+    
+    Suggested-by: Andrew Morton <akpm@linux-foundation.org>
+    Signed-off-by: Miroslav Benes <mbenes@suse.cz>
+    Acked-by: Josh Poimboeuf <jpoimboe@redhat.com>
+    Signed-off-by: Jiri Kosina <jkosina@suse.cz>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 460b31b79938..29b095231276 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -17,7 +17,7 @@ config X86_64
+ 	depends on 64BIT
+ 	select X86_DEV_DMA_OPS
+ 	select ARCH_USE_CMPXCHG_LOCKREF
+-	select ARCH_HAVE_LIVE_PATCHING
++	select HAVE_LIVE_PATCHING
+ 
+ ### Arch settings
+ config X86
+diff --git a/kernel/livepatch/Kconfig b/kernel/livepatch/Kconfig
+index 66797aa597c0..347ee2221137 100644
+--- a/kernel/livepatch/Kconfig
++++ b/kernel/livepatch/Kconfig
+@@ -1,4 +1,4 @@
+-config ARCH_HAVE_LIVE_PATCHING
++config HAVE_LIVE_PATCHING
+ 	bool
+ 	help
+ 	  Arch supports kernel live patching
+@@ -9,7 +9,7 @@ config LIVE_PATCHING
+ 	depends on MODULES
+ 	depends on SYSFS
+ 	depends on KALLSYMS_ALL
+-	depends on ARCH_HAVE_LIVE_PATCHING
++	depends on HAVE_LIVE_PATCHING
+ 	help
+ 	  Say Y here if you want to support kernel live patching.
+ 	  This option has no runtime impact until a kernel "patch"

@@ -1,0 +1,59 @@
+commit a75a3f6fc92888e4119744d8594ffdf748c3d444
+Merge: d2bea739f8b4 3bd29515d1ca
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Tue Nov 3 18:59:10 2015 -0800
+
+    Merge branch 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 asm changes from Ingo Molnar:
+     "The main change in this cycle is another step in the big x86 system
+      call interface rework by Andy Lutomirski, which moves most of the low
+      level x86 entry code from assembly to C, for all syscall entries
+      except native 64-bit system calls:
+    
+        arch/x86/entry/entry_32.S        | 182 ++++------
+        arch/x86/entry/entry_64_compat.S | 547 ++++++++-----------------------
+        194 insertions(+), 535 deletions(-)
+    
+      ... our hope is that the final remaining step (converting native
+      64-bit system calls) will be less painful as all the previous steps,
+      given that most of the legacies and quirks are concentrated around
+      native 32-bit and compat environments"
+    
+    * 'x86-asm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip: (47 commits)
+      x86/entry/32: Fix FS and GS restore in opportunistic SYSEXIT
+      x86/entry/32: Fix entry_INT80_32() to expect interrupts to be on
+      um/x86: Fix build after x86 syscall changes
+      x86/asm: Remove the xyz_cfi macros from dwarf2.h
+      selftests/x86: Style fixes for the 'unwind_vdso' test
+      x86/entry/64/compat: Document sysenter_fix_flags's reason for existence
+      x86/entry: Split and inline syscall_return_slowpath()
+      x86/entry: Split and inline prepare_exit_to_usermode()
+      x86/entry: Use pt_regs_to_thread_info() in syscall entry tracing
+      x86/entry: Hide two syscall entry assertions behind CONFIG_DEBUG_ENTRY
+      x86/entry: Micro-optimize compat fast syscall arg fetch
+      x86/entry: Force inlining of 32-bit syscall code
+      x86/entry: Make irqs_disabled checks in exit code depend on lockdep
+      x86/entry: Remove unnecessary IRQ twiddling in fast 32-bit syscalls
+      x86/asm: Remove thread_info.sysenter_return
+      x86/entry/32: Re-implement SYSENTER using the new C path
+      x86/entry/32: Switch INT80 to the new C syscall path
+      x86/entry/32: Open-code return tracking from fork and kthreads
+      x86/entry/compat: Implement opportunistic SYSRETL for compat syscalls
+      x86/vdso/compat: Wire up SYSENTER and SYSCSALL for compat userspace
+      ...
+
+diff --cc arch/x86/include/asm/thread_info.h
+index 809877e9030b,a1ecd214d227..c7b551028740
+--- a/arch/x86/include/asm/thread_info.h
++++ b/arch/x86/include/asm/thread_info.h
+@@@ -57,8 -57,8 +57,7 @@@ struct thread_info 
+  	__u32			flags;		/* low level flags */
+  	__u32			status;		/* thread synchronous flags */
+  	__u32			cpu;		/* current CPU */
+ -	int			saved_preempt_count;
+  	mm_segment_t		addr_limit;
+- 	void __user		*sysenter_return;
+  	unsigned int		sig_on_uaccess_error:1;
+  	unsigned int		uaccess_err:1;	/* uaccess failed */
+  };

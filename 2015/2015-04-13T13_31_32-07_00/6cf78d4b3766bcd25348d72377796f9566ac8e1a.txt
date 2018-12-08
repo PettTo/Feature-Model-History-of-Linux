@@ -1,0 +1,61 @@
+commit 6cf78d4b3766bcd25348d72377796f9566ac8e1a
+Merge: 0ad5c6b3c2d1 4e26d11f5268
+Author: Linus Torvalds <torvalds@linux-foundation.org>
+Date:   Mon Apr 13 12:31:32 2015 -0800
+
+    Merge branch 'x86-mm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
+    
+    Pull x86 mm changes from Ingo Molnar:
+     "The main changes in this cycle were:
+    
+       - reduce the x86/32 PAE per task PGD allocation overhead from 4K to
+         0.032k (Fenghua Yu)
+    
+       - early_ioremap/memunmap() usage cleanups (Juergen Gross)
+    
+       - gbpages support cleanups (Luis R Rodriguez)
+    
+       - improve AMD Bulldozer (family 0x15) ASLR I$ aliasing workaround to
+         increase randomization by 3 bits (per bootup) (Hector
+         Marco-Gisbert)
+    
+       - misc fixlets"
+    
+    * 'x86-mm-for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip:
+      x86/mm: Improve AMD Bulldozer ASLR workaround
+      x86/mm/pat: Initialize __cachemode2pte_tbl[] and __pte2cachemode_tbl[] in a bit more readable fashion
+      init.h: Clean up the __setup()/early_param() macros
+      x86/mm: Simplify probe_page_size_mask()
+      x86/mm: Further simplify 1 GB kernel linear mappings handling
+      x86/mm: Use early_param_on_off() for direct_gbpages
+      init.h: Add early_param_on_off()
+      x86/mm: Simplify enabling direct_gbpages
+      x86/mm: Use IS_ENABLED() for direct_gbpages
+      x86/mm: Unexport set_memory_ro() and set_memory_rw()
+      x86/mm, efi: Use early_ioremap() in arch/x86/platform/efi/efi-bgrt.c
+      x86/mm: Use early_memunmap() instead of early_iounmap()
+      x86/mm/pat: Ensure different messages in STRICT_DEVMEM and PAT cases
+      x86/mm: Reduce PAE-mode per task pgd allocation overhead from 4K to 32 bytes
+
+diff --cc arch/x86/mm/init.c
+index 52417e771af9,4469563f8c3b..1d553186c434
+--- a/arch/x86/mm/init.c
++++ b/arch/x86/mm/init.c
+@@@ -179,8 -165,15 +165,16 @@@ static void __init probe_page_size_mask
+  	if (cpu_has_pge) {
+  		cr4_set_bits_and_update_boot(X86_CR4_PGE);
+  		__supported_pte_mask |= _PAGE_GLOBAL;
+ -	}
+ +	} else
+ +		__supported_pte_mask &= ~_PAGE_GLOBAL;
++ 
++ 	/* Enable 1 GB linear kernel mappings if available: */
++ 	if (direct_gbpages && cpu_has_gbpages) {
++ 		printk(KERN_INFO "Using GB pages for direct mapping\n");
++ 		page_size_mask |= 1 << PG_LEVEL_1G;
++ 	} else {
++ 		direct_gbpages = 0;
++ 	}
+  }
+  
+  #ifdef CONFIG_X86_32

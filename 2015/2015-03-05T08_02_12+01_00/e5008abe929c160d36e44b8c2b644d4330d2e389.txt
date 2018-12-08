@@ -1,0 +1,146 @@
+commit e5008abe929c160d36e44b8c2b644d4330d2e389
+Author: Luis R. Rodriguez <mcgrof@suse.com>
+Date:   Wed Mar 4 17:24:12 2015 -0800
+
+    x86/mm: Simplify enabling direct_gbpages
+    
+    direct_gbpages can be force enabled as an early parameter
+    but not really have taken effect when DEBUG_PAGEALLOC
+    or KMEMCHECK is enabled. You can also enable direct_gbpages
+    right now if you have an x86_64 architecture but your CPU
+    doesn't really have support for this feature. In both cases
+    PG_LEVEL_1G won't actually be enabled but direct_gbpages is used
+    in other areas under the assumptions that PG_LEVEL_1G
+    was set. Fix this by putting together all requirements
+    which make this feature sensible to enable under, and only
+    enable both finally flipping on PG_LEVEL_1G and leaving
+    PG_LEVEL_1G set when this is true.
+    
+    We only enable this feature then to be possible on sensible
+    builds defined by the new ENABLE_DIRECT_GBPAGES. If the
+    CPU has support for it you can either enable this by using
+    the DIRECT_GBPAGES option or using the early kernel parameter.
+    If a platform had support for this you can always force disable
+    it as well.
+    
+    Signed-off-by: Luis R. Rodriguez <mcgrof@suse.com>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Andy Lutomirski <luto@amacapital.net>
+    Cc: Borislav Petkov <bp@alien8.de>
+    Cc: Borislav Petkov <bp@suse.de>
+    Cc: Dave Hansen <dave.hansen@linux.intel.com>
+    Cc: David Vrabel <david.vrabel@citrix.com>
+    Cc: Dexuan Cui <decui@microsoft.com>
+    Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: JBeulich@suse.com
+    Cc: Jan Beulich <JBeulich@suse.com>
+    Cc: Joonsoo Kim <iamjoonsoo.kim@lge.com>
+    Cc: Juergen Gross <jgross@suse.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Pavel Machek <pavel@ucw.cz>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Cc: Tony Lindgren <tony@atomide.com>
+    Cc: Toshi Kani <toshi.kani@hp.com>
+    Cc: Vlastimil Babka <vbabka@suse.cz>
+    Cc: Xishi Qiu <qiuxishi@huawei.com>
+    Cc: julia.lawall@lip6.fr
+    Link: http://lkml.kernel.org/r/1425518654-3403-3-git-send-email-mcgrof@do-not-panic.com
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c2fb8a87dccb..4d06e1c8294a 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1299,14 +1299,22 @@ config ARCH_DMA_ADDR_T_64BIT
+ 	def_bool y
+ 	depends on X86_64 || HIGHMEM64G
+ 
++config ENABLE_DIRECT_GBPAGES
++	def_bool y
++	depends on X86_64 && !DEBUG_PAGEALLOC && !KMEMCHECK
++
+ config DIRECT_GBPAGES
+ 	bool "Enable 1GB pages for kernel pagetables" if EXPERT
+ 	default y
+-	depends on X86_64
+-	---help---
+-	  Allow the kernel linear mapping to use 1GB pages on CPUs that
+-	  support it. This can improve the kernel's performance a tiny bit by
+-	  reducing TLB pressure. If in doubt, say "Y".
++	depends on ENABLE_DIRECT_GBPAGES
++	---help---
++	  Enable by default the kernel linear mapping to use 1GB pages on CPUs
++	  that support it. This can improve the kernel's performance a tiny bit
++	  by reducing TLB pressure. If in doubt, say "Y". If you've disabled
++	  option but your platform is capable of handling support for this
++	  you can use the gbpages kernel parameter. Likewise if you've enabled
++	  this but you'd like to force disable this option you can use the
++	  nogbpages kernel parameter.
+ 
+ # Common NUMA Features
+ config NUMA
+diff --git a/arch/x86/mm/init.c b/arch/x86/mm/init.c
+index 74f2b37fd073..2ce2c8e8c99c 100644
+--- a/arch/x86/mm/init.c
++++ b/arch/x86/mm/init.c
+@@ -131,16 +131,21 @@ void  __init early_alloc_pgt_buf(void)
+ 
+ int after_bootmem;
+ 
++static int page_size_mask;
++
+ int direct_gbpages = IS_ENABLED(CONFIG_DIRECT_GBPAGES);
+ 
+ static void __init init_gbpages(void)
+ {
+-#ifdef CONFIG_X86_64
+-	if (direct_gbpages && cpu_has_gbpages)
++	if (!IS_ENABLED(CONFIG_ENABLE_DIRECT_GBPAGES)) {
++		direct_gbpages = 0;
++		return;
++	}
++	if (direct_gbpages && cpu_has_gbpages) {
+ 		printk(KERN_INFO "Using GB pages for direct mapping\n");
+-	else
++		page_size_mask |= 1 << PG_LEVEL_1G;
++	} else
+ 		direct_gbpages = 0;
+-#endif
+ }
+ 
+ struct map_range {
+@@ -149,8 +154,6 @@ struct map_range {
+ 	unsigned page_size_mask;
+ };
+ 
+-static int page_size_mask;
+-
+ static void __init probe_page_size_mask(void)
+ {
+ 	init_gbpages();
+@@ -161,8 +164,6 @@ static void __init probe_page_size_mask(void)
+ 	 * This will simplify cpa(), which otherwise needs to support splitting
+ 	 * large pages into small in interrupt context, etc.
+ 	 */
+-	if (direct_gbpages)
+-		page_size_mask |= 1 << PG_LEVEL_1G;
+ 	if (cpu_has_pse)
+ 		page_size_mask |= 1 << PG_LEVEL_2M;
+ #endif
+diff --git a/arch/x86/mm/pageattr.c b/arch/x86/mm/pageattr.c
+index 81e8282d8c2f..89af288ec674 100644
+--- a/arch/x86/mm/pageattr.c
++++ b/arch/x86/mm/pageattr.c
+@@ -81,11 +81,9 @@ void arch_report_meminfo(struct seq_file *m)
+ 	seq_printf(m, "DirectMap4M:    %8lu kB\n",
+ 			direct_pages_count[PG_LEVEL_2M] << 12);
+ #endif
+-#ifdef CONFIG_X86_64
+ 	if (direct_gbpages)
+ 		seq_printf(m, "DirectMap1G:    %8lu kB\n",
+ 			direct_pages_count[PG_LEVEL_1G] << 20);
+-#endif
+ }
+ #else
+ static inline void split_page_count(int level) { }

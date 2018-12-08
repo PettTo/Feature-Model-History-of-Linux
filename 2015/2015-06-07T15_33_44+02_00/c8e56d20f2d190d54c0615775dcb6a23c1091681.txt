@@ -1,0 +1,169 @@
+commit c8e56d20f2d190d54c0615775dcb6a23c1091681
+Author: Borislav Petkov <bp@suse.de>
+Date:   Thu Jun 4 18:55:25 2015 +0200
+
+    x86: Kill CONFIG_X86_HT
+    
+    In talking to Aravind recently about making certain AMD topology
+    attributes available to the MCE injection module, it seemed like
+    that CONFIG_X86_HT thing is more or less superfluous. It is
+    def_bool y, depends on SMP and gets enabled in the majority of
+    .configs - distro and otherwise - out there.
+    
+    So let's kill it and make code behind it depend directly on SMP.
+    
+    Signed-off-by: Borislav Petkov <bp@suse.de>
+    Cc: Andrew Morton <akpm@linux-foundation.org>
+    Cc: Andy Lutomirski <luto@kernel.org>
+    Cc: Aravind Gopalakrishnan <Aravind.Gopalakrishnan@amd.com>
+    Cc: Bartosz Golaszewski <bgolaszewski@baylibre.com>
+    Cc: Catalin Marinas <catalin.marinas@arm.com>
+    Cc: Daniel Walter <dwalter@google.com>
+    Cc: Dave Hansen <dave.hansen@linux.intel.com>
+    Cc: Denys Vlasenko <dvlasenk@redhat.com>
+    Cc: H. Peter Anvin <hpa@zytor.com>
+    Cc: Igor Mammedov <imammedo@redhat.com>
+    Cc: Jacob Shin <jacob.w.shin@gmail.com>
+    Cc: Linus Torvalds <torvalds@linux-foundation.org>
+    Cc: Mel Gorman <mgorman@suse.de>
+    Cc: Peter Zijlstra (Intel) <peterz@infradead.org>
+    Cc: Peter Zijlstra <peterz@infradead.org>
+    Cc: Thomas Gleixner <tglx@linutronix.de>
+    Link: http://lkml.kernel.org/r/1433436928-31903-18-git-send-email-bp@alien8.de
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 8a5cca39e74f..7e39f9b22705 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -261,10 +261,6 @@ config X86_64_SMP
+ 	def_bool y
+ 	depends on X86_64 && SMP
+ 
+-config X86_HT
+-	def_bool y
+-	depends on SMP
+-
+ config X86_32_LAZY_GS
+ 	def_bool y
+ 	depends on X86_32 && !CC_STACKPROTECTOR
+@@ -865,7 +861,7 @@ config NR_CPUS
+ 
+ config SCHED_SMT
+ 	bool "SMT (Hyperthreading) scheduler support"
+-	depends on X86_HT
++	depends on SMP
+ 	---help---
+ 	  SMT scheduler support improves the CPU scheduler's decision making
+ 	  when dealing with Intel Pentium 4 chips with HyperThreading at a
+@@ -875,7 +871,7 @@ config SCHED_SMT
+ config SCHED_MC
+ 	def_bool y
+ 	prompt "Multi-core scheduler support"
+-	depends on X86_HT
++	depends on SMP
+ 	---help---
+ 	  Multi-core scheduler support improves the CPU scheduler's decision
+ 	  making when dealing with multi-core CPU chips at a cost of slightly
+diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
+index 0e8f04f2c26f..8d717faeed22 100644
+--- a/arch/x86/include/asm/topology.h
++++ b/arch/x86/include/asm/topology.h
+@@ -26,7 +26,7 @@
+ #define _ASM_X86_TOPOLOGY_H
+ 
+ #ifdef CONFIG_X86_32
+-# ifdef CONFIG_X86_HT
++# ifdef CONFIG_SMP
+ #  define ENABLE_TOPO_DEFINES
+ # endif
+ #else
+diff --git a/arch/x86/kernel/cpu/amd.c b/arch/x86/kernel/cpu/amd.c
+index e4cf63301ff4..eb4f01269b5d 100644
+--- a/arch/x86/kernel/cpu/amd.c
++++ b/arch/x86/kernel/cpu/amd.c
+@@ -288,7 +288,7 @@ static int nearby_node(int apicid)
+  *     Assumption: Number of cores in each internal node is the same.
+  * (2) AMD processors supporting compute units
+  */
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ static void amd_get_topology(struct cpuinfo_x86 *c)
+ {
+ 	u32 nodes, cores_per_cu = 1;
+@@ -341,7 +341,7 @@ static void amd_get_topology(struct cpuinfo_x86 *c)
+  */
+ static void amd_detect_cmp(struct cpuinfo_x86 *c)
+ {
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ 	unsigned bits;
+ 	int cpu = smp_processor_id();
+ 
+@@ -420,7 +420,7 @@ static void srat_detect_node(struct cpuinfo_x86 *c)
+ 
+ static void early_init_amd_mc(struct cpuinfo_x86 *c)
+ {
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ 	unsigned bits, ecx;
+ 
+ 	/* Multi core CPU? */
+diff --git a/arch/x86/kernel/cpu/common.c b/arch/x86/kernel/cpu/common.c
+index 6bec0b55863e..b6fe2e47f7f1 100644
+--- a/arch/x86/kernel/cpu/common.c
++++ b/arch/x86/kernel/cpu/common.c
+@@ -508,7 +508,7 @@ static void cpu_detect_tlb(struct cpuinfo_x86 *c)
+ 
+ void detect_ht(struct cpuinfo_x86 *c)
+ {
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ 	u32 eax, ebx, ecx, edx;
+ 	int index_msb, core_bits;
+ 	static bool printed;
+@@ -844,7 +844,7 @@ static void generic_identify(struct cpuinfo_x86 *c)
+ 	if (c->cpuid_level >= 0x00000001) {
+ 		c->initial_apicid = (cpuid_ebx(1) >> 24) & 0xFF;
+ #ifdef CONFIG_X86_32
+-# ifdef CONFIG_X86_HT
++# ifdef CONFIG_SMP
+ 		c->apicid = apic->phys_pkg_id(c->initial_apicid, 0);
+ # else
+ 		c->apicid = c->initial_apicid;
+diff --git a/arch/x86/kernel/cpu/intel_cacheinfo.c b/arch/x86/kernel/cpu/intel_cacheinfo.c
+index edcb0e28c336..be4febc58b94 100644
+--- a/arch/x86/kernel/cpu/intel_cacheinfo.c
++++ b/arch/x86/kernel/cpu/intel_cacheinfo.c
+@@ -654,7 +654,7 @@ unsigned int init_intel_cacheinfo(struct cpuinfo_x86 *c)
+ 	unsigned int new_l1d = 0, new_l1i = 0; /* Cache sizes from cpuid(4) */
+ 	unsigned int new_l2 = 0, new_l3 = 0, i; /* Cache sizes from cpuid(4) */
+ 	unsigned int l2_id = 0, l3_id = 0, num_threads_sharing, index_msb;
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ 	unsigned int cpu = c->cpu_index;
+ #endif
+ 
+@@ -773,19 +773,19 @@ unsigned int init_intel_cacheinfo(struct cpuinfo_x86 *c)
+ 
+ 	if (new_l2) {
+ 		l2 = new_l2;
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ 		per_cpu(cpu_llc_id, cpu) = l2_id;
+ #endif
+ 	}
+ 
+ 	if (new_l3) {
+ 		l3 = new_l3;
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ 		per_cpu(cpu_llc_id, cpu) = l3_id;
+ #endif
+ 	}
+ 
+-#ifdef CONFIG_X86_HT
++#ifdef CONFIG_SMP
+ 	/*
+ 	 * If cpu_llc_id is not yet set, this means cpuid_level < 4 which in
+ 	 * turns means that the only possibility is SMT (as indicated in

@@ -1,0 +1,9 @@
+commit 71966f3a0b24b408a87a0c475262638fbb71da99
+Merge: 34e7724c0767 92ae18371cb1
+Author: Ingo Molnar <mingo@kernel.org>
+Date:   Wed Jun 3 10:07:35 2015 +0200
+
+    Merge branch 'locking/core' into x86/core, to prepare for dependent patch
+    
+    Signed-off-by: Ingo Molnar <mingo@kernel.org>
+
